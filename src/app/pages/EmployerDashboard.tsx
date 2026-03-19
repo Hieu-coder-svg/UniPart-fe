@@ -1,0 +1,376 @@
+import { useState } from "react";
+import {
+  Briefcase,
+  Users,
+  TrendingUp,
+  Eye,
+  MessageSquare,
+  ArrowUpRight,
+  ArrowDownRight,
+  Calendar,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  ShoppingCart,
+  Zap,
+} from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { Link } from "react-router";
+
+export default function EmployerDashboard() {
+  const { user } = useAuth();
+
+  const stats = [
+    {
+      label: "Tin đang hoạt động",
+      value: "12",
+      change: "+2",
+      trend: "up",
+      icon: Briefcase,
+      color: "blue",
+      bgGradient: "from-blue-500 to-blue-600",
+    },
+    {
+      label: "Tổng ứng viên",
+      value: "284",
+      change: "+48",
+      trend: "up",
+      icon: Users,
+      color: "green",
+      bgGradient: "from-green-500 to-green-600",
+    },
+    {
+      label: "Lượt xem tháng này",
+      value: "5,420",
+      change: "+12.5%",
+      trend: "up",
+      icon: Eye,
+      color: "purple",
+      bgGradient: "from-purple-500 to-purple-600",
+    },
+    {
+      label: "Tin nhắn chưa đọc",
+      value: "23",
+      change: "+5",
+      trend: "up",
+      icon: MessageSquare,
+      color: "orange",
+      bgGradient: "from-orange-500 to-orange-600",
+    },
+  ];
+
+  const recentJobs = [
+    {
+      id: 1,
+      title: "Nhân viên phục vụ - Part-time",
+      status: "active",
+      views: 245,
+      applicants: 12,
+      postedDate: "2024-03-10",
+      urgent: false,
+    },
+    {
+      id: 2,
+      title: "Gia sư Toán - Lớp 10",
+      status: "active",
+      views: 189,
+      applicants: 8,
+      postedDate: "2024-03-12",
+      urgent: true,
+    },
+    {
+      id: 3,
+      title: "Nhân viên kho - Ca tối",
+      status: "expiring",
+      views: 156,
+      applicants: 6,
+      postedDate: "2024-03-05",
+      urgent: false,
+    },
+  ];
+
+  const recentApplicants = [
+    {
+      id: 1,
+      name: "Nguyễn Văn An",
+      job: "Nhân viên phục vụ",
+      appliedDate: "2024-03-14",
+      status: "new",
+      avatar: "A",
+    },
+    {
+      id: 2,
+      name: "Trần Thị Bình",
+      job: "Gia sư Toán",
+      appliedDate: "2024-03-13",
+      status: "reviewed",
+      avatar: "B",
+    },
+    {
+      id: 3,
+      name: "Lê Minh Châu",
+      job: "Nhân viên kho",
+      appliedDate: "2024-03-12",
+      status: "shortlisted",
+      avatar: "C",
+    },
+  ];
+
+  const quickActions = [
+    {
+      title: "Đăng tin mới",
+      description: "Tạo tin tuyển dụng mới",
+      icon: Briefcase,
+      color: "orange",
+      gradient: "from-orange-500 to-red-500",
+      link: "/employer/dashboard/jobs",
+    },
+    {
+      title: "Mua tin tuyển dụng",
+      description: "Mua thêm slot đăng tin",
+      icon: ShoppingCart,
+      color: "blue",
+      gradient: "from-blue-500 to-cyan-500",
+      link: "/employer/dashboard/buy-posts",
+    },
+    {
+      title: "Xem thống kê",
+      description: "Phân tích hiệu quả",
+      icon: TrendingUp,
+      color: "green",
+      gradient: "from-green-500 to-emerald-500",
+      link: "/employer/dashboard/analytics",
+    },
+    {
+      title: "Tin tuyển gấp",
+      description: "Đẩy tin lên top",
+      icon: Zap,
+      color: "yellow",
+      gradient: "from-yellow-500 to-orange-500",
+      link: "/employer/dashboard/buy-posts",
+    },
+  ];
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-8 space-y-8">
+      {/* Welcome Banner */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-orange-600 via-red-600 to-pink-600 rounded-2xl p-8 text-white shadow-2xl">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
+        <div className="relative z-10">
+          <h1 className="text-3xl mb-2">
+            Chào mừng trở lại, {user?.name || "Admin"}! 👋
+          </h1>
+          <p className="text-orange-100 text-lg">
+            Hôm nay bạn có 12 tin đang hoạt động và 23 ứng viên mới
+          </p>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, idx) => (
+          <div
+            key={idx}
+            className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 group cursor-pointer"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className={`w-14 h-14 bg-gradient-to-br ${stat.bgGradient} rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                <stat.icon className="w-7 h-7 text-white" />
+              </div>
+              <div
+                className={`flex items-center gap-1 text-sm font-medium ${
+                  stat.trend === "up" ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {stat.trend === "up" ? (
+                  <ArrowUpRight className="w-4 h-4" />
+                ) : (
+                  <ArrowDownRight className="w-4 h-4" />
+                )}
+                <span>{stat.change}</span>
+              </div>
+            </div>
+            <div className="text-3xl font-bold mb-2 text-gray-900">{stat.value}</div>
+            <div className="text-sm text-gray-600">{stat.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Quick Actions */}
+      <div>
+        <h2 className="text-2xl mb-6 text-gray-900">Thao tác nhanh</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {quickActions.map((action, idx) => (
+            <Link
+              key={idx}
+              to={action.link}
+              className="group relative overflow-hidden bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100"
+            >
+              <div className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
+              <div className="relative z-10">
+                <div className={`w-12 h-12 bg-gradient-to-br ${action.gradient} rounded-xl flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                  <action.icon className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2 text-gray-900">{action.title}</h3>
+                <p className="text-sm text-gray-600">{action.description}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Recent Jobs - 2/3 width */}
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg border border-gray-100">
+          <div className="p-6 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900">Tin tuyển dụng gần đây</h2>
+              <Link
+                to="/employer/dashboard/jobs"
+                className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+              >
+                Xem tất cả →
+              </Link>
+            </div>
+          </div>
+          <div className="p-6 space-y-4">
+            {recentJobs.map((job) => (
+              <div
+                key={job.id}
+                className="border border-gray-200 rounded-xl p-4 hover:shadow-lg hover:border-orange-300 transition-all duration-300 group"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-gray-900 group-hover:text-orange-600 transition-colors">
+                        {job.title}
+                      </h3>
+                      {job.urgent && (
+                        <span className="px-2 py-0.5 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs rounded-full flex items-center gap-1">
+                          <Zap className="w-3 h-3" />
+                          Gấp
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-1">
+                        <Eye className="w-4 h-4" />
+                        <span>{job.views} lượt xem</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Users className="w-4 h-4" />
+                        <span>{job.applicants} ứng viên</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        <span>{new Date(job.postedDate).toLocaleDateString("vi-VN")}</span>
+                      </div>
+                    </div>
+                  </div>
+                  {job.status === "active" ? (
+                    <span className="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" />
+                      Hoạt động
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      Sắp hết hạn
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Applicants - 1/3 width */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
+          <div className="p-6 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900">Ứng viên mới</h2>
+              <Link
+                to="/employer/dashboard/applicants"
+                className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+              >
+                Xem tất cả →
+              </Link>
+            </div>
+          </div>
+          <div className="p-6 space-y-4">
+            {recentApplicants.map((applicant) => (
+              <div
+                key={applicant.id}
+                className="flex items-center gap-3 p-3 rounded-xl hover:bg-gradient-to-r hover:from-orange-50 hover:to-red-50 transition-all duration-300 cursor-pointer group"
+              >
+                <div className="w-12 h-12 bg-gradient-to-br from-orange-600 to-red-600 rounded-full flex items-center justify-center text-white font-semibold shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  {applicant.avatar}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-gray-900 truncate">{applicant.name}</h4>
+                  <p className="text-sm text-gray-600 truncate">{applicant.job}</p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(applicant.appliedDate).toLocaleDateString("vi-VN")}
+                  </p>
+                </div>
+                {applicant.status === "new" && (
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Activity Timeline */}
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+        <h2 className="text-xl font-semibold mb-6 text-gray-900">Hoạt động gần đây</h2>
+        <div className="space-y-4">
+          {[
+            {
+              icon: Users,
+              color: "green",
+              title: "3 ứng viên mới",
+              description: "Ứng tuyển vào vị trí Nhân viên phục vụ",
+              time: "10 phút trước",
+            },
+            {
+              icon: Eye,
+              color: "blue",
+              title: "Tin của bạn được xem 45 lần",
+              description: "Gia sư Toán - Lớp 10",
+              time: "1 giờ trước",
+            },
+            {
+              icon: MessageSquare,
+              color: "purple",
+              title: "5 tin nhắn mới",
+              description: "Từ các ứng viên",
+              time: "2 giờ trước",
+            },
+            {
+              icon: Briefcase,
+              color: "orange",
+              title: "Tin tuyển dụng được duyệt",
+              description: "Nhân viên kho - Ca tối",
+              time: "3 giờ trước",
+            },
+          ].map((activity, idx) => (
+            <div key={idx} className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors">
+              <div className={`w-10 h-10 bg-${activity.color}-100 rounded-lg flex items-center justify-center flex-shrink-0`}>
+                <activity.icon className={`w-5 h-5 text-${activity.color}-600`} />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-medium text-gray-900 mb-1">{activity.title}</h4>
+                <p className="text-sm text-gray-600">{activity.description}</p>
+              </div>
+              <span className="text-xs text-gray-500 whitespace-nowrap">{activity.time}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

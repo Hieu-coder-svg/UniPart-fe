@@ -1,0 +1,456 @@
+import { useState, useRef, useEffect } from "react";
+import { MessageCircle, X, Send, Minimize2, Move, MapPin, Clock, DollarSign, ExternalLink, Sparkles } from "lucide-react";
+import { Link } from "react-router";
+import { mockJobs, type Job } from "../data/mockData";
+
+type Message = {
+  text: string;
+  isBot: boolean;
+  jobs?: Job[];
+};
+
+export default function ChatBot() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([
+    { text: "Xin chào! Tôi là trợ lý AI của UniPart. Tôi có thể giúp bạn tìm công việc phù hợp với lịch học và sở thích của bạn! 🎯", isBot: true },
+  ]);
+  const [input, setInput] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<HTMLDivElement>(null);
+
+  const quickReplies = [
+    "Tìm việc lương cao",
+    "Việc làm cuối tuần",
+    "Công việc ca tối",
+    "Làm gần Quận 1",
+    "Việc gần tôi (10km)",
+    "Việc làm F&B",
+  ];
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('.drag-handle')) {
+      setIsDragging(true);
+      setDragStart({
+        x: e.clientX - position.x,
+        y: e.clientY - position.y,
+      });
+    }
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (isDragging) {
+      const newX = e.clientX - dragStart.x;
+      const newY = e.clientY - dragStart.y;
+      
+      // Get bounds
+      const chatElement = chatRef.current;
+      if (chatElement) {
+        const maxX = window.innerWidth - chatElement.offsetWidth - 24;
+        const maxY = window.innerHeight - chatElement.offsetHeight - 24;
+        
+        setPosition({
+          x: Math.max(-window.innerWidth + chatElement.offsetWidth + 24, Math.min(newX, maxX)),
+          y: Math.max(-window.innerHeight + chatElement.offsetHeight + 24, Math.min(newY, maxY)),
+        });
+      }
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, dragStart, position]);
+
+  const handleSend = (text?: string) => {
+    const messageText = text || input;
+    if (!messageText.trim()) return;
+
+    const userMessage: Message = { text: messageText, isBot: false };
+    setMessages((prev) => [...prev, userMessage]);
+    setShowSuggestions(false);
+
+    // Simulate AI response with typing indicator
+    setTimeout(() => {
+      const botResponse = generateBotResponse(messageText);
+      setMessages((prev) => [...prev, botResponse]);
+    }, 800);
+
+    setInput("");
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    handleSend(suggestion);
+  };
+
+  const findRelevantJobs = (query: string): Job[] => {
+    const lowerQuery = query.toLowerCase();
+    
+    let filteredJobs = mockJobs;
+
+    // Filter by distance (10km radius)
+    if (lowerQuery.includes("gần tôi") || lowerQuery.includes("gần đây") || lowerQuery.includes("10km") || lowerQuery.includes("bán kính")) {
+      filteredJobs = filteredJobs.filter(job => job.distance <= 10);
+    }
+
+    // Filter by salary
+    if (lowerQuery.includes("lương cao") || lowerQuery.includes("lương tốt")) {
+      filteredJobs = filteredJobs.filter(job => job.hourlyRate >= 50000);
+    }
+
+    // Filter by shift
+    if (lowerQuery.includes("cuối tuần")) {
+      filteredJobs = filteredJobs.filter(job => job.shift === "Cuối tuần");
+    } else if (lowerQuery.includes("ca tối") || lowerQuery.includes("tối")) {
+      filteredJobs = filteredJobs.filter(job => job.shift === "Tối");
+    } else if (lowerQuery.includes("ca sáng") || lowerQuery.includes("sáng")) {
+      filteredJobs = filteredJobs.filter(job => job.shift === "Sáng");
+    } else if (lowerQuery.includes("ca chiều") || lowerQuery.includes("chiều")) {
+      filteredJobs = filteredJobs.filter(job => job.shift === "Chiều");
+    }
+
+    // Filter by location
+    const locations = ["quận 1", "quận 3", "quận 5", "quận 7", "quận 10", "bình thạnh"];
+    locations.forEach(loc => {
+      if (lowerQuery.includes(loc)) {
+        filteredJobs = filteredJobs.filter(job => 
+          job.location.toLowerCase().includes(loc)
+        );
+      }
+    });
+
+    // Filter by category
+    if (lowerQuery.includes("f&b") || lowerQuery.includes("nhà hàng") || lowerQuery.includes("quán")) {
+      filteredJobs = filteredJobs.filter(job => job.category === "F&B");
+    } else if (lowerQuery.includes("gia sư") || lowerQuery.includes("dạy học")) {
+      filteredJobs = filteredJobs.filter(job => job.category === "Giáo dục");
+    } else if (lowerQuery.includes("bán hàng") || lowerQuery.includes("bán lẻ")) {
+      filteredJobs = filteredJobs.filter(job => job.category === "Bán lẻ");
+    } else if (lowerQuery.includes("marketing") || lowerQuery.includes("content")) {
+      filteredJobs = filteredJobs.filter(job => job.category === "Marketing");
+    }
+
+    // Filter by urgent
+    if (lowerQuery.includes("gấp") || lowerQuery.includes("urgent")) {
+      filteredJobs = filteredJobs.filter(job => job.urgent);
+    }
+
+    // Sort by distance if location-based query
+    if (lowerQuery.includes("gần") || lowerQuery.includes("10km")) {
+      filteredJobs = filteredJobs.sort((a, b) => a.distance - b.distance);
+    }
+
+    // Return top 2 jobs to keep chatbox smaller
+    return filteredJobs.slice(0, 2);
+  };
+
+  const generateBotResponse = (userInput: string): Message => {
+    const input = userInput.toLowerCase();
+    const jobs = findRelevantJobs(input);
+
+    // Job search queries
+    if (
+      input.includes("việc làm") || 
+      input.includes("công việc") || 
+      input.includes("tìm việc") ||
+      input.includes("lương") ||
+      input.includes("cuối tuần") ||
+      input.includes("ca tối") ||
+      input.includes("ca sáng") ||
+      input.includes("ca chiều") ||
+      input.includes("quận") ||
+      input.includes("f&b") ||
+      input.includes("gia sư") ||
+      input.includes("bán hàng") ||
+      input.includes("marketing") ||
+      input.includes("gấp") ||
+      input.includes("gần") ||
+      input.includes("10km") ||
+      input.includes("bán kính")
+    ) {
+      if (jobs.length > 0) {
+        let responseText = `Tuyệt vời! Tôi tìm thấy ${jobs.length} công việc phù hợp:`;
+        
+        if (input.includes("lương cao")) {
+          responseText = "Các công việc có mức lương cao nhất:";
+        } else if (input.includes("cuối tuần")) {
+          responseText = "Công việc làm cuối tuần phù hợp:";
+        } else if (input.includes("ca tối")) {
+          responseText = "Công việc ca tối giúp bạn linh hoạt ban ngày:";
+        } else if (input.includes("gần") || input.includes("10km")) {
+          responseText = "Công việc gần bạn nhất (trong bán kính 10km):";
+        }
+
+        return {
+          text: responseText,
+          isBot: true,
+          jobs: jobs,
+        };
+      } else {
+        return {
+          text: "Rất tiếc, hiện tại chưa có công việc phù hợp với yêu cầu của bạn. Hãy thử tìm kiếm với tiêu chí khác hoặc xem tất cả công việc tại trang Việc làm nhé!",
+          isBot: true,
+        };
+      }
+    }
+
+    // Other queries
+    if (input.includes("cộng đồng") || input.includes("chia sẻ")) {
+      return {
+        text: "Cộng đồng UniPart là nơi sinh viên chia sẻ kinh nghiệm làm việc, cảnh báo về nơi làm không tốt, và hỗ trợ lẫn nhau. Hãy ghé qua mục 'Cộng đồng' để kết nối với hàng ngàn sinh viên khác!",
+        isBot: true,
+      };
+    }
+
+    if (input.includes("ứng tuyển") || input.includes("apply")) {
+      return {
+        text: "Để ứng tuyển, bạn chỉ cần:\n1. Chọn công việc phù hợp\n2. Xem chi tiết và đánh giá\n3. Nhấn 'Ứng tuyển ngay'\n4. Điền thông tin và gửi\n\nĐảm bảo hồ sơ của bạn đã đầy đủ thông tin nhé! 📝",
+        isBot: true,
+      };
+    }
+
+    if (input.includes("đánh giá") || input.includes("review")) {
+      return {
+        text: "Tất cả đánh giá trên UniPart đều được xác thực từ sinh viên đã thực sự làm việc. Bạn có thể xem rating, số lượng đánh giá và nhận xét chi tiết để đưa ra quyết định tốt nhất! ⭐",
+        isBot: true,
+      };
+    }
+
+    if (input.includes("hướng dẫn") || input.includes("help")) {
+      return {
+        text: "UniPart giúp sinh viên:\n• Tìm việc làm part-time phù hợp\n• Xem đánh giá từ sinh viên khác\n• Lọc theo ca làm, địa điểm, lương\n• Kết nối với cộng đồng sinh viên\n• Lưu và theo dõi công việc yêu thích\n\nBạn muốn tìm hiểu chi tiết về phần nào?",
+        isBot: true,
+      };
+    }
+
+    // Default response with job suggestions
+    const randomJobs = [...mockJobs].sort(() => Math.random() - 0.5).slice(0, 2);
+    return {
+      text: "Tôi có thể giúp bạn tìm việc làm phù hợp! Đây là một số gợi ý:",
+      isBot: true,
+      jobs: randomJobs,
+    };
+  };
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-50 hover:scale-110 group"
+        title="Trò chuyện với AI"
+      >
+        <MessageCircle className="w-7 h-7" />
+        <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+          <Sparkles className="w-3 h-3" />
+        </div>
+      </button>
+    );
+  }
+
+  return (
+    <div
+      ref={chatRef}
+      className="fixed z-50"
+      style={{
+        width: "420px",
+        maxWidth: "calc(100vw - 32px)",
+        maxHeight: "calc(100vh - 48px)",
+        bottom: `${24 - position.y}px`,
+        right: `${24 - position.x}px`,
+        cursor: isDragging ? 'grabbing' : 'default',
+      }}
+      onMouseDown={handleMouseDown}
+    >
+      <div className="bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col overflow-hidden h-full max-h-[520px]">
+        {/* Header */}
+        <div className="drag-handle bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-3 cursor-grab active:cursor-grabbing flex items-center justify-between select-none flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+              🤖
+            </div>
+            <div>
+              <div className="font-semibold flex items-center gap-1">
+                UniPart AI
+                <Sparkles className="w-3 h-3" />
+              </div>
+              <div className="text-xs text-blue-100">Trợ lý tìm việc thông minh</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <Move className="w-4 h-4 opacity-60" />
+            <button
+              onClick={() => setIsMinimized(!isMinimized)}
+              className="p-1 hover:bg-white/20 rounded transition-colors"
+            >
+              <Minimize2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                setPosition({ x: 0, y: 0 });
+              }}
+              className="p-1 hover:bg-white/20 rounded transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Chat Content */}
+        {!isMinimized && (
+          <>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 min-h-0">
+              {messages.map((msg, idx) => (
+                <div key={idx}>
+                  <div
+                    className={`flex ${msg.isBot ? "justify-start" : "justify-end"} animate-fadeIn`}
+                  >
+                    <div
+                      className={`max-w-[85%] px-4 py-3 rounded-lg shadow-sm ${
+                        msg.isBot
+                          ? "bg-white text-gray-800 border border-gray-100"
+                          : "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                      }`}
+                    >
+                      <div className="text-sm leading-relaxed whitespace-pre-line">{msg.text}</div>
+                    </div>
+                  </div>
+
+                  {/* Job Cards */}
+                  {msg.jobs && msg.jobs.length > 0 && (
+                    <div className="mt-3 space-y-2 animate-fadeIn">
+                      {msg.jobs.map((job) => (
+                        <JobChatCard key={job.id} job={job} />
+                      ))}
+                      <div className="text-center pt-2">
+                        <Link
+                          to="/jobs"
+                          className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                        >
+                          Xem tất cả công việc
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Quick Replies */}
+              {showSuggestions && messages.length === 1 && (
+                <div className="pt-2 space-y-2">
+                  <div className="text-xs text-gray-500 px-1">💡 Câu hỏi gợi ý:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {quickReplies.map((reply, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleSuggestionClick(reply)}
+                        className="px-3 py-2 bg-white border border-blue-200 text-blue-600 rounded-lg text-sm hover:bg-blue-50 hover:border-blue-400 transition-all shadow-sm"
+                      >
+                        {reply}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input */}
+            <div className="p-4 bg-white border-t border-gray-200">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleSend()}
+                  placeholder="Nhập yêu cầu của bạn..."
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <button
+                  onClick={() => handleSend()}
+                  className="px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function JobChatCard({ job }: { job: Job }) {
+  return (
+    <Link
+      to={`/jobs/${job.id}`}
+      className="block bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-3 border border-blue-100 hover:border-blue-300 hover:shadow-md transition-all group"
+    >
+      <div className="flex items-start gap-3">
+        {/* Logo */}
+        <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center text-xl shadow-sm border border-blue-100 flex-shrink-0">
+          {job.logo || "🏢"}
+        </div>
+
+        {/* Job Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <h4 className="font-semibold text-sm text-gray-900 line-clamp-1 group-hover:text-blue-600 transition-colors">
+              {job.title}
+            </h4>
+            {job.urgent && (
+              <span className="px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full font-semibold flex-shrink-0">
+                GẤP
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-gray-600 mb-2 truncate">{job.company}</p>
+
+          <div className="space-y-1">
+            <div className="flex items-center gap-1.5 text-xs text-gray-600">
+              <DollarSign className="w-3.5 h-3.5 text-green-600" />
+              <span className="font-semibold text-green-600">{job.hourlyRate.toLocaleString()}đ/giờ</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-gray-600">
+              <Clock className="w-3.5 h-3.5" />
+              <span>{job.shift}{job.workingHours ? ` (${job.workingHours})` : ""}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-gray-600">
+              <MapPin className="w-3.5 h-3.5 text-blue-600" />
+              <span className="truncate">{job.location}</span>
+              <span className="text-blue-600 font-medium">• {job.distance}km</span>
+            </div>
+          </div>
+
+          <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+            <span className="px-2 py-0.5 bg-white text-blue-600 text-xs rounded-full border border-blue-200 font-medium">
+              {job.category}
+            </span>
+            <span className="text-xs text-gray-500">⭐ {job.rating}</span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
