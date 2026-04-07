@@ -14,7 +14,7 @@ import {
   ShoppingCart,
   Zap,
 } from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { Link } from "react-router";
 
 export default function EmployerDashboard() {

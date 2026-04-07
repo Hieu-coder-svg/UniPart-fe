@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router";
-import { mockJobs, mockReviews } from "../data/mockData";
+import { mockJobs, mockReviews } from "../../data/mockData";
 import {
   MapPin,
   Clock,
@@ -11,7 +11,7 @@ import {
   Share2,
   Bookmark,
 } from "lucide-react";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 
 export default function JobDetail() {
   const { id } = useParams();

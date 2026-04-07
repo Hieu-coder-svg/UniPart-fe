@@ -20,7 +20,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import logoImage from "figma:asset/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
+import logoImage from "../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
 
 export default function ManagerLayout() {
   const location = useLocation();

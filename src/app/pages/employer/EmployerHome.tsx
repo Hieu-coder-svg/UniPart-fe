@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { useEffect, useRef, useState } from "react";
 import {
   Briefcase,
   Users,
@@ -17,10 +18,107 @@ import {
   MessageCircle,
   ArrowRight,
   ChevronRight,
+  Sparkles,
+  Bell,
+  FileText,
+  Zap,
 } from "lucide-react";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-import { EmployerChatBot } from "../components/EmployerChatBot";
-import logoImage from "figma:asset/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
+import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
+import { EmployerChatBot } from "../../components/EmployerChatBot";
+import logoImage from "../../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
+
+/* ── Shimmer keyframe injected once ── */
+const SHIMMER_STYLE = `
+  @keyframes shimmer {
+    0%   { transform: translateX(-100%) skewX(-15deg); }
+    100% { transform: translateX(250%)  skewX(-15deg); }
+  }
+  @keyframes floatUp {
+    0%, 100% { transform: translateY(0px);   }
+    50%       { transform: translateY(-8px);  }
+  }
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(40px); }
+    to   { opacity: 1; transform: translateX(0);    }
+  }
+  .shimmer-btn::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; height: 100%; width: 40%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+    animation: shimmer 2.4s infinite;
+  }
+  .float-card { animation: floatUp 3s ease-in-out infinite; }
+  .float-card-2 { animation: floatUp 4s ease-in-out infinite 1s; }
+  .slide-in { animation: slideInRight 0.7s ease forwards; }
+`;
+
+/* ─────────────────────────────────────────────────────────────
+   STATS SECTION — animated counter + icon blocks
+───────────────────────────────────────────────────────────── */
+const STATS_DATA = [
+  { icon: Users,      target: 10000, suffix: "+", label: "Sinh viên hoạt động",   color: "bg-blue-100 text-blue-600" },
+  { icon: Briefcase,  target: 500,   suffix: "+", label: "Doanh nghiệp tin tưởng", color: "bg-orange-100 text-orange-600" },
+  { icon: TrendingUp, target: 5000,  suffix: "+", label: "Tin tuyển dụng/tháng",  color: "bg-emerald-100 text-emerald-600" },
+  { icon: Star,       target: 95,    suffix: "%", label: "Tỷ lệ hài lòng",        color: "bg-amber-100 text-amber-600" },
+];
+
+function useCountUp(target: number, active: boolean, duration = 1800) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    let start = 0;
+    const step = target / (duration / 16);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) { setCount(target); clearInterval(timer); }
+      else setCount(Math.floor(start));
+    }, 16);
+    return () => clearInterval(timer);
+  }, [active, target, duration]);
+  return count;
+}
+
+function StatBlock({ icon: Icon, target, suffix, label, color }: (typeof STATS_DATA)[0]) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  const count = useCountUp(target, visible);
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true); }, { threshold: 0.4 });
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className="flex flex-col items-center gap-3 p-8 rounded-2xl border border-gray-100 bg-white hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${color}`}>
+        <Icon className="w-7 h-7" />
+      </div>
+      <div className="text-4xl font-black text-gray-900">
+        {target >= 1000 ? (count >= 1000 ? `${(count / 1000).toFixed(count % 1000 === 0 ? 0 : 0)}K` : count) : count}
+        {suffix}
+      </div>
+      <div className="text-sm text-gray-500 text-center font-medium">{label}</div>
+    </div>
+  );
+}
+
+function StatsSection() {
+  return (
+    <section className="py-20 bg-gradient-to-b from-white to-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <p className="text-xs font-bold uppercase tracking-widest text-orange-500 mb-2">Con số biết nói</p>
+          <h2 className="text-3xl font-extrabold text-gray-900">Được tin tưởng bởi hàng nghìn doanh nghiệp</h2>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {STATS_DATA.map((s, i) => <StatBlock key={i} {...s} />)}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export default function EmployerHome() {
   const formatCurrency = (amount: number) => {
@@ -189,86 +287,120 @@ export default function EmployerHome() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 py-20 overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-orange-500 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-red-500 rounded-full blur-3xl"></div>
-        </div>
-        
+      {/* Hero Section — Mesh Gradient + Floating Elements */}
+      <style dangerouslySetInnerHTML={{ __html: SHIMMER_STYLE }} />
+      <section className="relative py-20 overflow-hidden" style={{
+        background: "radial-gradient(ellipse at 20% 60%, rgba(251,146,60,0.18) 0%, transparent 55%), radial-gradient(ellipse at 80% 20%, rgba(239,68,68,0.12) 0%, transparent 50%), radial-gradient(ellipse at 60% 90%, rgba(253,186,116,0.15) 0%, transparent 45%), #fff9f6"
+      }}>
+        {/* Decorative blobs */}
+        <div className="absolute top-0 left-0 w-80 h-80 bg-orange-200 rounded-full blur-[120px] opacity-30 pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-red-200 rounded-full blur-[140px] opacity-25 pointer-events-none" />
+        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-amber-100 rounded-full blur-[100px] opacity-40 pointer-events-none" />
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            {/* Left: Text */}
             <div>
-              <div className="inline-block px-4 py-2 bg-orange-100 text-orange-700 rounded-full text-sm mb-6">
-                🚀 Nền tảng tuyển dụng sinh viên #1 Việt Nam
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-orange-100 text-orange-700 rounded-full text-sm font-semibold mb-6 border border-orange-200">
+                <Sparkles className="w-4 h-4" />
+                Nền tảng tuyển dụng sinh viên #1 Việt Nam
               </div>
-              <h1 className="text-4xl md:text-5xl mb-6">
-                Tìm nhân sự sinh viên 
-                <span className="block bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                  nhanh chóng & hiệu quả
+              <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6 leading-tight">
+                Tìm nhân sự sinh viên{" "}
+                <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
+                  nhanh chóng &amp; hiệu quả
                 </span>
               </h1>
-              <p className="text-xl text-gray-600 mb-8">
-                Kết nối với hơn 10,000 sinh viên ưu tú, sẵn sàng làm việc bán thời gian. 
-                Đăng tin chỉ trong 3 phút, nhận CV ngay trong ngày.
+              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+                Kết nối với hơn 10,000 sinh viên ưu tú, sẵn sàng làm việc bán thời gian.
+                Đăng tin chỉ trong <strong>3 phút</strong>, nhận CV ngay trong ngày.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                {/* Shimmer CTA */}
                 <Link
                   to="/employer/login"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl hover:shadow-xl transition-all"
+                  className="shimmer-btn relative overflow-hidden inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-xl hover:shadow-2xl hover:shadow-orange-200 hover:-translate-y-0.5 transition-all duration-200"
                 >
-                  <span>Đăng tin miễn phí</span>
-                  <ArrowRight className="w-5 h-5" />
+                  <Zap className="w-5 h-5" />
+                  <span className="relative z-10">Đăng tin miễn phí</span>
+                  <ArrowRight className="w-5 h-5 relative z-10" />
                 </Link>
+                {/* Ghost CTA */}
                 <a
                   href="#pricing"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-gray-700 border-2 border-gray-300 rounded-xl hover:border-orange-600 hover:text-orange-600 transition-all"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/80 backdrop-blur-sm text-gray-700 border border-gray-200 hover:border-orange-400 hover:text-orange-600 rounded-xl transition-all font-semibold"
                 >
-                  <span>Xem bảng giá</span>
+                  Xem bảng giá
+                  <ChevronRight className="w-4 h-4" />
                 </a>
+              </div>
+              {/* Trust badges */}
+              <div className="flex items-center gap-4 mt-6">
+                {["✅ Miễn phí đăng ký", "⚡ Duyệt tin trong 1h", "🔒 Ứng viên xác thực"].map((b) => (
+                  <span key={b} className="text-xs text-gray-500 font-medium">{b}</span>
+                ))}
               </div>
             </div>
 
+            {/* Right: Image + floating cards */}
             <div className="relative">
-              <div className="rounded-2xl overflow-hidden shadow-2xl">
+              {/* Main image */}
+              <div className="rounded-[2rem] overflow-hidden shadow-2xl shadow-orange-100 ring-1 ring-orange-100">
                 <ImageWithFallback
                   src="https://images.unsplash.com/photo-1601509876296-aba16d4c10a4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMHRlYW0lMjBjb2xsYWJvcmF0aW9ufGVufDF8fHx8MTc3MzY2NTE5NXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
                   alt="Business team"
-                  className="w-full h-[400px] object-cover"
+                  className="w-full h-[380px] object-cover"
                 />
               </div>
-              {/* Floating cards */}
-              <div className="absolute -bottom-6 -left-6 bg-white rounded-xl shadow-xl p-4 border border-gray-200">
+
+              {/* Floating card 1 — Ứng viên mới (slide-in + float) */}
+              <div className="slide-in float-card absolute -bottom-5 -left-8 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl px-4 py-3 border border-orange-100 min-w-[180px]">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                    <Check className="w-6 h-6 text-green-600" />
+                  <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Bell className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
-                    <div className="text-sm text-gray-600">Ứng viên mới</div>
-                    <div className="text-xl">+124 hôm nay</div>
+                    <div className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Ứng viên mới</div>
+                    <div className="text-lg font-extrabold text-gray-900">+124 <span className="text-sm font-normal text-gray-400">hôm nay</span></div>
                   </div>
                 </div>
+                <div className="mt-2 flex -space-x-2">
+                  {["🧑‍💻","👩‍🎓","👨‍💼","👩‍🔬"].map((e, i) => (
+                    <div key={i} className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-400 to-red-400 border-2 border-white flex items-center justify-center text-sm">{e}</div>
+                  ))}
+                  <div className="w-7 h-7 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-[9px] font-bold text-gray-500">+89</div>
+                </div>
+              </div>
+
+              {/* Floating card 2 — CV received */}
+              <div className="slide-in float-card-2 absolute -top-5 -right-5 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl px-4 py-3 border border-blue-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-gray-400 font-semibold uppercase">CV đã nhận</div>
+                    <div className="text-base font-extrabold text-gray-900">38 <span className="text-xs font-normal text-gray-400">hôm nay</span></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating card 3 — Rating */}
+              <div className="float-card absolute top-1/2 -right-8 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl px-3 py-2.5 border border-amber-100">
+                <div className="flex items-center gap-1.5">
+                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  <span className="text-sm font-extrabold text-gray-900">4.9</span>
+                  <span className="text-xs text-gray-400">/ 5</span>
+                </div>
+                <p className="text-[9px] text-gray-400 mt-0.5">500+ doanh nghiệp</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, idx) => (
-              <div key={idx} className="text-center">
-                <div className="text-4xl mb-2 bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                  {stat.number}
-                </div>
-                <div className="text-gray-600">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Stats Section — Icon blocks + animated counter */}
+      <StatsSection />
 
       {/* Services Section */}
       <section id="services" className="py-20 bg-gradient-to-br from-gray-50 to-blue-50/30">
@@ -308,93 +440,116 @@ export default function EmployerHome() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Pricing Section — Glassmorphism + scale popular */}
+      <section id="pricing" className="py-24 relative overflow-hidden" style={{
+        background: "radial-gradient(ellipse at 30% 0%, rgba(251,146,60,0.08) 0%, transparent 60%), radial-gradient(ellipse at 70% 100%, rgba(239,68,68,0.06) 0%, transparent 60%), #fafafa"
+      }}>
+        {/* Decorative background blobs */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-100 rounded-full blur-[160px] opacity-30 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-orange-100 rounded-full blur-[120px] opacity-30 pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center mb-16">
-            <h2 className="text-4xl mb-4">Bảng giá linh hoạt</h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Chọn gói phù hợp với nhu cầu tuyển dụng của bạn
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold mb-4 border border-purple-200">
+              <Package className="w-4 h-4" /> Bảng giá linh hoạt
+            </span>
+            <h2 className="text-4xl font-extrabold text-gray-900 mb-3">Chọn gói phù hợp</h2>
+            <p className="text-lg text-gray-500 max-w-xl mx-auto">
+              Tất cả gói đều được dùng thử miễn phí 14 ngày, không cần thẻ tín dụng.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 mb-12">
+          {/* Pricing cards */}
+          <div className="grid md:grid-cols-3 gap-6 mb-12 items-stretch">
             {pricingPackages.map((pkg, idx) => (
               <div
                 key={idx}
-                className={`relative bg-white border-2 rounded-2xl p-8 hover:shadow-2xl transition-all ${
+                className={`relative flex flex-col rounded-3xl transition-all duration-300 ${
                   pkg.popular
-                    ? "border-purple-500 shadow-xl scale-105"
-                    : "border-gray-200"
+                    ? "scale-[1.04] shadow-2xl shadow-purple-200 border-2 border-purple-400 bg-white/80 backdrop-blur-xl z-10"
+                    : "bg-white/60 backdrop-blur border border-gray-200 hover:shadow-xl hover:-translate-y-1"
                 }`}
               >
+                {/* Popular ribbon */}
                 {pkg.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <div className="px-4 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full text-sm shadow-lg">
-                      ⭐ Phổ biến nhất
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20">
+                    <div className="flex items-center gap-1.5 px-5 py-1.5 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full text-xs font-bold shadow-lg">
+                      <Star className="w-3.5 h-3.5 fill-white" /> RECOMMEND
                     </div>
                   </div>
                 )}
 
-                <div className="text-center mb-8">
-                  <div
-                    className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${pkg.gradient} flex items-center justify-center`}
+                <div className="p-8 flex flex-col flex-1">
+                  {/* Icon + name */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${pkg.gradient} flex items-center justify-center shadow-lg`}>
+                      <Package className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-extrabold text-gray-900">{pkg.name}</h3>
+                      <p className="text-xs text-gray-400">{pkg.description}</p>
+                    </div>
+                  </div>
+
+                  {/* Price */}
+                  <div className="mb-6">
+                    <div className={`text-3xl font-black bg-gradient-to-r ${pkg.gradient} bg-clip-text text-transparent`}>
+                      {formatCurrency(pkg.price)}
+                    </div>
+                    <div className="text-xs text-gray-400 mt-0.5">/ tháng · VAT included</div>
+                  </div>
+
+                  {/* Features */}
+                  <ul className="space-y-2.5 mb-8 flex-1">
+                    {pkg.features.map((feature, fIdx) => (
+                      <li key={fIdx} className="flex items-start gap-2.5">
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Check className="w-3 h-3 text-emerald-600" />
+                        </div>
+                        <span className="text-sm text-gray-700">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* CTA */}
+                  <Link
+                    to="/employer/login"
+                    className={`block w-full py-3.5 rounded-2xl text-center font-bold text-sm transition-all duration-200 ${
+                      pkg.popular
+                        ? `bg-gradient-to-r ${pkg.gradient} text-white hover:shadow-xl hover:shadow-purple-200 hover:-translate-y-0.5`
+                        : "bg-gray-100 text-gray-700 hover:bg-orange-50 hover:text-orange-700 border border-gray-200"
+                    }`}
                   >
-                    <Package className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-2xl mb-2">{pkg.name}</h3>
-                  <p className="text-gray-600 text-sm mb-4">{pkg.description}</p>
-                  <div className={`text-4xl mb-1 bg-gradient-to-r ${pkg.gradient} bg-clip-text text-transparent`}>
-                    {formatCurrency(pkg.price)}
-                  </div>
-                  <div className="text-sm text-gray-500">/tháng</div>
+                    {pkg.popular ? "🚀 Bắt đầu ngay" : "Chọn gói này"}
+                  </Link>
                 </div>
-
-                <ul className="space-y-3 mb-8">
-                  {pkg.features.map((feature, fIdx) => (
-                    <li key={fIdx} className="flex items-start gap-2">
-                      <Check className="w-5 h-5 flex-shrink-0 text-green-500 mt-0.5" />
-                      <span className="text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Link
-                  to="/employer/login"
-                  className={`block w-full py-3 rounded-xl text-center transition-all ${
-                    pkg.popular
-                      ? `bg-gradient-to-r ${pkg.gradient} text-white hover:shadow-lg`
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  Chọn gói này
-                </Link>
               </div>
             ))}
           </div>
 
           {/* Pay per post */}
-          <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8 border border-blue-200">
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 border border-gray-200 shadow-sm">
             <div className="text-center mb-6">
-              <h3 className="text-2xl mb-2">Hoặc mua theo số lượng tin</h3>
-              <p className="text-gray-600">Linh hoạt cho nhu cầu ngắn hạn</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-1">Hoặc mua theo số lượng tin</h3>
+              <p className="text-sm text-gray-500">Linh hoạt cho nhu cầu ngắn hạn, không cần đăng ký gói</p>
             </div>
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="bg-white rounded-xl p-6 text-center border border-gray-200">
-                <div className="text-3xl mb-2">1 tin</div>
-                <div className="text-xl text-orange-600 mb-1">50,000đ - 70,000đ</div>
-                <div className="text-sm text-gray-500">Tin thường / Tin gấp</div>
-              </div>
-              <div className="bg-white rounded-xl p-6 text-center border-2 border-purple-500">
-                <div className="text-3xl mb-2">3 tin</div>
-                <div className="text-xl text-orange-600 mb-1">135,000đ - 189,000đ</div>
-                <div className="text-sm text-gray-500">Tiết kiệm 10%</div>
-              </div>
-              <div className="bg-white rounded-xl p-6 text-center border border-gray-200">
-                <div className="text-3xl mb-2">5 tin</div>
-                <div className="text-xl text-orange-600 mb-1">200,000đ - 224,000đ</div>
-                <div className="text-sm text-gray-500">Tiết kiệm 20%</div>
-              </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              {[
+                { qty: "1 tin", price: "50,000đ – 70,000đ", note: "Tin thường / Tin gấp", highlight: false },
+                { qty: "3 tin", price: "135,000đ – 189,000đ", note: "Tiết kiệm 10%", highlight: true },
+                { qty: "5 tin", price: "200,000đ – 224,000đ", note: "Tiết kiệm 20%", highlight: false },
+              ].map((p) => (
+                <div key={p.qty} className={`rounded-2xl p-5 text-center transition-all ${
+                  p.highlight
+                    ? "border-2 border-purple-400 bg-purple-50 shadow-md"
+                    : "border border-gray-200 bg-white hover:border-orange-300 hover:shadow-sm"
+                }`}>
+                  <div className="text-2xl font-black text-gray-900 mb-1">{p.qty}</div>
+                  <div className="text-base font-bold text-orange-600 mb-1">{p.price}</div>
+                  <div className="text-xs text-gray-400">{p.note}</div>
+                  {p.highlight && <span className="mt-2 inline-block text-[10px] bg-purple-200 text-purple-700 px-2 py-0.5 rounded-full font-bold">PHỔ BIẾN</span>}
+                </div>
+              ))}
             </div>
           </div>
         </div>

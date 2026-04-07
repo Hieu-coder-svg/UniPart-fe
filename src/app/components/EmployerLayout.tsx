@@ -22,7 +22,7 @@ import {
 import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { EmployerChatBot } from "./EmployerChatBot";
-import logoImage from "figma:asset/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
+import logoImage from "../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
 
 export default function EmployerLayout() {
   const location = useLocation();

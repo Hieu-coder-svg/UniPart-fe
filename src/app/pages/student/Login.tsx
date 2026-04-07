@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router";
 import { Mail, Lock, Eye, EyeOff, LogIn, UserPlus, AlertCircle } from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-import logoImage from "figma:asset/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
+import { useAuth } from "../../contexts/AuthContext";
+import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
+import logoImage from "../../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);

@@ -16,7 +16,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import logoImage from "figma:asset/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
+import logoImage from "../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
 
 export default function AdminLayout() {
   const location = useLocation();
@@ -25,7 +25,7 @@ export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  const menuItems = [
+  const menuItems: Array<{ path: string; icon: any; label: string; exact?: boolean; badge?: string | number }> = [
     {
       path: "/admin",
       icon: LayoutDashboard,

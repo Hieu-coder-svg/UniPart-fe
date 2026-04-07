@@ -1,6 +1,6 @@
 import { Mail, Phone, MapPin, Facebook, Instagram, Linkedin, Twitter, Briefcase } from "lucide-react";
 import { Link } from "react-router";
-import logoImage from "figma:asset/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
+import logoImage from "../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
