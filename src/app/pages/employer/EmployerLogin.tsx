@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router";
-import { Mail, Lock, Eye, EyeOff, LogIn, UserPlus, AlertCircle, Building2, CheckCircle, ArrowLeft, Sparkles, User, Phone } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, LogIn, UserPlus, AlertCircle, CheckCircle, Sparkles } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import logoImage from "../../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
+import { RegisterEmployerForm } from "../../components/auth/RegisterEmployerForm";
+import type { EmployerRegistrationRequest } from "../../../types/auth";
+import { toast } from "sonner";
 
 export default function EmployerLogin() {
   const [isLogin, setIsLogin] = useState(true);
@@ -12,19 +15,11 @@ export default function EmployerLogin() {
   const [error, setError] = useState("");
   
   const navigate = useNavigate();
-  const { login, register } = useAuth();
+  const { login, registerEmployer } = useAuth();
 
   // Login form
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-
-  // Register form
-  const [registerName, setRegisterName] = useState("");
-  const [registerEmail, setRegisterEmail] = useState("");
-  const [registerPhone, setRegisterPhone] = useState("");
-  const [registerPassword, setRegisterPassword] = useState("");
-  const [registerConfirmPassword, setRegisterConfirmPassword] = useState("");
-  const [registerCompany, setRegisterCompany] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,60 +27,39 @@ export default function EmployerLogin() {
     setLoading(true);
 
     try {
-      const success = await login(loginEmail, loginPassword, "employer");
-      if (success) {
-        navigate("/employer/dashboard");
-      } else {
-        setError("Email hoặc mật khẩu không đúng");
-      }
-    } catch (err) {
-      setError("Đã có lỗi xảy ra. Vui lòng thử lại.");
+      await login(loginEmail, loginPassword);
+      navigate("/employer/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Đã có lỗi xảy ra. Vui lòng kiểm tra lại tài khoản.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleEmployerRegister = async (data: EmployerRegistrationRequest) => {
     setError("");
-    
-    // Validate password match
-    if (registerPassword !== registerConfirmPassword) {
-      setError("Mật khẩu xác nhận không khớp");
-      return;
-    }
-    
     setLoading(true);
 
     try {
-      const success = await register(
-        registerName,
-        registerEmail,
-        registerPassword,
-        "employer",
-        { phone: registerPhone }
-      );
-      if (success) {
-        navigate("/employer/dashboard");
-      } else {
-        setError("Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.");
-      }
-    } catch (err) {
-      setError("Đã có lỗi xảy ra. Vui lòng thử lại.");
+      await registerEmployer(data);
+      toast.success("Đăng ký doanh nghiệp thành công!");
+      navigate("/verify-otp");
+    } catch (err: any) {
+      setError(err.message || "Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 relative overflow-hidden overflow-y-auto">
       {/* Decorative background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none fixed">
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-orange-400/20 to-red-400/20 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-pink-400/20 to-orange-400/20 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
+      <div className="min-h-screen flex items-center justify-center p-4 relative z-10 py-12">
         <div className="w-full max-w-6xl grid md:grid-cols-2 gap-8 items-center">
           {/* Left side - Branding */}
           <div className="hidden md:block space-y-6">
@@ -152,11 +126,11 @@ export default function EmployerLogin() {
           </div>
 
           {/* Right side - Form */}
-          <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-8 md:p-10 border border-white/50">
+          <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-8 md:p-10 border border-white/50 w-full max-w-xl mx-auto">
             {/* Header */}
             <div className="text-center mb-8">
-              <h2 className="text-2xl mb-2">
-                {isLogin ? "Chào mừng trở li" : "Tạo tài khoản mới"}
+              <h2 className="text-2xl mb-2 font-semibold">
+                {isLogin ? "Chào mừng trở lại" : "Tạo tài khoản mới"}
               </h2>
               <p className="text-gray-600">
                 {isLogin 
@@ -205,7 +179,7 @@ export default function EmployerLogin() {
             {error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-red-700">
                 <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm">{error}</span>
+                <span className="text-sm font-medium">{error}</span>
               </div>
             )}
 
@@ -213,14 +187,14 @@ export default function EmployerLogin() {
             {isLogin ? (
               <form onSubmit={handleLogin} className="space-y-5">
                 <div>
-                  <label className="block text-sm mb-2 text-gray-700">Email doanh nghiệp</label>
+                  <label className="block text-sm mb-2 text-gray-700 font-medium">Tên đăng nhập / Email doanh nghiệp</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
-                      type="email"
+                      type="text"
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
-                      placeholder="hr@company.com"
+                      placeholder="Username hoặc Email"
                       required
                       className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all"
                     />
@@ -228,7 +202,7 @@ export default function EmployerLogin() {
                 </div>
 
                 <div>
-                  <label className="block text-sm mb-2 text-gray-700">Mật khẩu</label>
+                  <label className="block text-sm mb-2 text-gray-700 font-medium">Mật khẩu</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
@@ -252,10 +226,10 @@ export default function EmployerLogin() {
 
                 <div className="flex items-center justify-between text-sm">
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" className="rounded border-gray-300" />
+                    <input type="checkbox" className="rounded border-gray-300 text-orange-600 focus:ring-orange-500" />
                     <span className="text-gray-600">Ghi nhớ đăng nhập</span>
                   </label>
-                  <button type="button" className="text-orange-600 hover:text-orange-700">
+                  <button type="button" className="text-orange-600 hover:text-orange-700 font-medium">
                     Quên mật khẩu?
                   </button>
                 </div>
@@ -263,7 +237,7 @@ export default function EmployerLogin() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3.5 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <div className="flex items-center justify-center gap-2">
@@ -275,144 +249,18 @@ export default function EmployerLogin() {
                   )}
                 </button>
 
-                <div className="text-center text-sm">
+                <div className="text-center text-sm pt-2">
                   <span className="text-gray-600">Bạn là sinh viên? </span>
-                  <Link to="/login" className="text-blue-600 hover:underline">
+                  <Link to="/login" className="text-blue-600 hover:underline font-medium">
                     Đăng nhập tại đây
                   </Link>
                 </div>
-
-                <div className="text-center text-sm text-gray-600">
-                  Đăng nhập demo: bất kỳ email + mật khẩu ≥ 6 ký tự
-                </div>
               </form>
             ) : (
-              /* Register Form */
-              <form onSubmit={handleRegister} className="space-y-4">
-                <div>
-                  <label className="block text-sm mb-2 text-gray-700">Họ và tên</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="text"
-                      value={registerName}
-                      onChange={(e) => setRegisterName(e.target.value)}
-                      placeholder="Nguyễn Văn A"
-                      required
-                      className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm mb-2 text-gray-700">Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="email"
-                      value={registerEmail}
-                      onChange={(e) => setRegisterEmail(e.target.value)}
-                      placeholder="example@email.com"
-                      required
-                      className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm mb-2 text-gray-700">Số điện thoại</label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="tel"
-                      value={registerPhone}
-                      onChange={(e) => setRegisterPhone(e.target.value)}
-                      placeholder="0123456789"
-                      required
-                      className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm mb-2 text-gray-700">Mật khẩu</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={registerPassword}
-                      onChange={(e) => setRegisterPassword(e.target.value)}
-                      placeholder="Tối thiểu 6 ký tự"
-                      required
-                      minLength={6}
-                      className="w-full pl-11 pr-11 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm mb-2 text-gray-700">Xác nhận mật khẩu</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={registerConfirmPassword}
-                      onChange={(e) => setRegisterConfirmPassword(e.target.value)}
-                      placeholder="Nhập lại mật khẩu"
-                      required
-                      minLength={6}
-                      className="w-full pl-11 pr-11 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Đang xử lý...
-                    </div>
-                  ) : (
-                    "Đăng ký tài khoản"
-                  )}
-                </button>
-
-                <div className="text-center text-sm">
-                  <span className="text-gray-600">Bạn là sinh viên? </span>
-                  <Link to="/login" className="text-blue-600 hover:underline">
-                    Đăng ký tại đây
-                  </Link>
-                </div>
-
-                <div className="text-xs text-gray-500 text-center">
-                  Bằng việc đăng ký, bạn đồng ý với{" "}
-                  <button type="button" className="text-orange-600 hover:underline">
-                    Điều khoản dịch vụ
-                  </button>{" "}
-                  và{" "}
-                  <button type="button" className="text-orange-600 hover:underline">
-                    Chính sách bảo mật
-                  </button>
-                </div>
-              </form>
+              /* Register Form uses the standardized RegisterEmployerForm */
+              <div className="animate-in fade-in zoom-in-95 duration-300">
+                <RegisterEmployerForm onSubmit={handleEmployerRegister} isLoading={loading} />
+              </div>
             )}
 
             {/* Mobile branding */}

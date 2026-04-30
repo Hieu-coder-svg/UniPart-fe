@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, FormEvent } from "react";
 import { useNavigate, Link } from "react-router";
-import { Mail, Lock, Eye, EyeOff, LogIn, UserPlus, AlertCircle } from "lucide-react";
+import { User, Lock, Eye, EyeOff, LogIn, UserPlus, AlertCircle } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { RegisterStudentForm } from "../../components/auth/RegisterStudentForm";
+import type { StudentRegistrationRequest } from "../../../types/auth";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
-import logoImage from "../../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
+const logoImage = "/src/assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
@@ -12,66 +14,36 @@ export default function Login() {
   const [error, setError] = useState("");
   
   const navigate = useNavigate();
-  const { login, register } = useAuth();
+  const { login, registerStudent } = useAuth();
 
   // Login form
-  const [loginEmail, setLoginEmail] = useState("");
+  const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
-  // Register form
-  const [registerName, setRegisterName] = useState("");
-  const [registerEmail, setRegisterEmail] = useState("");
-  const [registerPassword, setRegisterPassword] = useState("");
-  const [registerConfirmPassword, setRegisterConfirmPassword] = useState("");
-  const [registerUniversity, setRegisterUniversity] = useState("");
-  const [registerMajor, setRegisterMajor] = useState("");
-
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      const success = await login(loginEmail, loginPassword, "student");
-      if (success) {
-        navigate("/");
-      } else {
-        setError("Email hoặc mật khẩu không đúng");
-      }
-    } catch (err) {
-      setError("Đã có lỗi xảy ra. Vui lòng thử lại.");
+      await login(loginUsername, loginPassword);
+      navigate("/");
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Tên đăng nhập hoặc mật khẩu không đúng");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRegister = async (data: StudentRegistrationRequest) => {
     setError("");
-    
-    // Validate password match
-    if (registerPassword !== registerConfirmPassword) {
-      setError("Mật khẩu xác nhận không khớp");
-      return;
-    }
-    
     setLoading(true);
 
     try {
-      const success = await register(
-        registerName,
-        registerEmail,
-        registerPassword,
-        "student",
-        { university: registerUniversity, major: registerMajor }
-      );
-      if (success) {
-        navigate("/");
-      } else {
-        setError("Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.");
-      }
-    } catch (err) {
-      setError("Đã có lỗi xảy ra. Vui lòng thử lại.");
+      await registerStudent(data);
+      navigate("/verify-otp");
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -165,14 +137,14 @@ export default function Login() {
             {isLogin ? (
               <form onSubmit={handleLogin} className="space-y-5">
                 <div>
-                  <label className="block text-sm mb-2 text-gray-700">Email</label>
+                  <label className="block text-sm mb-2 text-gray-700">Tên đăng nhập</label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
-                      type="email"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      placeholder="your.email@university.edu.vn"
+                      type="text"
+                      value={loginUsername}
+                      onChange={(e) => setLoginUsername(e.target.value)}
+                      placeholder="Nhập tên đăng nhập"
                       required
                       className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                     />
@@ -207,9 +179,9 @@ export default function Login() {
                     <input type="checkbox" className="rounded border-gray-300" />
                     <span className="text-gray-600">Ghi nhớ đăng nhập</span>
                   </label>
-                  <button type="button" className="text-blue-600 hover:text-blue-700">
+                  <Link to="/forgot-password" className="text-blue-600 hover:text-blue-700">
                     Quên mật khẩu?
-                  </button>
+                  </Link>
                 </div>
 
                 <button
@@ -227,10 +199,6 @@ export default function Login() {
                   )}
                 </button>
 
-                <div className="text-center text-sm text-gray-600">
-                  Đăng nhập demo: bất kỳ email + mật khẩu ≥ 6 ký tự
-                </div>
-
                 <div className="text-center text-sm border-t border-gray-200 pt-4">
                   <span className="text-gray-600">Bạn là nhà tuyển dụng? </span>
                   <Link to="/employer/login" className="text-blue-600 hover:underline font-medium">
@@ -239,131 +207,7 @@ export default function Login() {
                 </div>
               </form>
             ) : (
-              /* Register Form */
-              <form onSubmit={handleRegister} className="space-y-4">
-                <div>
-                  <label className="block text-sm mb-2 text-gray-700">Họ và tên</label>
-                  <input
-                    type="text"
-                    value={registerName}
-                    onChange={(e) => setRegisterName(e.target.value)}
-                    placeholder="Nguyễn Văn A"
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm mb-2 text-gray-700">Email sinh viên</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="email"
-                      value={registerEmail}
-                      onChange={(e) => setRegisterEmail(e.target.value)}
-                      placeholder="your.email@university.edu.vn"
-                      required
-                      className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm mb-2 text-gray-700">Trường đại học</label>
-                  <input
-                    type="text"
-                    value={registerUniversity}
-                    onChange={(e) => setRegisterUniversity(e.target.value)}
-                    placeholder="Đại học Khoa học Tự nhiên TP.HCM"
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm mb-2 text-gray-700">Ngành học</label>
-                  <input
-                    type="text"
-                    value={registerMajor}
-                    onChange={(e) => setRegisterMajor(e.target.value)}
-                    placeholder="Công nghệ Thông tin"
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm mb-2 text-gray-700">Mật khẩu</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={registerPassword}
-                      onChange={(e) => setRegisterPassword(e.target.value)}
-                      placeholder="Tối thiểu 6 ký tự"
-                      required
-                      minLength={6}
-                      className="w-full pl-11 pr-11 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm mb-2 text-gray-700">Xác nhận mật khẩu</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={registerConfirmPassword}
-                      onChange={(e) => setRegisterConfirmPassword(e.target.value)}
-                      placeholder="Tối thiểu 6 ký tự"
-                      required
-                      minLength={6}
-                      className="w-full pl-11 pr-11 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Đang xử lý...
-                    </div>
-                  ) : (
-                    "Đăng ký tài khoản"
-                  )}
-                </button>
-
-                <div className="text-xs text-gray-500 text-center">
-                  Bằng việc đăng ký, bạn đồng ý với{" "}
-                  <button type="button" className="text-blue-600 hover:underline">
-                    Điều khoản dịch vụ
-                  </button>{" "}
-                  và{" "}
-                  <button type="button" className="text-blue-600 hover:underline">
-                    Chính sách bảo mật
-                  </button>
-                </div>
-              </form>
+              <RegisterStudentForm onSubmit={handleRegister} isLoading={loading} />
             )}
           </div>
 

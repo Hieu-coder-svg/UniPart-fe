@@ -10,6 +10,10 @@ import Community from "./pages/student/Community";
 import Profile from "./pages/student/Profile";
 import SavedJobs from "./pages/student/SavedJobs";
 import Login from "./pages/student/Login";
+import Register from "./pages/auth/Register";
+import RegisterStudent from "./pages/auth/RegisterStudent";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import VerifyOtp from "./pages/VerifyOtp";
 import EmployerLogin from "./pages/employer/EmployerLogin";
 import EmployerHome from "./pages/employer/EmployerHome";
 import EmployerDashboard from "./pages/employer/EmployerDashboard";
@@ -35,6 +39,22 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     Component: Login,
+  },
+  {
+    path: "/register",
+    Component: Register,
+  },
+  {
+    path: "/register/student",
+    Component: RegisterStudent,
+  },
+  {
+    path: "/forgot-password",
+    Component: ForgotPassword,
+  },
+  {
+    path: "/verify-otp",
+    Component: VerifyOtp,
   },
   {
     path: "/admin",

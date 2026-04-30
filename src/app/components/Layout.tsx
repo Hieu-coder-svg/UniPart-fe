@@ -65,14 +65,14 @@ export default function Layout() {
               {/* User Badge or Login */}
               {isAuthenticated ? (
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
-                    <div className="w-7 h-7 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white text-sm">
-                      {user?.name?.charAt(0).toUpperCase()}
+                  <Link to={user?.role === 'EMPLOYER' ? '/employer/dashboard' : '/profile'} className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100 hover:shadow-md transition-all cursor-pointer group">
+                    <div className="w-7 h-7 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium shadow-inner group-hover:scale-105 transition-transform">
+                      {(user?.fullName || user?.username || 'U').charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-sm text-gray-700 max-w-[120px] truncate">
-                      {user?.name}
+                    <span className="text-sm font-semibold text-gray-700 max-w-[120px] truncate group-hover:text-blue-700 transition-colors">
+                      {user?.fullName || user?.username}
                     </span>
-                  </div>
+                  </Link>
                   <button
                     onClick={() => {
                       logout();
