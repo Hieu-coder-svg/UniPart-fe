@@ -21,6 +21,7 @@ export interface StudentResponse {
     address: string;
     latitude: number;
     longitude: number;
+    avatar?: string;
 }
 
 export interface StudentUpdateRequest {
@@ -33,6 +34,35 @@ export interface StudentUpdateRequest {
     address?: string;
     latitude?: number;
     longitude?: number;
+    avatar?: string;
+}
+
+export interface EmployerResponse {
+    id: string;
+    username: string;
+    email: string;
+    fullName: string;
+    dateOfBirth?: string;
+    phoneNumber?: string;
+    gender?: string;
+    isBlocked: boolean;
+    isActived: boolean;
+    companyName: string;
+    companyAddress: string;
+    latitude?: number;
+    longitude?: number;
+    description?: string;
+    rating?: number;
+    avatar?: string;
+}
+
+export interface EmployerUpdateRequest {
+    fullName: string;
+    companyName: string;
+    companyAddress: string;
+    phoneNumber?: string;
+    description?: string;
+    avatar?: string;
 }
 
 const API_BASE_URL = "http://localhost:8080";
@@ -73,6 +103,16 @@ class UserService {
 
     async updateProfileStudent(request: StudentUpdateRequest): Promise<ApiResponse<StudentResponse>> {
         const response = await this.api.post<ApiResponse<StudentResponse>>("/users/myStudentInfo", request);
+        return response.data;
+    }
+
+    async getEmployerMyInfo(): Promise<ApiResponse<EmployerResponse>> {
+        const response = await this.api.get<ApiResponse<EmployerResponse>>("/users/myEmployerInfo");
+        return response.data;
+    }
+
+    async updateProfileEmployer(request: EmployerUpdateRequest): Promise<ApiResponse<EmployerResponse>> {
+        const response = await this.api.post<ApiResponse<EmployerResponse>>("/users/myEmployerInfo", request);
         return response.data;
     }
 }

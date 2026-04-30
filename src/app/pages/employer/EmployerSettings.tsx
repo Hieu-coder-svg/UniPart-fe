@@ -1,8 +1,28 @@
-import { Building2, User, Bell, Lock, CreditCard, Mail, Phone, MapPin, Save } from "lucide-react";
+import { Building2, User, Bell, Lock, CreditCard, Mail, Phone, MapPin, Save, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { uploadImageToCloudinary } from "../../../services/uploadService";
 
 export default function EmployerSettings() {
   const [activeTab, setActiveTab] = useState<"company" | "account" | "notifications" | "security">("company");
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    
+    try {
+      setIsUploadingAvatar(true);
+      const imageUrl = await uploadImageToCloudinary(file);
+      setAvatarUrl(imageUrl);
+      alert("Cập nhật ảnh thành công! Hãy nhấn Lưu thay đổi để lưu vào hệ thống.");
+    } catch (error) {
+      console.error(error);
+      alert("Lỗi tải ảnh lên Cloudinary.");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
@@ -161,13 +181,23 @@ export default function EmployerSettings() {
           {activeTab === "account" && (
             <div className="space-y-6">
               <div className="flex items-center gap-6">
-                <div className="w-20 h-20 bg-gradient-to-br from-orange-600 to-red-600 rounded-full flex items-center justify-center text-white text-2xl">
-                  N
+                <div className="w-20 h-20 bg-gradient-to-br from-orange-600 to-red-600 rounded-full flex items-center justify-center text-white text-2xl overflow-hidden shadow-lg border-2 border-white relative">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    "N"
+                  )}
+                  {isUploadingAvatar && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 animate-spin text-white" />
+                    </div>
+                  )}
                 </div>
                 <div>
-                  <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 mr-2">
-                    Thay đổi ảnh
-                  </button>
+                  <label className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 mr-2 cursor-pointer inline-block">
+                    {isUploadingAvatar ? "Đang tải..." : "Thay đổi ảnh"}
+                    <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} disabled={isUploadingAvatar} />
+                  </label>
                   <button className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg">
                     Xóa
                   </button>

@@ -99,6 +99,7 @@ export interface StudentResponse {
   isBlocked: boolean;
   isActived: boolean;
   roleName: string;
+  avatar?: string;
   createdAt: string; // LocalDateTime in Java, use string for ISO date format
   updatedAt: string; // LocalDateTime in Java, use string for ISO date format
   university: string;
@@ -133,6 +134,7 @@ export interface EmployerResponse {
   gender?: string;
   isBlocked: boolean;
   isActived: boolean;
+  avatar?: string;
   createdAt: string; // LocalDateTime in Java, use string for ISO date format
   updatedAt: string; // LocalDateTime in Java, use string for ISO date format
   companyName: string;
