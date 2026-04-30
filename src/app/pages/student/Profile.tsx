@@ -32,6 +32,7 @@ import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import { Link } from "react-router";
 import { useAuth } from "../../contexts/AuthContext";
 import { userService, StudentResponse, StudentUpdateRequest } from "../../../services/userService";
+import { uploadImageToCloudinary } from "../../../services/uploadService";
 
 /* ─────────────────────────────────────────────────────────────
    TAB DEFINITION
@@ -75,6 +76,7 @@ export default function Profile() {
   // States
   const [studentInfo, setStudentInfo] = useState<StudentResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -88,6 +90,7 @@ export default function Profile() {
     university: "",
     major: "",
     address: "",
+    avatar: "",
   });
 
   const [passwordForm, setPasswordForm] = useState({
@@ -117,12 +120,39 @@ export default function Profile() {
           university: res.result.university || "",
           major: res.result.major || "",
           address: res.result.address || "",
+          avatar: res.result.avatar || "",
         });
       }
     } catch (error) {
       console.error("Failed to fetch student info", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    
+    try {
+      setIsUploadingAvatar(true);
+      const imageUrl = await uploadImageToCloudinary(file);
+      
+      setStudentInfo(prev => prev ? { ...prev, avatar: imageUrl } : null);
+      setFormData(prev => ({ ...prev, avatar: imageUrl }));
+      
+      // Auto-save the avatar directly
+      await userService.updateProfileStudent({
+        ...formData,
+        avatar: imageUrl
+      });
+      setMessage({ type: "success", text: "Cập nhật ảnh đại diện thành công!" });
+      setTimeout(() => setMessage({ type: "", text: "" }), 3000);
+    } catch (error: any) {
+      console.error(error);
+      setMessage({ type: "error", text: error.message || "Lỗi cập nhật ảnh đại diện." });
+    } finally {
+      setIsUploadingAvatar(false);
     }
   };
 
@@ -272,13 +302,19 @@ export default function Profile() {
           <div className="px-7 pb-0 pt-0">
             <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-end -mt-1">
               {/* Avatar */}
-              <div className="relative flex-shrink-0 -mt-10">
-                <div className="w-28 h-28 rounded-full overflow-hidden ring-4 ring-white shadow-2xl">
+              <div className="relative flex-shrink-0 -mt-10 group">
+                <div className="w-28 h-28 rounded-full overflow-hidden ring-4 ring-white shadow-2xl relative">
                   <ImageWithFallback
-                    src={user?.avatar || "https://images.unsplash.com/photo-1600178572204-6ac8886aae63?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBzdHVkZW50JTIwcG9ydHJhaXR8ZW58MXx8fHwxNzczMzU4NDMxfDA&ixlib=rb-4.1.0&q=80&w=1080"}
+                    src={studentInfo?.avatar || user?.avatar || "https://images.unsplash.com/photo-1600178572204-6ac8886aae63?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBzdHVkZW50JTIwcG9ydHJhaXR8ZW58MXx8fHwxNzczMzU4NDMxfDA&ixlib=rb-4.1.0&q=80&w=1080"}
                     alt={displayName}
                     className="w-full h-full object-cover"
                   />
+                  {/* Upload overlay */}
+                  <label className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                    {isUploadingAvatar ? <Loader2 className="w-6 h-6 animate-spin" /> : <Edit className="w-6 h-6 mb-1" />}
+                    <span className="text-xs font-medium">{isUploadingAvatar ? 'Đang tải...' : 'Đổi ảnh'}</span>
+                    <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} disabled={isUploadingAvatar} />
+                  </label>
                 </div>
                 <div className="absolute -bottom-0.5 -right-0.5 w-8 h-8 bg-blue-600 rounded-full border-2 border-white flex items-center justify-center shadow-lg" title="Đã xác thực">
                   <BadgeCheck className="w-4 h-4 text-white fill-white" />

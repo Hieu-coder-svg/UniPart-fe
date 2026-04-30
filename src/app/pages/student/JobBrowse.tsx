@@ -1,6 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router";
-import { mockJobs, type Job } from "../../data/mockData";
+import { jobService, JobResponse, JobFilterRequest } from "../../../services/jobService";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   Search,
   MapPin,
@@ -33,11 +34,20 @@ const categoryIcons: Record<string, string> = {
   "Siêu thị": "🏪",
 };
 
-const SHIFTS = ["Sáng", "Chiều", "Tối", "Cuối tuần"];
+const SHIFTS = [
+  "Ca Sáng",
+  "Ca Chiều",
+  "Ca Tối",
+  "Full-time",
+  "Ca Linh Hoạt",
+  "Tự do",
+  "Xoay ca",
+  "Làm tại nhà"
+];
 const SALARY_OPTIONS = [
-  { value: "high", label: "Trên 50.000đ" },
-  { value: "medium", label: "30k – 50k" },
-  { value: "low", label: "Dưới 30.000đ" },
+  { value: "high", label: "Trên 50.000đ", min: 50000, max: undefined },
+  { value: "medium", label: "30k – 50k", min: 30000, max: 49999 },
+  { value: "low", label: "Dưới 30.000đ", min: 0, max: 29999 },
 ];
 const LOCATIONS = ["Quận 1", "Quận 3", "Quận 5", "Quận 7", "Quận 10", "Quận Bình Thạnh"];
 
@@ -50,11 +60,14 @@ export default function JobBrowse() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedShifts, setSelectedShifts] = useState<string[]>([]);
   const [selectedSalary, setSelectedSalary] = useState<string>("all");
-  const [isLoading] = useState(false);
+  
+  const [jobs, setJobs] = useState<JobResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [savedJobIds, setSavedJobIds] = useState<Set<number>>(new Set());
+  const { user } = useAuth();
 
   const carouselRef = useRef<HTMLDivElement>(null);
-
-  const categories = Array.from(new Set(mockJobs.map((job) => job.category)));
+  const categories = Object.keys(categoryIcons);
 
   const hasActiveFilters =
     searchTerm !== "" ||
@@ -72,35 +85,105 @@ export default function JobBrowse() {
   };
 
   const toggleShift = (shift: string) => {
+    // Cho phép chọn nhiều ca, sẽ gửi lên dạng "Ca Sáng, Ca Tối"
     setSelectedShifts((prev) =>
       prev.includes(shift) ? prev.filter((s) => s !== shift) : [...prev, shift]
     );
   };
 
-  const filteredJobs = mockJobs.filter((job) => {
-    const matchesSearch =
-      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.company.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesLocation =
-      selectedLocation === "all" || job.location.includes(selectedLocation);
-    const matchesCategory =
-      selectedCategory === "all" || job.category === selectedCategory;
-    const matchesShift =
-      selectedShifts.length === 0 || selectedShifts.includes(job.shift);
-    const matchesSalary =
-      selectedSalary === "all" ||
-      (selectedSalary === "high" && job.hourlyRate >= 50000) ||
-      (selectedSalary === "medium" && job.hourlyRate >= 30000 && job.hourlyRate < 50000) ||
-      (selectedSalary === "low" && job.hourlyRate < 30000);
-    return matchesSearch && matchesLocation && matchesCategory && matchesShift && matchesSalary;
-  });
+  const fetchJobs = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // Xây dựng JobFilterRequest
+      const filter: JobFilterRequest = {
+        title: searchTerm || undefined,
+        address: selectedLocation !== "all" ? selectedLocation : undefined,
+        // Gửi thẳng mảng string[]
+        workingShift: selectedShifts.length > 0 ? selectedShifts : undefined,
+      };
 
-  const featuredJobs = filteredJobs.filter((job) => job.urgent);
-  const normalJobs = filteredJobs.filter((job) => !job.urgent);
+      if (selectedSalary !== "all") {
+        const option = SALARY_OPTIONS.find(o => o.value === selectedSalary);
+        if (option) {
+          filter.minSalary = option.min;
+          filter.maxSalary = option.max;
+        }
+      }
+
+      // Nếu có selectedCategory, có thể append vào searchTerm để API tìm
+      if (selectedCategory !== "all") {
+        filter.title = filter.title ? `${filter.title} ${selectedCategory}` : selectedCategory;
+      }
+
+      const res = await jobService.getAllJobs(filter);
+      if (res.result && res.result.content) {
+        setJobs(res.result.content);
+      }
+    } catch (error) {
+      console.error("Failed to fetch jobs:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [searchTerm, selectedLocation, selectedCategory, selectedShifts, selectedSalary]);
+
+  const fetchSavedJobs = async () => {
+    if (!user) return;
+    try {
+      const res = await jobService.getSavedJobs();
+      if (res.result) {
+        const ids = new Set(res.result.map(sj => sj.jobId));
+        setSavedJobIds(ids);
+      }
+    } catch (error) {
+      console.error("Failed to fetch saved jobs:", error);
+    }
+  };
+
+  // Debounce việc fetch khi thay đổi filter (trừ khi nhấn nút tìm)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchJobs();
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [fetchJobs]);
+
+  useEffect(() => {
+    fetchSavedJobs();
+  }, [user]);
+
+  const featuredJobs = jobs.filter((job) => job.urgent);
+  const normalJobs = jobs.filter((job) => !job.urgent);
 
   const scrollCarousel = (dir: "left" | "right") => {
     if (!carouselRef.current) return;
     carouselRef.current.scrollBy({ left: dir === "left" ? -200 : 200, behavior: "smooth" });
+  };
+
+  const toggleSaveJob = async (jobId: number) => {
+    if (!user) {
+      alert("Vui lòng đăng nhập để lưu việc làm!");
+      return;
+    }
+    const isSaved = savedJobIds.has(jobId);
+    try {
+      if (isSaved) {
+        await jobService.unsaveJob(jobId);
+        setSavedJobIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(jobId);
+          return newSet;
+        });
+      } else {
+        await jobService.saveJob(jobId);
+        setSavedJobIds(prev => {
+          const newSet = new Set(prev);
+          newSet.add(jobId);
+          return newSet;
+        });
+      }
+    } catch (error) {
+      console.error("Toggle save job failed", error);
+    }
   };
 
   return (
@@ -156,7 +239,7 @@ export default function JobBrowse() {
             </div>
 
             {/* Search CTA */}
-            <button className="m-1.5 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity flex items-center gap-1.5">
+            <button onClick={fetchJobs} className="m-1.5 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity flex items-center gap-1.5">
               <Search className="w-4 h-4" />
               Tìm
             </button>
@@ -178,7 +261,6 @@ export default function JobBrowse() {
               className="flex items-center gap-2 overflow-x-auto scrollbar-hide scroll-smooth flex-1"
               style={{ scrollbarWidth: "none" }}
             >
-              {/* All */}
               <button
                 onClick={() => setSelectedCategory("all")}
                 className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
@@ -296,59 +378,22 @@ export default function JobBrowse() {
                 </div>
               </div>
 
-              {/* ── KHU VỰC ── */}
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
-                  Khu vực
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setSelectedLocation("all")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      selectedLocation === "all"
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}
-                  >
-                    Tất cả
-                  </button>
-                  {LOCATIONS.map((loc) => (
-                    <button
-                      key={loc}
-                      onClick={() =>
-                        setSelectedLocation(selectedLocation === loc ? "all" : loc)
-                      }
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        selectedLocation === loc
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      }`}
-                    >
-                      {loc}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           </aside>
 
           {/* ── JOB LISTINGS ── */}
           <main className="lg:col-span-3 space-y-8">
-            {/* Results header */}
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-gray-800">
-                  {filteredJobs.length > 0 ? (
+                  {jobs.length > 0 ? (
                     <>
-                      <span className="text-blue-600">{filteredJobs.length}</span> việc làm phù hợp
+                      <span className="text-blue-600">{jobs.length}</span> việc làm phù hợp
                     </>
                   ) : (
                     "Không tìm thấy kết quả"
                   )}
                 </h2>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Cập nhật lúc {new Date().toLocaleTimeString("vi-VN")}
-                </p>
               </div>
               {hasActiveFilters && (
                 <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full">
@@ -358,7 +403,6 @@ export default function JobBrowse() {
               )}
             </div>
 
-            {/* Loading skeleton */}
             {isLoading && (
               <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {[...Array(6)].map((_, i) => (
@@ -376,7 +420,6 @@ export default function JobBrowse() {
 
             {!isLoading && (
               <>
-                {/* Featured jobs */}
                 {featuredJobs.length > 0 && (
                   <section>
                     <div className="flex items-center gap-2 mb-4">
@@ -388,26 +431,35 @@ export default function JobBrowse() {
                     </div>
                     <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
                       {featuredJobs.map((job) => (
-                        <JobCard key={job.id} job={job} featured />
+                        <JobCard 
+                          key={job.id} 
+                          job={job} 
+                          featured 
+                          isSaved={savedJobIds.has(job.id)}
+                          onToggleSave={toggleSaveJob}
+                        />
                       ))}
                     </div>
                   </section>
                 )}
 
-                {/* Normal jobs */}
                 {normalJobs.length > 0 && (
                   <section>
                     <h3 className="font-bold text-gray-800 text-base mb-4">Tất cả việc làm</h3>
                     <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
                       {normalJobs.map((job) => (
-                        <JobCard key={job.id} job={job} />
+                        <JobCard 
+                          key={job.id} 
+                          job={job} 
+                          isSaved={savedJobIds.has(job.id)}
+                          onToggleSave={toggleSaveJob}
+                        />
                       ))}
                     </div>
                   </section>
                 )}
 
-                {/* Empty State */}
-                {filteredJobs.length === 0 && <EmptyState onReset={clearAll} />}
+                {jobs.length === 0 && <EmptyState onReset={clearAll} />}
               </>
             )}
           </main>
@@ -418,14 +470,19 @@ export default function JobBrowse() {
 }
 
 /* ─────────────────────────────────────────
-   JOB CARD — Modern with hover effects
+   JOB CARD
 ───────────────────────────────────────── */
-function JobCard({ job, featured = false }: { job: Job; featured?: boolean }) {
-  const [saved, setSaved] = useState(false);
+function JobCard({ job, featured = false, isSaved, onToggleSave }: { job: JobResponse; featured?: boolean; isSaved: boolean; onToggleSave: (id: number) => void; }) {
+  // Cố gắng đoán category từ title (mock)
+  let category = "Văn phòng";
+  Object.keys(categoryIcons).forEach(cat => {
+    if (job.title.toLowerCase().includes(cat.toLowerCase())) {
+      category = cat;
+    }
+  });
 
   return (
     <div className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col h-full border border-gray-100">
-      {/* Image top-third */}
       <div className="relative overflow-hidden h-40 flex-shrink-0">
         {job.image ? (
           <ImageWithFallback
@@ -435,79 +492,69 @@ function JobCard({ job, featured = false }: { job: Job; featured?: boolean }) {
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center">
-            <span className="text-4xl">{categoryIcons[job.category] ?? "💼"}</span>
+            <span className="text-4xl">{categoryIcons[category] ?? "💼"}</span>
           </div>
         )}
 
-        {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
 
-        {/* Urgency ribbon */}
         {featured && (
           <div className="absolute top-3 left-3 flex items-center gap-1 bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg">
             <Zap className="w-3 h-3" /> TUYỂN GẤP
           </div>
         )}
 
-        {/* Bookmark button */}
         <button
-          onClick={(e) => { e.preventDefault(); setSaved(!saved); }}
-          className={`absolute top-3 right-3 p-1.5 rounded-lg backdrop-blur-sm transition-all ${
-            saved
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleSave(job.id); }}
+          className={`absolute top-3 right-3 p-1.5 rounded-lg backdrop-blur-sm transition-all z-10 ${
+            isSaved
               ? "bg-blue-600 text-white"
               : "bg-white/80 text-gray-500 hover:bg-white hover:text-blue-600"
           }`}
         >
-          <Bookmark className={`w-4 h-4 ${saved ? "fill-white" : ""}`} />
+          <Bookmark className={`w-4 h-4 ${isSaved ? "fill-white" : ""}`} />
         </button>
 
-        {/* Category badge on image */}
         <div className="absolute bottom-3 left-3">
           <span className="text-[10px] font-semibold bg-white/90 backdrop-blur-sm text-gray-700 px-2 py-1 rounded-full">
-            {categoryIcons[job.category] ?? "💼"} {job.category}
+            {categoryIcons[category] ?? "💼"} {category}
           </span>
         </div>
       </div>
 
-      {/* Content */}
       <Link to={`/jobs/${job.id}`} className="flex flex-col flex-1 p-4">
-        {/* Title & Company */}
         <div className="mb-3">
           <h3 className="font-bold text-[#1f2937] text-base leading-snug group-hover:text-blue-600 transition-colors line-clamp-2 mb-1">
             {job.title}
           </h3>
-          <p className="text-sm text-gray-500 truncate">{job.company}</p>
+          <p className="text-sm text-gray-500 truncate">{job.employerName}</p>
         </div>
 
-        {/* Salary — most prominent */}
         <div className="flex items-center gap-1.5 mb-3">
           <DollarSign className="w-4 h-4 text-emerald-500" />
-          <span className="text-base font-extrabold text-emerald-600">{job.salaryRange}</span>
+          <span className="text-base font-extrabold text-emerald-600">{job.salary.toLocaleString()}đ</span>
         </div>
 
-        {/* Meta info */}
         <div className="space-y-1.5 mb-4">
           <div className="flex items-center gap-2 text-xs text-gray-400">
             <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">{job.location}</span>
+            <span className="truncate">{job.address}</span>
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-400">
             <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>{job.shift}{job.workingHours ? ` · ${job.workingHours}` : ""}</span>
+            <span>{job.workingShift}</span>
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-400">
             <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-            <span>{job.rating} <span className="text-gray-300">({job.reviewCount} đánh giá)</span></span>
+            <span>5.0 <span className="text-gray-300">(0 đánh giá)</span></span>
           </div>
         </div>
 
-        {/* Footer */}
         <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-100">
-          {/* Part-time badge */}
           <span className="text-[10px] bg-blue-50 text-blue-600 font-semibold px-2.5 py-1 rounded-full">
-            Part-time
+            {job.vacancies} vị trí
           </span>
-          <span className="text-[10px] text-gray-400">{job.postedDate}</span>
+          <span className="text-[10px] text-gray-400">{new Date(job.createdAt).toLocaleDateString('vi-VN')}</span>
         </div>
       </Link>
     </div>
@@ -515,53 +562,11 @@ function JobCard({ job, featured = false }: { job: Job; featured?: boolean }) {
 }
 
 /* ─────────────────────────────────────────
-   EMPTY STATE — Cute SVG illustration
+   EMPTY STATE
 ───────────────────────────────────────── */
 function EmptyState({ onReset }: { onReset: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      {/* SVG Illustration — student searching */}
-      <svg
-        width="200"
-        height="180"
-        viewBox="0 0 200 180"
-        className="mb-6 drop-shadow-sm"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        {/* Body */}
-        <ellipse cx="100" cy="155" rx="45" ry="8" fill="#E5E7EB" />
-        <rect x="72" y="100" width="56" height="55" rx="12" fill="#DBEAFE" />
-        {/* Legs */}
-        <rect x="80" y="148" width="14" height="20" rx="7" fill="#93C5FD" />
-        <rect x="106" y="148" width="14" height="20" rx="7" fill="#93C5FD" />
-        {/* Arms */}
-        <rect x="50" y="105" width="24" height="10" rx="5" fill="#BFDBFE" transform="rotate(-20 50 105)" />
-        <rect x="126" y="105" width="24" height="10" rx="5" fill="#BFDBFE" transform="rotate(20 126 105)" />
-        {/* Head */}
-        <circle cx="100" cy="82" r="26" fill="#FDE68A" />
-        {/* Eyes */}
-        <ellipse cx="91" cy="80" rx="3" ry="3.5" fill="#1F2937" />
-        <ellipse cx="109" cy="80" rx="3" ry="3.5" fill="#1F2937" />
-        {/* Smile */}
-        <path d="M91 90 Q100 97 109 90" stroke="#1F2937" strokeWidth="2" strokeLinecap="round" fill="none" />
-        {/* Graduation cap */}
-        <rect x="76" y="60" width="48" height="6" rx="3" fill="#1E40AF" />
-        <polygon points="100,48 120,60 80,60" fill="#1E40AF" />
-        <line x1="120" y1="60" x2="124" y2="72" stroke="#1E40AF" strokeWidth="2" />
-        <circle cx="125" cy="74" r="3" fill="#F59E0B" />
-        {/* Magnifying glass */}
-        <circle cx="148" cy="100" r="18" stroke="#60A5FA" strokeWidth="4" fill="white" />
-        <circle cx="148" cy="100" r="12" fill="#EFF6FF" />
-        <line x1="161" y1="113" x2="172" y2="124" stroke="#60A5FA" strokeWidth="5" strokeLinecap="round" />
-        {/* Question mark */}
-        <text x="143" y="106" fontSize="14" fontWeight="bold" fill="#93C5FD">?</text>
-        {/* Floating dots */}
-        <circle cx="30" cy="60" r="4" fill="#BFDBFE" opacity="0.7" />
-        <circle cx="170" cy="50" r="6" fill="#FDE68A" opacity="0.7" />
-        <circle cx="20" cy="120" r="3" fill="#A5F3FC" opacity="0.7" />
-      </svg>
-
       <h3 className="text-xl font-bold text-gray-800 mb-2">Hmm, không tìm thấy gì cả!</h3>
       <p className="text-gray-500 text-sm max-w-xs mb-6 leading-relaxed">
         Bộ lọc của bạn có thể đang quá chặt. Thử mở rộng tìm kiếm để khám phá thêm nhiều cơ hội nhé!
@@ -575,12 +580,6 @@ function EmptyState({ onReset }: { onReset: () => void }) {
           <Search className="w-4 h-4" />
           Xem tất cả việc làm
         </button>
-        <Link
-          to="/community"
-          className="text-sm text-gray-500 hover:text-blue-600 transition-colors underline underline-offset-2"
-        >
-          Hỏi cộng đồng sinh viên →
-        </Link>
       </div>
     </div>
   );

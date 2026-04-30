@@ -1,5 +1,7 @@
 import { useParams, Link } from "react-router";
-import { mockJobs, mockReviews } from "../../data/mockData";
+import { useState, useEffect } from "react";
+import { jobService, JobResponse } from "../../../services/jobService";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   MapPin,
   Clock,
@@ -10,19 +12,93 @@ import {
   ArrowLeft,
   Share2,
   Bookmark,
+  Loader2
 } from "lucide-react";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 
 export default function JobDetail() {
   const { id } = useParams();
-  const job = mockJobs.find((j) => j.id === id);
-  const reviews = mockReviews.filter((r) => r.jobId === id);
+  const { user } = useAuth();
+  
+  const [job, setJob] = useState<JobResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (id) {
+      fetchJobDetail(Number(id));
+      if (user) {
+        checkSavedStatus(Number(id));
+      }
+    }
+  }, [id, user]);
+
+  const fetchJobDetail = async (jobId: number) => {
+    setIsLoading(true);
+    try {
+      const res = await jobService.getJobDetail(jobId);
+      if (res.result) {
+        setJob(res.result);
+      }
+    } catch (error) {
+      console.error("Failed to fetch job details", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const checkSavedStatus = async (jobId: number) => {
+    try {
+      const res = await jobService.isJobSaved(jobId);
+      if (res.result !== undefined) {
+        setIsSaved(res.result);
+      }
+    } catch (error) {
+      console.error("Failed to check saved status", error);
+    }
+  };
+
+  const handleToggleSave = async () => {
+    if (!user) {
+      alert("Vui lòng đăng nhập để lưu việc làm!");
+      return;
+    }
+    if (!job) return;
+
+    setIsSaving(true);
+    try {
+      if (isSaved) {
+        await jobService.unsaveJob(job.id);
+        setIsSaved(false);
+      } else {
+        await jobService.saveJob(job.id);
+        setIsSaved(true);
+      }
+    } catch (error) {
+      console.error("Failed to toggle save", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleApply = () => {
+    alert("Ứng tuyển thành công! Nhà tuyển dụng sẽ sớm liên hệ với bạn.");
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   if (!job) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="mb-2">Không tìm thấy công việc</h2>
+          <h2 className="mb-2 text-xl font-bold">Không tìm thấy công việc</h2>
           <Link to="/jobs" className="text-blue-600 hover:underline">
             Quay lại danh sách
           </Link>
@@ -60,21 +136,29 @@ export default function JobDetail() {
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <h1>{job.title}</h1>
+                  <h1 className="text-2xl font-bold">{job.title}</h1>
                   {job.urgent && (
-                    <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm font-semibold">
+                    <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap">
                       Tuyển gấp
                     </span>
                   )}
                 </div>
-                <h3 className="text-gray-600">{job.company}</h3>
+                <h3 className="text-gray-600">{job.employerName}</h3>
               </div>
               <div className="flex gap-2">
                 <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                   <Share2 className="w-5 h-5 text-gray-600" />
                 </button>
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                  <Bookmark className="w-5 h-5 text-gray-600" />
+                <button 
+                  onClick={handleToggleSave}
+                  disabled={isSaving}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  {isSaving ? (
+                    <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                  ) : (
+                    <Bookmark className={`w-5 h-5 ${isSaved ? "fill-blue-600 text-blue-600" : "text-gray-600"}`} />
+                  )}
                 </button>
               </div>
             </div>
@@ -82,7 +166,7 @@ export default function JobDetail() {
             <div className="flex items-center gap-2 mb-6">
               <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
               <span>
-                {job.rating} ({job.reviewCount} đánh giá)
+                5.0 (0 đánh giá)
               </span>
             </div>
 
@@ -92,9 +176,7 @@ export default function JobDetail() {
                 <MapPin className="w-5 h-5 text-blue-600" />
                 <div>
                   <div className="text-sm text-gray-600">Địa điểm</div>
-                  <div>
-                    {job.location} ({job.distance} km)
-                  </div>
+                  <div>{job.address}</div>
                 </div>
               </div>
 
@@ -102,7 +184,7 @@ export default function JobDetail() {
                 <Clock className="w-5 h-5 text-purple-600" />
                 <div>
                   <div className="text-sm text-gray-600">Ca làm việc</div>
-                  <div>{job.shift}{job.workingHours ? ` (${job.workingHours})` : ""}</div>
+                  <div>{job.workingShift}</div>
                 </div>
               </div>
 
@@ -110,21 +192,24 @@ export default function JobDetail() {
                 <DollarSign className="w-5 h-5 text-green-600" />
                 <div>
                   <div className="text-sm text-gray-600">Lương</div>
-                  <div>{job.hourlyRate.toLocaleString()}đ/giờ</div>
+                  <div>{job.salary.toLocaleString()}đ</div>
                 </div>
               </div>
 
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 <AlertCircle className="w-5 h-5 text-orange-600" />
                 <div>
-                  <div className="text-sm text-gray-600">Thời gian</div>
-                  <div>{job.hoursPerWeek} giờ/tuần</div>
+                  <div className="text-sm text-gray-600">Số lượng tuyển</div>
+                  <div>{job.vacancies} người</div>
                 </div>
               </div>
             </div>
 
             {/* Apply Button */}
-            <button className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300">
+            <button 
+              onClick={handleApply}
+              className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300"
+            >
               Ứng tuyển ngay
             </button>
           </div>
@@ -132,68 +217,13 @@ export default function JobDetail() {
 
         {/* Job Description */}
         <div className="bg-white rounded-xl p-6 mb-6 shadow-sm">
-          <h2 className="mb-4">Mô tả công việc</h2>
-          <p className="text-gray-700 mb-6">{job.description}</p>
-
-          <h3 className="mb-3">Yêu cầu</h3>
-          <ul className="space-y-2">
-            {job.requirements.map((req, index) => (
-              <li key={index} className="flex items-start gap-2">
-                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                <span className="text-gray-700">{req}</span>
-              </li>
-            ))}
-          </ul>
+          <h2 className="mb-4 text-lg font-bold">Mô tả công việc</h2>
+          <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+            {job.description}
+          </div>
         </div>
 
-        {/* Reviews */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <h2 className="mb-6">Đánh giá từ sinh viên</h2>
-
-          {reviews.length > 0 ? (
-            <div className="space-y-6">
-              {reviews.map((review) => (
-                <div key={review.id} className="border-b border-gray-100 pb-6 last:border-0">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span>{review.studentName.charAt(0)}</span>
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span>{review.studentName}</span>
-                          {review.verified && (
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`w-4 h-4 ${
-                                  i < review.rating
-                                    ? "fill-yellow-400 text-yellow-400"
-                                    : "text-gray-300"
-                                }`}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-sm text-gray-500">{review.date}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-gray-700">{review.comment}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              Chưa có đánh giá nào
-            </div>
-          )}
-        </div>
+        {/* Reviews - Removed since backend doesn't have review data for jobs yet */}
       </div>
     </div>
   );
