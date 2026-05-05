@@ -2,6 +2,23 @@ import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, Minimize2, Move, MapPin, Clock, DollarSign, ExternalLink, Sparkles } from "lucide-react";
 import { Link } from "react-router";
 import { mockJobs, type Job } from "../data/mockData";
+import { chatService } from "../../services/chatService";
+import { jobService } from "../../services/jobService";
+import { ChatRequest, AIResponse } from "../../types/chat";
+
+// Lightweight markdown → HTML converter
+const renderMarkdown = (text: string): string => {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    // **bold**
+    .replace(/\*\*(.+?)\*\*/g, "<strong class='font-semibold text-gray-900'>$1</strong>")
+    // *italic*
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    // newline → <br>
+    .replace(/\n/g, "<br />");
+};
 
 type Message = {
   text: string;
@@ -80,21 +97,93 @@ export default function ChatBot() {
     }
   }, [isDragging, dragStart, position]);
 
-  const handleSend = (text?: string) => {
+  const [isSending, setIsSending] = useState(false);
+
+  const handleSend = async (text?: string) => {
     const messageText = text || input;
-    if (!messageText.trim()) return;
+    if (!messageText.trim() || isSending) return;
 
     const userMessage: Message = { text: messageText, isBot: false };
     setMessages((prev) => [...prev, userMessage]);
     setShowSuggestions(false);
+    setInput("");
+    setIsSending(true);
 
-    // Simulate AI response with typing indicator
-    setTimeout(() => {
+    try {
+      // Call the backend API
+      const chatRequest: ChatRequest = {
+        message: messageText,
+        context: "student_chat"
+      };
+
+      const response = await chatService.sendMessage(chatRequest);
+      const aiResponse = response.result;
+
+      let finalJobs: Job[] = [];
+
+      // Fetch real jobs if recommendations exist
+      if (aiResponse.recommendations && aiResponse.recommendations.length > 0) {
+        try {
+          const jobPromises = aiResponse.recommendations.map(rec => 
+            jobService.getJobDetail(Number(rec.id)).catch(() => null)
+          );
+          
+          const jobResponses = await Promise.all(jobPromises);
+          
+          jobResponses.forEach(res => {
+            if (res && res.result) {
+              const jobData = res.result;
+              finalJobs.push({
+                id: String(jobData.id),
+                title: jobData.title,
+                company: jobData.employerName || "Công ty",
+                location: jobData.address || "Chưa cập nhật",
+                distance: 0,
+                hourlyRate: jobData.salary || 0,
+                shift: jobData.workingShift || "Khác",
+                workingHours: "",
+                hoursPerWeek: 0,
+                urgent: jobData.urgent || false,
+                category: "Khác",
+                description: jobData.description || "",
+                requirements: [],
+                rating: 5.0,
+                reviewCount: 0,
+                postedDate: jobData.createdAt || "Vừa xong",
+                salaryRange: "",
+                featured: false,
+                logo: "🏢",
+                image: jobData.image || ""
+              });
+            }
+          });
+        } catch (error) {
+          console.error("Error fetching recommended jobs:", error);
+        }
+      }
+
+      // Process the AI response and add jobs if needed
+      if (finalJobs.length === 0) {
+        finalJobs = aiResponse.jobs && aiResponse.jobs.length > 0 
+          ? aiResponse.jobs 
+          : findRelevantJobs(messageText);
+      }
+      
+      const botResponse: Message = {
+        text: aiResponse.message,
+        isBot: true,
+        jobs: finalJobs.length > 0 ? finalJobs : undefined
+      };
+
+      setMessages((prev) => [...prev, botResponse]);
+    } catch (error) {
+      console.error("Chat API error:", error);
+      // Fallback to local response if API fails
       const botResponse = generateBotResponse(messageText);
       setMessages((prev) => [...prev, botResponse]);
-    }, 800);
-
-    setInput("");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -330,7 +419,14 @@ export default function ChatBot() {
                           : "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
                       }`}
                     >
-                      <div className="text-sm leading-relaxed whitespace-pre-line">{msg.text}</div>
+                      {msg.isBot ? (
+                        <div
+                          className="text-sm leading-relaxed"
+                          dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.text) }}
+                        />
+                      ) : (
+                        <div className="text-sm leading-relaxed whitespace-pre-line">{msg.text}</div>
+                      )}
                     </div>
                   </div>
 
@@ -382,7 +478,7 @@ export default function ChatBot() {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSend()}
+                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
                   placeholder="Nhập yêu cầu của bạn..."
                   className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />

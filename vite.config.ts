@@ -5,13 +5,18 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [
-    react(),
+    react({
+      jsxImportSource: undefined,
+    }),
     tailwindcss(),
   ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  define: {
+    global: 'window',
   },
   assetsInclude: ['**/*.svg', '**/*.csv'],
   server: {

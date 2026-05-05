@@ -20,13 +20,18 @@ export default function Login() {
   const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
-  const handleLogin = async (e: FormEvent) => {
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    const formData = new FormData(e.currentTarget);
+    const username = formData.get("username") as string || loginUsername;
+    const password = formData.get("password") as string || loginPassword;
+
     setError("");
     setLoading(true);
 
     try {
-      await login(loginUsername, loginPassword);
+      await login(username, password);
       navigate("/");
     } catch (err: any) {
       setError(err?.response?.data?.message || "Tên đăng nhập hoặc mật khẩu không đúng");
@@ -141,6 +146,7 @@ export default function Login() {
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
+                      name="username"
                       type="text"
                       value={loginUsername}
                       onChange={(e) => setLoginUsername(e.target.value)}
@@ -156,6 +162,7 @@ export default function Login() {
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
+                      name="password"
                       type={showPassword ? "text" : "password"}
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}

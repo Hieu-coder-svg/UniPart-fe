@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { jobService, JobResponse, SavedJobResponse } from "../../../services/jobService";
-import { useAuth } from "../../contexts/AuthContext";
+import { JobResponse } from "../../../services/jobService";
+import { useSavedJobs } from "../../contexts/SavedJobsContext";
+import { jobService } from "../../../services/jobService";
 import {
   BookmarkMinus,
   MapPin,
@@ -12,7 +13,6 @@ import {
   Filter,
   ChevronDown,
   Trash2,
-  AlertCircle,
   ExternalLink,
   Zap,
   Loader2
@@ -20,60 +20,56 @@ import {
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 
 export default function SavedJobs() {
-  const { user } = useAuth();
+  const { savedJobs: savedJobEntries, isLoading, unsaveJob } = useSavedJobs();
   const [searchTerm, setSearchTerm] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // Lưu danh sách jobs
-  const [savedJobs, setSavedJobs] = useState<(JobResponse & { savedJobId: number; savedAt: string })[]>([]);
-  
   const [sortBy, setSortBy] = useState<"newest" | "salary_desc" | "salary_asc">("newest");
   const [isRemovingId, setIsRemovingId] = useState<number | null>(null);
 
-  useEffect(() => {
-    fetchSavedJobs();
-  }, [user]);
+  // Lưu chi tiết từng job (fetch theo jobId từ context)
+  const [jobDetails, setJobDetails] = useState<Map<number, JobResponse>>(new Map());
+  const [fetchingDetails, setFetchingDetails] = useState(false);
 
-  const fetchSavedJobs = async () => {
-    setIsLoading(true);
-    try {
-      const res = await jobService.getSavedJobs();
-      if (res.result && res.result.length > 0) {
-        // Lấy chi tiết từng job
-        const jobPromises = res.result.map(async (savedJob: SavedJobResponse) => {
-          try {
-            const detailRes = await jobService.getJobDetail(savedJob.jobId);
-            if (detailRes.result) {
-              return {
-                ...detailRes.result,
-                savedJobId: savedJob.id,
-                savedAt: savedJob.savedAt
-              };
-            }
-          } catch (e) {
-             console.error(`Lỗi lấy job ${savedJob.jobId}`, e);
-          }
-          return null;
+  // Mỗi khi danh sách savedJobEntries thay đổi → fetch chi tiết các job chưa có
+  useEffect(() => {
+    const missingIds = savedJobEntries
+      .map((sj) => sj.jobId)
+      .filter((id) => !jobDetails.has(id));
+
+    if (missingIds.length === 0) return;
+
+    setFetchingDetails(true);
+    Promise.all(
+      missingIds.map(async (jobId) => {
+        try {
+          const res = await jobService.getJobDetail(jobId);
+          if (res.result) return { jobId, detail: res.result };
+        } catch (e) {
+          console.error(`Lỗi lấy chi tiết job ${jobId}`, e);
+        }
+        return null;
+      })
+    ).then((results) => {
+      setJobDetails((prev) => {
+        const next = new Map(prev);
+        results.forEach((r) => {
+          if (r) next.set(r.jobId, r.detail);
         });
-        
-        const jobs = await Promise.all(jobPromises);
-        const validJobs = jobs.filter(j => j !== null) as (JobResponse & { savedJobId: number; savedAt: string })[];
-        setSavedJobs(validJobs);
-      } else {
-        setSavedJobs([]);
-      }
-    } catch (error) {
-      console.error("Lỗi lấy danh sách việc làm đã lưu", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        return next;
+      });
+      setFetchingDetails(false);
+    });
+  }, [savedJobEntries]);
 
   const handleUnsave = async (jobId: number) => {
     setIsRemovingId(jobId);
     try {
-      await jobService.unsaveJob(jobId);
-      setSavedJobs(prev => prev.filter(job => job.id !== jobId));
+      await unsaveJob(jobId);
+      // Xóa cache chi tiết khỏi map để tiết kiệm bộ nhớ
+      setJobDetails((prev) => {
+        const next = new Map(prev);
+        next.delete(jobId);
+        return next;
+      });
     } catch (error) {
       console.error("Lỗi bỏ lưu việc làm", error);
     } finally {
@@ -81,8 +77,17 @@ export default function SavedJobs() {
     }
   };
 
+  // Ghép savedJobEntry + jobDetail thành 1 object để render
+  const mergedJobs = savedJobEntries
+    .filter((sj) => jobDetails.has(sj.jobId))
+    .map((sj) => ({
+      ...jobDetails.get(sj.jobId)!,
+      savedJobId: sj.id,
+      savedAt: sj.savedAt,
+    }));
+
   // Filter & Sort
-  const filteredJobs = savedJobs.filter((job) =>
+  const filteredJobs = mergedJobs.filter((job) =>
     job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     job.employerName.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -93,9 +98,11 @@ export default function SavedJobs() {
       case "salary_asc": return a.salary - b.salary;
       case "newest":
       default:
-         return new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime();
+        return new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime();
     }
   });
+
+  const showLoading = isLoading || fetchingDetails;
 
   return (
     <div className="min-h-screen bg-[#f7f8fc] pb-20 md:pb-8">
@@ -116,7 +123,7 @@ export default function SavedJobs() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20">
-        
+
         {/* ════ TOOLBAR ════ */}
         <div className="bg-white rounded-2xl shadow-sm p-4 mb-8 flex flex-col sm:flex-row items-center gap-4 border border-gray-100">
           <div className="flex-1 w-full relative">
@@ -144,20 +151,20 @@ export default function SavedJobs() {
               <ChevronDown className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
             <div className="text-xs font-bold text-blue-600 bg-blue-50 px-4 py-3 rounded-xl border border-blue-100 whitespace-nowrap hidden md:block">
-              {savedJobs.length} việc
+              {savedJobEntries.length} việc
             </div>
           </div>
         </div>
 
         {/* ════ CONTENT ════ */}
-        {isLoading ? (
+        {showLoading ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
             <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
             <p className="font-medium text-sm">Đang tải danh sách việc làm...</p>
           </div>
-        ) : savedJobs.length === 0 ? (
+        ) : savedJobEntries.length === 0 ? (
           <EmptyState />
-        ) : sortedJobs.length === 0 ? (
+        ) : sortedJobs.length === 0 && searchTerm ? (
           <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm">
             <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-bold text-gray-800 mb-2">Không tìm thấy kết quả phù hợp</h3>
@@ -172,7 +179,7 @@ export default function SavedJobs() {
                     <Zap className="w-3 h-3" /> Tuyển gấp
                   </div>
                 )}
-                
+
                 <div className="flex gap-4 items-start mb-4">
                   <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-100 shadow-sm flex-shrink-0 relative group-hover:scale-105 transition-transform duration-300">
                     <ImageWithFallback src={job.image || ""} alt={job.title} className="w-full h-full object-cover" />
@@ -246,7 +253,7 @@ function EmptyState() {
     <div className="bg-white rounded-3xl p-10 md:p-16 text-center border border-gray-100 shadow-sm mt-8 relative overflow-hidden">
       <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-60"></div>
       <div className="absolute bottom-0 left-0 w-48 h-48 bg-orange-50 rounded-full blur-3xl -ml-10 -mb-10 opacity-60"></div>
-      
+
       <div className="relative z-10">
         <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-gray-100 shadow-inner">
           <BookmarkMinus className="w-10 h-10 text-gray-300" />

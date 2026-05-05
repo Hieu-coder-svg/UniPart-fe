@@ -9,6 +9,7 @@ import JobDetail from "./pages/student/JobDetail";
 import Community from "./pages/student/Community";
 import Profile from "./pages/student/Profile";
 import SavedJobs from "./pages/student/SavedJobs";
+import Notifications from "./pages/student/Notifications";
 import Login from "./pages/student/Login";
 import Register from "./pages/auth/Register";
 import RegisterStudent from "./pages/auth/RegisterStudent";
@@ -20,10 +21,12 @@ import EmployerDashboard from "./pages/employer/EmployerDashboard";
 import EmployerJobs from "./pages/employer/EmployerJobs";
 import EmployerApplicants from "./pages/employer/EmployerApplicants";
 import EmployerMessages from "./pages/employer/EmployerMessages";
+import EmployerNotifications from "./pages/employer/EmployerNotifications";
 import EmployerAnalytics from "./pages/employer/EmployerAnalytics";
 import EmployerBilling from "./pages/employer/EmployerBilling";
 import EmployerBuyPosts from "./pages/employer/EmployerBuyPosts";
 import EmployerSettings from "./pages/employer/EmployerSettings";
+import StudentApplications from "./pages/student/StudentApplications";
 import ManagerOverview from "./pages/manager/Overview";
 import ManagerPackages from "./pages/manager/Packages";
 import ManagerReports from "./pages/manager/Reports";
@@ -92,6 +95,7 @@ export const router = createBrowserRouter([
           { index: true, Component: EmployerDashboard },
           { path: "jobs", Component: EmployerJobs },
           { path: "applicants", Component: EmployerApplicants },
+          { path: "notifications", Component: EmployerNotifications },
           { path: "messages", Component: EmployerMessages },
           { path: "pricing", Component: EmployerBuyPosts }, // Buy posts page
           { path: "analytics", Component: EmployerAnalytics },
@@ -112,6 +116,8 @@ export const router = createBrowserRouter([
       { path: "saved", Component: SavedJobs },
       { path: "community", Component: Community },
       { path: "profile", Component: Profile },
+      { path: "student/applications", Component: StudentApplications },
+      { path: "notifications", Component: Notifications },
       { path: "*", Component: NotFound },
     ],
   },

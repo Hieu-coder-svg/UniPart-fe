@@ -1,372 +1,507 @@
-import { Building2, User, Bell, Lock, CreditCard, Mail, Phone, MapPin, Save, Loader2 } from "lucide-react";
-import { useState } from "react";
+import {
+  Building2, User, Lock, Mail, Phone, MapPin, Save, Loader2,
+  Eye, EyeOff, CheckCircle, AlertCircle, Camera, Calendar, Users
+} from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { userService, EmployerResponse, EmployerUpdateRequest } from "../../../services/userService";
+import { authService } from "../../../services/authService";
 import { uploadImageToCloudinary } from "../../../services/uploadService";
 
-export default function EmployerSettings() {
-  const [activeTab, setActiveTab] = useState<"company" | "account" | "notifications" | "security">("company");
-  const [avatarUrl, setAvatarUrl] = useState<string>("");
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+type Tab = "personal" | "password";
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    const file = e.target.files[0];
-    
+interface Toast {
+  type: "success" | "error";
+  message: string;
+}
+
+export default function EmployerSettings() {
+  const [activeTab, setActiveTab] = useState<Tab>("personal");
+  const [profile, setProfile] = useState<EmployerResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<Toast | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Merged form state
+  const [companyName, setCompanyName] = useState("");
+  const [companyAddress, setCompanyAddress] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [companyDesc, setCompanyDesc] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [gender, setGender] = useState("");
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Password form state
+  const [currentPass, setCurrentPass] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [changingPass, setChangingPass] = useState(false);
+
+  const showToast = (type: "success" | "error", message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await userService.getEmployerMyInfo();
+        if (res.result) {
+          const p = res.result;
+          setProfile(p);
+          setCompanyName(p.companyName || "");
+          setCompanyAddress(p.companyAddress || "");
+          setPhoneNumber(p.phoneNumber || "");
+          setCompanyDesc(p.description || "");
+          setAvatarUrl(p.avatar || "");
+          setFullName(p.fullName || "");
+          setEmail(p.email || "");
+          setDateOfBirth(p.dateOfBirth || "");
+          setGender(p.gender || "");
+        }
+      } catch (e) {
+        console.error(e);
+        showToast("error", "Không thể tải thông tin hồ sơ.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0]) return;
     try {
       setIsUploadingAvatar(true);
-      const imageUrl = await uploadImageToCloudinary(file);
-      setAvatarUrl(imageUrl);
-      alert("Cập nhật ảnh thành công! Hãy nhấn Lưu thay đổi để lưu vào hệ thống.");
-    } catch (error) {
-      console.error(error);
-      alert("Lỗi tải ảnh lên Cloudinary.");
+      const url = await uploadImageToCloudinary(e.target.files[0]);
+      setAvatarUrl(url);
+      showToast("success", "Tải ảnh lên thành công! Nhấn Lưu để cập nhật.");
+    } catch {
+      showToast("error", "Lỗi tải ảnh lên. Vui lòng thử lại.");
     } finally {
       setIsUploadingAvatar(false);
     }
   };
 
+  const handleSaveProfile = async () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!fullName.trim()) newErrors.fullName = "Vui lòng nhập họ và tên.";
+    
+    if (!email.trim()) {
+      newErrors.email = "Vui lòng nhập email.";
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        newErrors.email = "Email không đúng định dạng.";
+      }
+    }
+
+    if (!dateOfBirth) {
+      newErrors.dateOfBirth = "Vui lòng chọn ngày sinh.";
+    } else {
+      const dob = new Date(dateOfBirth);
+      const today = new Date();
+      let age = today.getFullYear() - dob.getFullYear();
+      const m = today.getMonth() - dob.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+        age--;
+      }
+      if (age < 18) {
+        newErrors.dateOfBirth = "Bạn phải đủ 18 tuổi.";
+      }
+    }
+
+    if (!gender) newErrors.gender = "Vui lòng chọn giới tính.";
+    if (!companyName.trim()) newErrors.companyName = "Vui lòng nhập tên công ty.";
+    
+    if (!phoneNumber.trim()) {
+      newErrors.phoneNumber = "Vui lòng nhập số điện thoại.";
+    } else {
+      const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
+      if (!phoneRegex.test(phoneNumber)) {
+        newErrors.phoneNumber = "Số điện thoại không hợp lệ.";
+      }
+    }
+
+    if (!companyAddress.trim()) newErrors.companyAddress = "Vui lòng nhập địa chỉ trụ sở.";
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      showToast("error", "Vui lòng kiểm tra lại các trường bị lỗi.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const req: EmployerUpdateRequest = {
+        fullName,
+        companyName,
+        companyAddress,
+        phoneNumber,
+        email,
+        description: companyDesc,
+        avatar: avatarUrl,
+        dateOfBirth: dateOfBirth ? dateOfBirth : undefined,
+        gender: gender ? gender : undefined
+      };
+      const res = await userService.updateProfileEmployer(req);
+      if (res.result) {
+        setProfile(res.result);
+        showToast("success", "Cập nhật hồ sơ thành công!");
+      }
+    } catch (e: any) {
+      showToast("error", e?.message || "Lỗi cập nhật thông tin.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPass || !newPass || !confirmPass) {
+      showToast("error", "Vui lòng điền đầy đủ các trường mật khẩu.");
+      return;
+    }
+    if (newPass.length < 6) {
+      showToast("error", "Mật khẩu mới phải có ít nhất 6 ký tự.");
+      return;
+    }
+    if (newPass !== confirmPass) {
+      showToast("error", "Xác nhận mật khẩu không khớp.");
+      return;
+    }
+    setChangingPass(true);
+    try {
+      const username = profile?.username || localStorage.getItem("username") || "";
+      await authService.changePassword({ username, password: currentPass, newPassword: newPass });
+      showToast("success", "Đổi mật khẩu thành công!");
+      setCurrentPass(""); setNewPass(""); setConfirmPass("");
+    } catch (e: any) {
+      showToast("error", e?.message || "Đổi mật khẩu thất bại. Kiểm tra lại mật khẩu hiện tại.");
+    } finally {
+      setChangingPass(false);
+    }
+  };
+
+  const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
+    { id: "personal", label: "Hồ sơ cá nhân", icon: User },
+    { id: "password", label: "Đổi mật khẩu", icon: Lock },
+  ];
+
+  const initials = (profile?.companyName || "?").charAt(0).toUpperCase();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
+      </div>
+    );
+  }
+
+  const getInputClassName = (fieldError?: string) => {
+    const baseClass = "w-full px-4 py-3 border rounded-xl focus:outline-none transition ";
+    if (fieldError) {
+      return baseClass + "border-red-500 focus:ring-2 focus:ring-red-400 focus:border-red-500 bg-red-50/50";
+    }
+    return baseClass + "border-gray-200 focus:ring-2 focus:ring-orange-400";
+  };
+  
+  const getIconInputClassName = (fieldError?: string) => {
+    const baseClass = "w-full pl-11 pr-4 py-3 border rounded-xl focus:outline-none transition ";
+    if (fieldError) {
+      return baseClass + "border-red-500 focus:ring-2 focus:ring-red-400 focus:border-red-500 bg-red-50/50";
+    }
+    return baseClass + "border-gray-200 focus:ring-2 focus:ring-orange-400";
+  };
+
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-4xl mx-auto">
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl text-white transition-all duration-300 ${
+          toast.type === "success" ? "bg-gradient-to-r from-green-500 to-emerald-600" : "bg-gradient-to-r from-red-500 to-rose-600"
+        }`}>
+          {toast.type === "success" ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
+          <span className="font-medium">{toast.message}</span>
+        </div>
+      )}
+
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">Cài đặt</h1>
-        <p className="text-gray-600 text-lg">Quản lý thông tin tài khoản và cài đặt hệ thống</p>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+          Hồ sơ của tôi
+        </h1>
+        <p className="text-gray-500 mt-1">Quản lý thông tin hồ sơ và bảo mật tài khoản</p>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-lg">
-        <div className="flex gap-2 p-2 border-b-2 border-gray-100 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab("company")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl transition-all font-medium whitespace-nowrap ${
-              activeTab === "company"
-                ? "bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg"
-                : "text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            <Building2 className="w-5 h-5" />
-            <span>Thông tin công ty</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("account")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl transition-all font-medium whitespace-nowrap ${
-              activeTab === "account"
-                ? "bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg"
-                : "text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            <User className="w-5 h-5" />
-            <span>Tài khoản</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("notifications")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl transition-all font-medium whitespace-nowrap ${
-              activeTab === "notifications"
-                ? "bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg"
-                : "text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            <Bell className="w-5 h-5" />
-            <span>Thông báo</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("security")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl transition-all font-medium whitespace-nowrap ${
-              activeTab === "security"
-                ? "bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg"
-                : "text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            <Lock className="w-5 h-5" />
-            <span>Bảo mật</span>
-          </button>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden">
+        <div className="flex gap-1 p-2 border-b border-gray-100 overflow-x-auto">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl transition-all font-medium whitespace-nowrap text-sm ${
+                activeTab === tab.id
+                  ? "bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg"
+                  : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* Content */}
         <div className="p-6">
-          {/* Company Info Tab */}
-          {activeTab === "company" && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-6">
-                <div className="w-24 h-24 bg-gradient-to-br from-orange-600 to-red-600 rounded-xl flex items-center justify-center text-white text-4xl flex-shrink-0">
-                  H
+          {/* ── Personal/Company Merged Tab ── */}
+          {activeTab === "personal" && (
+            <div className="space-y-8">
+              {/* Profile Header & Avatar */}
+              <div className="flex flex-col md:flex-row items-center gap-6 p-6 bg-orange-50/50 rounded-2xl border border-orange-100/50">
+                <div className="relative group">
+                  <div className="w-28 h-28 rounded-2xl overflow-hidden bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-xl ring-4 ring-white">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Avatar/Logo" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-white text-5xl font-bold">{initials}</span>
+                    )}
+                    {isUploadingAvatar && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <Loader2 className="w-8 h-8 animate-spin text-white" />
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute -bottom-3 -right-3 w-10 h-10 bg-orange-600 rounded-full flex items-center justify-center shadow-xl hover:bg-orange-700 hover:scale-110 transition-all border-2 border-white"
+                  >
+                    <Camera className="w-4 h-4 text-white" />
+                  </button>
+                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
                 </div>
-                <div>
-                  <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 mr-2">
-                    Thay đổi logo
-                  </button>
-                  <button className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg">
-                    Xóa
-                  </button>
+                <div className="text-center md:text-left">
+                  <h2 className="text-2xl font-bold text-gray-800">{companyName || "Chưa cập nhật tên công ty"}</h2>
+                  <p className="text-gray-500 font-medium">{fullName || profile?.fullName}</p>
+                  <div className="flex items-center justify-center md:justify-start gap-2 mt-2">
+                    <span className="px-3 py-1 bg-orange-100 text-orange-600 rounded-full text-xs font-bold tracking-wide uppercase">Nhà tuyển dụng</span>
+                    <span className="text-sm text-gray-400">@{profile?.username}</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm text-gray-600 mb-2">Tên công ty *</label>
-                  <input
-                    type="text"
-                    defaultValue="Highlands Coffee"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
+              {/* Form Grid */}
+              <div className="grid md:grid-cols-2 gap-x-8 gap-y-6">
+                {/* Thông tin cá nhân */}
+                <div className="col-span-full pb-2 border-b border-gray-100">
+                  <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <User className="w-5 h-5 text-orange-500" />
+                    Thông tin cá nhân
+                  </h3>
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-600 mb-2">Mã số thuế</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Họ và tên *</label>
                   <input
                     type="text"
-                    defaultValue="0123456789"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    value={fullName}
+                    onChange={(e) => {
+                      setFullName(e.target.value);
+                      if (errors.fullName) setErrors({ ...errors, fullName: "" });
+                    }}
+                    placeholder="Nhập họ và tên"
+                    className={getInputClassName(errors.fullName)}
                   />
+                  {errors.fullName && <p className="text-red-500 text-sm mt-1.5 font-medium ml-1">{errors.fullName}</p>}
                 </div>
-
                 <div>
-                  <label className="block text-sm text-gray-600 mb-2">Email công ty *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Mail className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${errors.email ? 'text-red-400' : 'text-gray-400'}`} />
                     <input
                       type="email"
-                      defaultValue="hr@highlandscoffee.com.vn"
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (errors.email) setErrors({ ...errors, email: "" });
+                      }}
+                      placeholder="Nhập email"
+                      className={getIconInputClassName(errors.email)}
                     />
                   </div>
+                  {errors.email && <p className="text-red-500 text-sm mt-1.5 font-medium ml-1">{errors.email}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Ngày sinh *</label>
+                  <div className="relative">
+                    <Calendar className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${errors.dateOfBirth ? 'text-red-400' : 'text-gray-400'}`} />
+                    <input
+                      type="date"
+                      value={dateOfBirth}
+                      onChange={(e) => {
+                        setDateOfBirth(e.target.value);
+                        if (errors.dateOfBirth) setErrors({ ...errors, dateOfBirth: "" });
+                      }}
+                      className={getIconInputClassName(errors.dateOfBirth)}
+                    />
+                  </div>
+                  {errors.dateOfBirth && <p className="text-red-500 text-sm mt-1.5 font-medium ml-1">{errors.dateOfBirth}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Giới tính *</label>
+                  <div className="relative">
+                    <Users className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${errors.gender ? 'text-red-400' : 'text-gray-400'}`} />
+                    <select
+                      value={gender}
+                      onChange={(e) => {
+                        setGender(e.target.value);
+                        if (errors.gender) setErrors({ ...errors, gender: "" });
+                      }}
+                      className={getIconInputClassName(errors.gender) + " appearance-none"}
+                    >
+                      <option value="">Chọn giới tính</option>
+                      <option value="MALE">Nam</option>
+                      <option value="FEMALE">Nữ</option>
+                      <option value="OTHER">Khác</option>
+                    </select>
+                  </div>
+                  {errors.gender && <p className="text-red-500 text-sm mt-1.5 font-medium ml-1">{errors.gender}</p>}
+                </div>
+
+                {/* Thông tin công ty */}
+                <div className="col-span-full pt-4 pb-2 border-b border-gray-100 mt-2">
+                  <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <Building2 className="w-5 h-5 text-orange-500" />
+                    Thông tin doanh nghiệp
+                  </h3>
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-600 mb-2">Số điện thoại *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tên công ty *</label>
+                  <input
+                    type="text"
+                    value={companyName}
+                    onChange={(e) => {
+                      setCompanyName(e.target.value);
+                      if (errors.companyName) setErrors({ ...errors, companyName: "" });
+                    }}
+                    placeholder="Tên công ty"
+                    className={getInputClassName(errors.companyName)}
+                  />
+                  {errors.companyName && <p className="text-red-500 text-sm mt-1.5 font-medium ml-1">{errors.companyName}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Số điện thoại liên hệ *</label>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Phone className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${errors.phoneNumber ? 'text-red-400' : 'text-gray-400'}`} />
                     <input
                       type="tel"
-                      defaultValue="1900-xxxx"
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      value={phoneNumber}
+                      onChange={(e) => {
+                        setPhoneNumber(e.target.value);
+                        if (errors.phoneNumber) setErrors({ ...errors, phoneNumber: "" });
+                      }}
+                      placeholder="Số điện thoại"
+                      className={getIconInputClassName(errors.phoneNumber)}
                     />
                   </div>
+                  {errors.phoneNumber && <p className="text-red-500 text-sm mt-1.5 font-medium ml-1">{errors.phoneNumber}</p>}
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-600 mb-2">Địa chỉ trụ sở</label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <div className="col-span-full">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Địa chỉ trụ sở *</label>
+                  <div className="relative">
+                    <MapPin className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${errors.companyAddress ? 'text-red-400' : 'text-gray-400'}`} />
+                    <input
+                      type="text"
+                      value={companyAddress}
+                      onChange={(e) => {
+                        setCompanyAddress(e.target.value);
+                        if (errors.companyAddress) setErrors({ ...errors, companyAddress: "" });
+                      }}
+                      placeholder="Địa chỉ công ty"
+                      className={getIconInputClassName(errors.companyAddress)}
+                    />
+                  </div>
+                  {errors.companyAddress && <p className="text-red-500 text-sm mt-1.5 font-medium ml-1">{errors.companyAddress}</p>}
+                </div>
+                <div className="col-span-full">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Mô tả công ty</label>
                   <textarea
-                    rows={3}
-                    defaultValue="123 Nguyễn Huệ, Quận 1, TP.HCM"
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  ></textarea>
+                    rows={4}
+                    value={companyDesc}
+                    onChange={(e) => setCompanyDesc(e.target.value)}
+                    placeholder="Giới thiệu về công ty..."
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 transition resize-none"
+                  />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm text-gray-600 mb-2">Mô tả công ty</label>
-                <textarea
-                  rows={5}
-                  defaultValue="Highlands Coffee là chuỗi cửa hàng cà phê hàng đầu Việt Nam với hơn 500 cửa hàng trên toàn quốc."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                ></textarea>
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <button className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                  Hủy
-                </button>
-                <button className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-lg hover:shadow-lg">
-                  <Save className="w-5 h-5" />
-                  <span>Lưu thay đổi</span>
+              <div className="flex justify-end pt-6 border-t border-gray-100">
+                <button
+                  onClick={handleSaveProfile}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white font-medium rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:hover:translate-y-0"
+                >
+                  {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                  Lưu thay đổi
                 </button>
               </div>
             </div>
           )}
 
-          {/* Account Tab */}
-          {activeTab === "account" && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-6">
-                <div className="w-20 h-20 bg-gradient-to-br from-orange-600 to-red-600 rounded-full flex items-center justify-center text-white text-2xl overflow-hidden shadow-lg border-2 border-white relative">
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                  ) : (
-                    "N"
+          {/* ── Password Tab ── */}
+          {activeTab === "password" && (
+            <div className="space-y-6 max-w-md mx-auto pt-4">
+              <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl text-sm text-orange-800">
+                Mật khẩu phải có ít nhất <strong>6 ký tự</strong>. Sau khi đổi, bạn sẽ cần đăng nhập lại.
+              </div>
+
+              {[
+                { label: "Mật khẩu hiện tại", value: currentPass, setter: setCurrentPass, show: showCurrent, toggle: () => setShowCurrent(v => !v) },
+                { label: "Mật khẩu mới", value: newPass, setter: setNewPass, show: showNew, toggle: () => setShowNew(v => !v) },
+                { label: "Xác nhận mật khẩu mới", value: confirmPass, setter: setConfirmPass, show: showConfirm, toggle: () => setShowConfirm(v => !v) },
+              ].map((field, idx) => (
+                <div key={idx}>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{field.label}</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type={field.show ? "text" : "password"}
+                      value={field.value}
+                      onChange={(e) => field.setter(e.target.value)}
+                      className="w-full pl-11 pr-11 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={field.toggle}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                    >
+                      {field.show ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  {idx === 2 && confirmPass && newPass !== confirmPass && (
+                    <p className="text-xs text-red-500 mt-1.5 font-medium ml-1">Mật khẩu xác nhận không khớp</p>
                   )}
-                  {isUploadingAvatar && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <Loader2 className="w-6 h-6 animate-spin text-white" />
-                    </div>
-                  )}
                 </div>
-                <div>
-                  <label className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 mr-2 cursor-pointer inline-block">
-                    {isUploadingAvatar ? "Đang tải..." : "Thay đổi ảnh"}
-                    <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} disabled={isUploadingAvatar} />
-                  </label>
-                  <button className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg">
-                    Xóa
-                  </button>
-                </div>
-              </div>
+              ))}
 
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm text-gray-600 mb-2">Họ và tên *</label>
-                  <input
-                    type="text"
-                    defaultValue="Nguyễn Văn A"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm text-gray-600 mb-2">Chức vụ</label>
-                  <input
-                    type="text"
-                    defaultValue="HR Manager"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm text-gray-600 mb-2">Email *</label>
-                  <input
-                    type="email"
-                    defaultValue="nguyenvana@highlandscoffee.com.vn"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm text-gray-600 mb-2">Số điện thoại</label>
-                  <input
-                    type="tel"
-                    defaultValue="0901234567"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <button className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                  Hủy
-                </button>
-                <button className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-lg hover:shadow-lg">
-                  <Save className="w-5 h-5" />
-                  <span>Lưu thay đổi</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Notifications Tab */}
-          {activeTab === "notifications" && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg mb-4">Thông báo email</h3>
-                <div className="space-y-4">
-                  {[
-                    { label: "Ứng viên mới ứng tuyển", checked: true },
-                    { label: "Tin nhắn mới từ ứng viên", checked: true },
-                    { label: "Tin tuyển dụng sắp hết hạn", checked: true },
-                    { label: "Báo cáo tuần", checked: false },
-                    { label: "Thông tin khuyến mãi", checked: false },
-                  ].map((item, idx) => (
-                    <label key={idx} className="flex items-center gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        defaultChecked={item.checked}
-                        className="w-5 h-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                      />
-                      <span className="text-gray-700">{item.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-lg mb-4">Thông báo push</h3>
-                <div className="space-y-4">
-                  {[
-                    { label: "Ứng viên mới ứng tuyển", checked: true },
-                    { label: "Tin nhắn mới", checked: true },
-                    { label: "Cập nhật hệ thống", checked: false },
-                  ].map((item, idx) => (
-                    <label key={idx} className="flex items-center gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        defaultChecked={item.checked}
-                        className="w-5 h-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                      />
-                      <span className="text-gray-700">{item.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <button className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-lg hover:shadow-lg">
-                  <Save className="w-5 h-5" />
-                  <span>Lưu cài đặt</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Security Tab */}
-          {activeTab === "security" && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg mb-4">Đổi mật khẩu</h3>
-                <div className="space-y-4 max-w-md">
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-2">Mật khẩu hiện tại</label>
-                    <input
-                      type="password"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-2">Mật khẩu mới</label>
-                    <input
-                      type="password"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-2">Xác nhận mật khẩu mới</label>
-                    <input
-                      type="password"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-                  <button className="px-6 py-2 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-lg hover:shadow-lg">
-                    Đổi mật khẩu
-                  </button>
-                </div>
-              </div>
-
-              <div className="pt-6 border-t border-gray-200">
-                <h3 className="text-lg mb-4">Xác thực hai yếu tố (2FA)</h3>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium mb-1">Bảo vệ tài khoản của bạn</p>
-                    <p className="text-sm text-gray-600">
-                      Thêm một lớp bảo mật bằng cách yêu cầu mã xác thực
-                    </p>
-                  </div>
-                  <button className="px-4 py-2 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-lg hover:shadow-lg">
-                    Bật 2FA
-                  </button>
-                </div>
-              </div>
-
-              <div className="pt-6 border-t border-gray-200">
-                <h3 className="text-lg mb-4 text-red-600">Vùng nguy hiểm</h3>
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="mb-4 text-sm text-gray-700">
-                    Xóa tài khoản sẽ xóa vĩnh viễn tất cả dữ liệu của bạn. Hành động này không thể hoàn tác.
-                  </p>
-                  <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-                    Xóa tài khoản
-                  </button>
-                </div>
-              </div>
+              <button
+                onClick={handleChangePassword}
+                disabled={changingPass}
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white font-medium rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:hover:translate-y-0 w-full justify-center mt-8"
+              >
+                {changingPass ? <Loader2 className="w-5 h-5 animate-spin" /> : <Lock className="w-5 h-5" />}
+                Đổi mật khẩu
+              </button>
             </div>
           )}
         </div>

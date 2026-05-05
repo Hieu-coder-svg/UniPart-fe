@@ -45,6 +45,27 @@ export interface JobFilterRequest {
     sortDirection?: "ASC" | "DESC";
 }
 
+export interface JobTimeSlotRequest {
+    workDate: string;
+    startTime: string;
+    endTime: string;
+}
+
+export interface JobCreationRequest {
+    title: string;
+    image?: string;
+    description?: string;
+    workingShift?: string;
+    vacancies: number;
+    urgent?: boolean;
+    address?: string;
+    locationLatitude?: number;
+    locationLongitude?: number;
+    salary: number;
+    expiredAt?: string; // LocalDateTime format 'YYYY-MM-DDTHH:mm:ss'
+    timeSlots?: JobTimeSlotRequest[];
+}
+
 // Thêm interface cho Page (Spring Data JPA) do BE trả về kiểu Page<JobResponse>
 export interface Page<T> {
     content: T[];
@@ -108,8 +129,23 @@ class JobService {
         return response.data;
     }
 
+    async createJob(request: JobCreationRequest): Promise<ApiResponse<JobResponse>> {
+        const response = await this.api.post<ApiResponse<JobResponse>>('/job', request);
+        return response.data;
+    }
+
     async getJobDetail(id: number): Promise<ApiResponse<JobResponse>> {
         const response = await this.api.get<ApiResponse<JobResponse>>(`/job/${id}`);
+        return response.data;
+    }
+
+    async getStudentJobHistory(studentId: string): Promise<ApiResponse<JobResponse[]>> {
+        const response = await this.api.get<ApiResponse<JobResponse[]>>(`/job/history/${studentId}`);
+        return response.data;
+    }
+
+    async getMyJobPost(): Promise<ApiResponse<JobResponse[]>> {
+        const response = await this.api.get<ApiResponse<JobResponse[]>>("/job/myPost");
         return response.data;
     }
 

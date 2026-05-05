@@ -61,8 +61,11 @@ export interface EmployerUpdateRequest {
     companyName: string;
     companyAddress: string;
     phoneNumber?: string;
+    email?: string;
     description?: string;
     avatar?: string;
+    dateOfBirth?: string;
+    gender?: string;
 }
 
 const API_BASE_URL = "http://localhost:8080";

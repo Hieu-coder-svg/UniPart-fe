@@ -21,13 +21,18 @@ export default function EmployerLogin() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string || loginEmail;
+    const password = formData.get("password") as string || loginPassword;
+
     setError("");
     setLoading(true);
 
     try {
-      await login(loginEmail, loginPassword);
+      await login(email, password);
       navigate("/employer/dashboard");
     } catch (err: any) {
       setError(err.message || "Đã có lỗi xảy ra. Vui lòng kiểm tra lại tài khoản.");
@@ -191,6 +196,7 @@ export default function EmployerLogin() {
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
+                      name="email"
                       type="text"
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
@@ -206,6 +212,7 @@ export default function EmployerLogin() {
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
+                      name="password"
                       type={showPassword ? "text" : "password"}
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}

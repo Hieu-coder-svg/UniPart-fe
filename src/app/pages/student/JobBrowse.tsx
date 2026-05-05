@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router";
 import { jobService, JobResponse, JobFilterRequest } from "../../../services/jobService";
 import { useAuth } from "../../contexts/AuthContext";
+import { useSavedJobs } from "../../contexts/SavedJobsContext";
 import {
   Search,
   MapPin,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 import AdBanner from "../../components/AdBanner";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 
 /* ─────────────────────────────────────────
    CATEGORY CAROUSEL DATA
@@ -45,11 +47,11 @@ const SHIFTS = [
   "Làm tại nhà"
 ];
 const SALARY_OPTIONS = [
-  { value: "high", label: "Trên 50.000đ", min: 50000, max: undefined },
-  { value: "medium", label: "30k – 50k", min: 30000, max: 49999 },
+  { value: "high", label: "Trên 50.000đ", min: 50001, max: undefined },
+  { value: "medium", label: "30k – 50k", min: 30000, max: 50000 },
   { value: "low", label: "Dưới 30.000đ", min: 0, max: 29999 },
 ];
-const LOCATIONS = ["Quận 1", "Quận 3", "Quận 5", "Quận 7", "Quận 10", "Quận Bình Thạnh"];
+const LOCATIONS = ["Ba Đình", "Hoàn Kiếm", "Tây Hồ", "Long Biên", "Cầu Giấy", "Đống Đa", "Hai Bà Trưng", "Hoàng Mai", "Thanh Xuân", "Hà Đông", "Nam Từ Liêm", "Bắc Từ Liêm"];
 
 /* ─────────────────────────────────────────
    MAIN PAGE
@@ -63,8 +65,8 @@ export default function JobBrowse() {
   
   const [jobs, setJobs] = useState<JobResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [savedJobIds, setSavedJobIds] = useState<Set<number>>(new Set());
   const { user } = useAuth();
+  const { savedJobIds, saveJob, unsaveJob, isJobSaved } = useSavedJobs();
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const categories = Object.keys(categoryIcons);
@@ -100,6 +102,7 @@ export default function JobBrowse() {
         address: selectedLocation !== "all" ? selectedLocation : undefined,
         // Gửi thẳng mảng string[]
         workingShift: selectedShifts.length > 0 ? selectedShifts : undefined,
+        size: 100,
       };
 
       if (selectedSalary !== "all") {
@@ -126,18 +129,7 @@ export default function JobBrowse() {
     }
   }, [searchTerm, selectedLocation, selectedCategory, selectedShifts, selectedSalary]);
 
-  const fetchSavedJobs = async () => {
-    if (!user) return;
-    try {
-      const res = await jobService.getSavedJobs();
-      if (res.result) {
-        const ids = new Set(res.result.map(sj => sj.jobId));
-        setSavedJobIds(ids);
-      }
-    } catch (error) {
-      console.error("Failed to fetch saved jobs:", error);
-    }
-  };
+
 
   // Debounce việc fetch khi thay đổi filter (trừ khi nhấn nút tìm)
   useEffect(() => {
@@ -147,9 +139,7 @@ export default function JobBrowse() {
     return () => clearTimeout(timeoutId);
   }, [fetchJobs]);
 
-  useEffect(() => {
-    fetchSavedJobs();
-  }, [user]);
+
 
   const featuredJobs = jobs.filter((job) => job.urgent);
   const normalJobs = jobs.filter((job) => !job.urgent);
@@ -164,22 +154,11 @@ export default function JobBrowse() {
       alert("Vui lòng đăng nhập để lưu việc làm!");
       return;
     }
-    const isSaved = savedJobIds.has(jobId);
     try {
-      if (isSaved) {
-        await jobService.unsaveJob(jobId);
-        setSavedJobIds(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(jobId);
-          return newSet;
-        });
+      if (isJobSaved(jobId)) {
+        await unsaveJob(jobId);
       } else {
-        await jobService.saveJob(jobId);
-        setSavedJobIds(prev => {
-          const newSet = new Set(prev);
-          newSet.add(jobId);
-          return newSet;
-        });
+        await saveJob(jobId);
       }
     } catch (error) {
       console.error("Toggle save job failed", error);
@@ -224,18 +203,19 @@ export default function JobBrowse() {
             <div className="w-px h-6 bg-gray-200" />
 
             {/* Location */}
-            <div className="flex items-center gap-2 px-4 py-3 w-44">
+            <div className="flex items-center gap-2 px-4 py-2 w-48">
               <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              <select
-                value={selectedLocation}
-                onChange={(e) => setSelectedLocation(e.target.value)}
-                className="flex-1 bg-transparent outline-none text-gray-700 text-sm cursor-pointer appearance-none"
-              >
-                <option value="all">Tất cả khu vực</option>
-                {LOCATIONS.map((loc) => (
-                  <option key={loc} value={loc}>{loc}</option>
-                ))}
-              </select>
+              <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                <SelectTrigger className="flex-1 bg-transparent border-none shadow-none focus:ring-0 focus-visible:ring-0 p-0 text-sm font-medium text-gray-700 h-auto">
+                  <SelectValue placeholder="Chọn khu vực" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl shadow-lg border-gray-100 bg-white">
+                  <SelectItem value="all">Tất cả khu vực</SelectItem>
+                  {LOCATIONS.map((loc) => (
+                    <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Search CTA */}
@@ -473,7 +453,6 @@ export default function JobBrowse() {
    JOB CARD
 ───────────────────────────────────────── */
 function JobCard({ job, featured = false, isSaved, onToggleSave }: { job: JobResponse; featured?: boolean; isSaved: boolean; onToggleSave: (id: number) => void; }) {
-  // Cố gắng đoán category từ title (mock)
   let category = "Văn phòng";
   Object.keys(categoryIcons).forEach(cat => {
     if (job.title.toLowerCase().includes(cat.toLowerCase())) {
@@ -482,81 +461,76 @@ function JobCard({ job, featured = false, isSaved, onToggleSave }: { job: JobRes
   });
 
   return (
-    <div className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col h-full border border-gray-100">
-      <div className="relative overflow-hidden h-40 flex-shrink-0">
-        {job.image ? (
+    <div className="group bg-white rounded-2xl p-5 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col relative h-full">
+      {/* Nút Save */}
+      <button
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleSave(job.id); }}
+        className={`absolute top-4 right-4 p-2 rounded-full transition-all z-10 border ${
+          isSaved
+            ? "bg-blue-50 border-blue-100 text-blue-600"
+            : "bg-white border-gray-100 text-gray-400 hover:bg-gray-50 hover:text-blue-600"
+        }`}
+      >
+        <Bookmark className={`w-4 h-4 ${isSaved ? "fill-blue-600" : ""}`} />
+      </button>
+
+      {/* Tuyển gấp badge */}
+      {featured && (
+        <div className="absolute top-4 right-14 flex items-center gap-1 bg-red-50 text-red-600 text-[10px] font-bold px-2.5 py-1 rounded-full border border-red-100">
+          <Zap className="w-3 h-3" /> TUYỂN GẤP
+        </div>
+      )}
+
+      {/* Header: Logo & Title */}
+      <div className="flex gap-4 items-start mb-4 pr-20">
+        <div className="w-14 h-14 rounded-xl overflow-hidden border border-gray-100 shadow-sm flex-shrink-0 relative group-hover:scale-105 transition-transform duration-300 bg-gray-50">
           <ImageWithFallback
-            src={job.image}
+            src={job.image || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=150&q=80"}
             alt={job.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover"
           />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center">
-            <span className="text-4xl">{categoryIcons[category] ?? "💼"}</span>
-          </div>
-        )}
-
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-
-        {featured && (
-          <div className="absolute top-3 left-3 flex items-center gap-1 bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg">
-            <Zap className="w-3 h-3" /> TUYỂN GẤP
-          </div>
-        )}
-
-        <button
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleSave(job.id); }}
-          className={`absolute top-3 right-3 p-1.5 rounded-lg backdrop-blur-sm transition-all z-10 ${
-            isSaved
-              ? "bg-blue-600 text-white"
-              : "bg-white/80 text-gray-500 hover:bg-white hover:text-blue-600"
-          }`}
-        >
-          <Bookmark className={`w-4 h-4 ${isSaved ? "fill-white" : ""}`} />
-        </button>
-
-        <div className="absolute bottom-3 left-3">
-          <span className="text-[10px] font-semibold bg-white/90 backdrop-blur-sm text-gray-700 px-2 py-1 rounded-full">
-            {categoryIcons[category] ?? "💼"} {category}
-          </span>
+        </div>
+        <div className="flex-1">
+          <Link to={`/jobs/${job.id}`}>
+            <h3 className="font-bold text-gray-900 text-base leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
+              {job.title}
+            </h3>
+          </Link>
+          <p className="text-sm text-gray-500 mt-1 truncate">{job.employerName}</p>
         </div>
       </div>
 
-      <Link to={`/jobs/${job.id}`} className="flex flex-col flex-1 p-4">
-        <div className="mb-3">
-          <h3 className="font-bold text-[#1f2937] text-base leading-snug group-hover:text-blue-600 transition-colors line-clamp-2 mb-1">
-            {job.title}
-          </h3>
-          <p className="text-sm text-gray-500 truncate">{job.employerName}</p>
-        </div>
+      {/* Tags: Lương, Địa điểm, Ca */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg text-sm font-semibold border border-emerald-100">
+          <DollarSign className="w-3.5 h-3.5" />
+          {job.salary.toLocaleString()}đ
+        </span>
+        <span className="inline-flex items-center gap-1 bg-gray-50 text-gray-600 px-2.5 py-1 rounded-lg text-xs font-medium border border-gray-100">
+          <MapPin className="w-3.5 h-3.5" />
+          <span className="truncate max-w-[120px]">{job.address}</span>
+        </span>
+        <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg text-xs font-medium border border-blue-100">
+          <Clock className="w-3.5 h-3.5" />
+          {job.workingShift}
+        </span>
+      </div>
 
-        <div className="flex items-center gap-1.5 mb-3">
-          <DollarSign className="w-4 h-4 text-emerald-500" />
-          <span className="text-base font-extrabold text-emerald-600">{job.salary.toLocaleString()}đ</span>
+      {/* Footer */}
+      <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-100">
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
+          <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+          5.0 (0)
         </div>
-
-        <div className="space-y-1.5 mb-4">
-          <div className="flex items-center gap-2 text-xs text-gray-400">
-            <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">{job.address}</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-gray-400">
-            <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>{job.workingShift}</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-gray-400">
-            <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-            <span>5.0 <span className="text-gray-300">(0 đánh giá)</span></span>
-          </div>
-        </div>
-
-        <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-100">
-          <span className="text-[10px] bg-blue-50 text-blue-600 font-semibold px-2.5 py-1 rounded-full">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] bg-gray-100 text-gray-500 font-semibold px-2 py-1 rounded-md">
             {job.vacancies} vị trí
           </span>
-          <span className="text-[10px] text-gray-400">{new Date(job.createdAt).toLocaleDateString('vi-VN')}</span>
+          <span className="text-[10px] text-gray-400">
+            {new Date(job.createdAt).toLocaleDateString('vi-VN')}
+          </span>
         </div>
-      </Link>
+      </div>
     </div>
   );
 }

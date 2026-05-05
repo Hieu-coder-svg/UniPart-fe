@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Briefcase,
   Users,
   TrendingUp,
-  Eye,
   MessageSquare,
   ArrowUpRight,
   ArrowDownRight,
@@ -15,16 +14,47 @@ import {
   Zap,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useNotifications } from "../../contexts/NotificationContext";
 import { Link } from "react-router";
+import { jobService, JobResponse } from "../../../services/jobService";
+import { applicationService, ApplicationResponse } from "../../../services/applicationService";
 
 export default function EmployerDashboard() {
   const { user } = useAuth();
 
+  const [jobs, setJobs] = useState<JobResponse[]>([]);
+  const [applications, setApplications] = useState<ApplicationResponse[]>([]);
+  const { notifications } = useNotifications();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [jobsRes, appsRes] = await Promise.all([
+          jobService.getMyJobPost(),
+          applicationService.getEmployerApplications()
+        ]);
+        if (jobsRes.result) setJobs(jobsRes.result);
+        if (appsRes.result) setApplications(appsRes.result);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const activeJobsCount = jobs.filter(j => j.status === 'APPROVED' && new Date(j.expiredAt) > new Date()).length;
+  const totalApplicantsCount = new Set(applications.map(a => a.studentId)).size;
+  const expiringJobsCount = jobs.filter(j => j.status === 'APPROVED' && new Date(j.expiredAt) < new Date(Date.now() + 7 * 86400000) && new Date(j.expiredAt) > new Date()).length;
+  const unreadNotificationsCount = notifications.filter(n => !n.isRead).length;
+
   const stats = [
     {
       label: "Tin đang hoạt động",
-      value: "12",
-      change: "+2",
+      value: activeJobsCount.toString(),
+      change: "Thực tế",
       trend: "up",
       icon: Briefcase,
       color: "blue",
@@ -32,26 +62,26 @@ export default function EmployerDashboard() {
     },
     {
       label: "Tổng ứng viên",
-      value: "284",
-      change: "+48",
+      value: totalApplicantsCount.toString(),
+      change: "Thực tế",
       trend: "up",
       icon: Users,
       color: "green",
       bgGradient: "from-green-500 to-green-600",
     },
     {
-      label: "Lượt xem tháng này",
-      value: "5,420",
-      change: "+12.5%",
-      trend: "up",
-      icon: Eye,
+      label: "Tin sắp hết hạn",
+      value: expiringJobsCount.toString(),
+      change: "Thực tế",
+      trend: "down",
+      icon: Clock,
       color: "purple",
       bgGradient: "from-purple-500 to-purple-600",
     },
     {
-      label: "Tin nhắn chưa đọc",
-      value: "23",
-      change: "+5",
+      label: "Thông báo chưa đọc",
+      value: unreadNotificationsCount.toString(),
+      change: "Thực tế",
       trend: "up",
       icon: MessageSquare,
       color: "orange",
@@ -59,62 +89,29 @@ export default function EmployerDashboard() {
     },
   ];
 
-  const recentJobs = [
-    {
-      id: 1,
-      title: "Nhân viên phục vụ - Part-time",
-      status: "active",
-      views: 245,
-      applicants: 12,
-      postedDate: "2024-03-10",
-      urgent: false,
-    },
-    {
-      id: 2,
-      title: "Gia sư Toán - Lớp 10",
-      status: "active",
-      views: 189,
-      applicants: 8,
-      postedDate: "2024-03-12",
-      urgent: true,
-    },
-    {
-      id: 3,
-      title: "Nhân viên kho - Ca tối",
-      status: "expiring",
-      views: 156,
-      applicants: 6,
-      postedDate: "2024-03-05",
-      urgent: false,
-    },
-  ];
+  const recentJobs = [...jobs]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 3)
+    .map(job => ({
+      id: job.id,
+      title: job.title,
+      status: new Date(job.expiredAt) < new Date() ? "expired" : new Date(job.expiredAt) < new Date(Date.now() + 7 * 86400000) ? "expiring" : "active",
+      applicants: applications.filter(a => a.jobId === job.id).length,
+      postedDate: job.createdAt,
+      urgent: job.urgent,
+    }));
 
-  const recentApplicants = [
-    {
-      id: 1,
-      name: "Nguyễn Văn An",
-      job: "Nhân viên phục vụ",
-      appliedDate: "2024-03-14",
-      status: "new",
-      avatar: "A",
-    },
-    {
-      id: 2,
-      name: "Trần Thị Bình",
-      job: "Gia sư Toán",
-      appliedDate: "2024-03-13",
-      status: "reviewed",
-      avatar: "B",
-    },
-    {
-      id: 3,
-      name: "Lê Minh Châu",
-      job: "Nhân viên kho",
-      appliedDate: "2024-03-12",
-      status: "shortlisted",
-      avatar: "C",
-    },
-  ];
+  const recentApplicants = [...applications]
+    .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
+    .slice(0, 3)
+    .map(app => ({
+      id: app.id,
+      name: app.studentName,
+      job: app.jobTitle,
+      appliedDate: app.appliedAt,
+      status: app.status.toLowerCase(),
+      avatar: app.studentName.charAt(0).toUpperCase()
+    }));
 
   const quickActions = [
     {
@@ -159,10 +156,10 @@ export default function EmployerDashboard() {
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
         <div className="relative z-10">
           <h1 className="text-3xl mb-2">
-            Chào mừng trở lại, {user?.name || "Admin"}! 👋
+            Chào mừng trở lại, {user?.fullName || user?.username || "Nhà tuyển dụng"}! 👋
           </h1>
           <p className="text-orange-100 text-lg">
-            Hôm nay bạn có 12 tin đang hoạt động và 23 ứng viên mới
+            Hôm nay bạn có {activeJobsCount} tin đang hoạt động và {new Set(applications.filter(a => a.status === 'PENDING').map(a => a.studentId)).size} ứng viên chờ duyệt
           </p>
         </div>
       </div>
@@ -256,10 +253,6 @@ export default function EmployerDashboard() {
                     </div>
                     <div className="flex items-center gap-4 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
-                        <Eye className="w-4 h-4" />
-                        <span>{job.views} lượt xem</span>
-                      </div>
-                      <div className="flex items-center gap-1">
                         <Users className="w-4 h-4" />
                         <span>{job.applicants} ứng viên</span>
                       </div>
@@ -274,10 +267,15 @@ export default function EmployerDashboard() {
                       <CheckCircle className="w-3 h-3" />
                       Hoạt động
                     </span>
-                  ) : (
+                  ) : job.status === "expiring" ? (
                     <span className="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       Sắp hết hạn
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 bg-red-100 text-red-700 text-xs rounded-full flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      Đã hết hạn
                     </span>
                   )}
                 </div>
@@ -315,7 +313,7 @@ export default function EmployerDashboard() {
                     {new Date(applicant.appliedDate).toLocaleDateString("vi-VN")}
                   </p>
                 </div>
-                {applicant.status === "new" && (
+                {applicant.status === "pending" && (
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 )}
               </div>
@@ -328,47 +326,33 @@ export default function EmployerDashboard() {
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
         <h2 className="text-xl font-semibold mb-6 text-gray-900">Hoạt động gần đây</h2>
         <div className="space-y-4">
-          {[
-            {
-              icon: Users,
-              color: "green",
-              title: "3 ứng viên mới",
-              description: "Ứng tuyển vào vị trí Nhân viên phục vụ",
-              time: "10 phút trước",
-            },
-            {
-              icon: Eye,
-              color: "blue",
-              title: "Tin của bạn được xem 45 lần",
-              description: "Gia sư Toán - Lớp 10",
-              time: "1 giờ trước",
-            },
-            {
-              icon: MessageSquare,
-              color: "purple",
-              title: "5 tin nhắn mới",
-              description: "Từ các ứng viên",
-              time: "2 giờ trước",
-            },
-            {
-              icon: Briefcase,
-              color: "orange",
-              title: "Tin tuyển dụng được duyệt",
-              description: "Nhân viên kho - Ca tối",
-              time: "3 giờ trước",
-            },
-          ].map((activity, idx) => (
-            <div key={idx} className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors">
-              <div className={`w-10 h-10 bg-${activity.color}-100 rounded-lg flex items-center justify-center flex-shrink-0`}>
-                <activity.icon className={`w-5 h-5 text-${activity.color}-600`} />
+          {notifications.length > 0 ? notifications.slice(0, 4).map((notif) => {
+            let IconComp = MessageSquare;
+            let color = "blue";
+            if (notif.title.toLowerCase().includes("ứng viên") || notif.title.toLowerCase().includes("ứng tuyển")) {
+              IconComp = Users;
+              color = "green";
+            } else if (notif.title.toLowerCase().includes("hệ thống")) {
+              IconComp = AlertCircle;
+              color = "orange";
+            }
+            return (
+              <div key={notif.id} className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors">
+                <div className={`w-10 h-10 bg-${color}-100 rounded-lg flex items-center justify-center flex-shrink-0`}>
+                  <IconComp className={`w-5 h-5 text-${color}-600`} />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-gray-900 mb-1">{notif.title}</h4>
+                  <p className="text-sm text-gray-600">{notif.message}</p>
+                </div>
+                <span className="text-xs text-gray-500 whitespace-nowrap">
+                  {new Date(notif.createdAt).toLocaleDateString("vi-VN")}
+                </span>
               </div>
-              <div className="flex-1">
-                <h4 className="font-medium text-gray-900 mb-1">{activity.title}</h4>
-                <p className="text-sm text-gray-600">{activity.description}</p>
-              </div>
-              <span className="text-xs text-gray-500 whitespace-nowrap">{activity.time}</span>
-            </div>
-          ))}
+            );
+          }) : (
+            <p className="text-gray-500 text-sm">Chưa có hoạt động nào gần đây.</p>
+          )}
         </div>
       </div>
     </div>
