@@ -5,7 +5,7 @@ import {
   Package,
   Users,
   MessageSquare,
-  Settings,
+  UserCircle2,
   BarChart3,
   CreditCard,
   LogOut,
@@ -18,9 +18,11 @@ import {
   MapPin,
   Phone,
   Mail,
+  Building2,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useNotifications } from "../contexts/NotificationContext";
 import { EmployerChatBot } from "./EmployerChatBot";
 import logoImage from "../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
 
@@ -28,6 +30,7 @@ export default function EmployerLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { unreadCount } = useNotifications();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -50,7 +53,13 @@ export default function EmployerLayout() {
       path: "/employer/dashboard/applicants",
       icon: Users,
       label: "Ứng viên",
-      badge: 23,
+      group: "main",
+    },
+    {
+      path: "/employer/dashboard/notifications",
+      icon: Bell,
+      label: "Thông báo",
+      badge: unreadCount > 0 ? unreadCount : undefined,
       group: "main",
     },
     {
@@ -73,8 +82,8 @@ export default function EmployerLayout() {
     },
     {
       path: "/employer/dashboard/settings",
-      icon: Settings,
-      label: "Cài đặt",
+      icon: UserCircle2,
+      label: "Hồ sơ",
       group: "system",
     },
   ];
@@ -92,7 +101,7 @@ export default function EmployerLayout() {
       }`}>
         {/* Logo */}
         <div className={`p-6 border-b border-gray-200 ${sidebarCollapsed ? "flex flex-col items-center gap-4" : "flex items-center justify-between"}`}>
-          <Link to="/employer/dashboard" className="block">
+          <Link to="/" className="block">
             <img 
               src={logoImage} 
               alt="UniPart Employer" 
@@ -205,12 +214,13 @@ export default function EmployerLayout() {
         <div className="p-4 border-t border-gray-200">
           <div className="flex items-center gap-3 mb-3 p-3 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl">
             <div className="w-10 h-10 bg-gradient-to-br from-orange-600 to-red-600 rounded-full flex items-center justify-center text-white flex-shrink-0">
-              {user?.name?.charAt(0).toUpperCase() || "A"}
+              {user?.fullName?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || "E"}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm truncate">{user?.name || "Admin"}</div>
-              <div className="text-xs text-gray-500 truncate">
-                {user?.company || "Doanh nghiệp"}
+              <div className="text-sm font-medium truncate">{user?.fullName || user?.username || "Nhà tuyển dụng"}</div>
+              <div className="text-xs text-gray-500 truncate flex items-center gap-1">
+                <Building2 className="w-3 h-3" />
+                Nhà tuyển dụng
               </div>
             </div>
           </div>
@@ -241,7 +251,7 @@ export default function EmployerLayout() {
             {/* Logo */}
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <Link
-                to="/employer/dashboard"
+                to="/"
                 className="block"
                 onClick={() => setSidebarOpen(false)}
               >
@@ -293,12 +303,13 @@ export default function EmployerLayout() {
             <div className="p-4 border-t border-gray-200">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-orange-600 to-red-600 rounded-full flex items-center justify-center text-white">
-                  {user?.name?.charAt(0).toUpperCase() || "A"}
+                  {user?.fullName?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || "E"}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm truncate">{user?.name || "Admin"}</div>
-                  <div className="text-xs text-gray-500 truncate">
-                    {user?.company || "Doanh nghiệp"}
+                  <div className="text-sm font-medium truncate">{user?.fullName || user?.username || "Nhà tuyển dụng"}</div>
+                  <div className="text-xs text-gray-500 truncate flex items-center gap-1">
+                    <Building2 className="w-3 h-3" />
+                    Nhà tuyển dụng
                   </div>
                 </div>
               </div>
@@ -339,16 +350,23 @@ export default function EmployerLayout() {
               {/* Desktop: Search or breadcrumbs could go here */}
               <div className="hidden lg:block">
                 <h1 className="text-xl text-gray-800">
-                  Chào mừng trở lại, {user?.name || "Admin"}!
+                  Chào mừng trở lại, {user?.fullName || user?.username || "Nhà tuyển dụng"}!
                 </h1>
               </div>
 
               {/* Right side actions */}
               <div className="flex items-center gap-3">
                 {/* Notifications */}
-                <button className="relative p-2 hover:bg-gray-100 rounded-lg">
+                <button
+                  onClick={() => navigate("/employer/dashboard/notifications")}
+                  className="relative p-2 hover:bg-gray-100 rounded-lg"
+                >
                   <Bell className="w-6 h-6 text-gray-600" />
-                  <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+                  {unreadCount > 0 && (
+                    <span className="absolute top-0 right-0 min-w-[0.9rem] h-3 px-1 text-[10px] leading-3 bg-red-500 rounded-full text-white font-bold flex items-center justify-center border border-white">
+                      {unreadCount}
+                    </span>
+                  )}
                 </button>
 
                 {/* User menu - desktop only */}
@@ -358,7 +376,7 @@ export default function EmployerLayout() {
                     className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-lg"
                   >
                     <div className="w-8 h-8 bg-gradient-to-br from-orange-600 to-red-600 rounded-full flex items-center justify-center text-white text-sm">
-                      {user?.name?.charAt(0).toUpperCase() || "A"}
+                      {user?.fullName?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || "E"}
                     </div>
                     <ChevronDown className="w-4 h-4 text-gray-600" />
                   </button>
@@ -371,8 +389,8 @@ export default function EmployerLayout() {
                         className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        <Settings className="w-4 h-4" />
-                        <span className="text-sm">Cài đặt</span>
+                        <UserCircle2 className="w-4 h-4" />
+                        <span className="text-sm">Hồ sơ</span>
                       </Link>
                       <div className="border-t border-gray-100 my-1"></div>
                       <button

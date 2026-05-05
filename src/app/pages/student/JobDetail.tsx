@@ -2,6 +2,8 @@ import { useParams, Link } from "react-router";
 import { useState, useEffect } from "react";
 import { jobService, JobResponse } from "../../../services/jobService";
 import { useAuth } from "../../contexts/AuthContext";
+import { useSavedJobs } from "../../contexts/SavedJobsContext";
+import { applicationService } from "../../../services/applicationService";
 import {
   MapPin,
   Clock,
@@ -19,20 +21,22 @@ import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 export default function JobDetail() {
   const { id } = useParams();
   const { user } = useAuth();
-  
+  const { isJobSaved, saveJob, unsaveJob } = useSavedJobs();
+
   const [job, setJob] = useState<JobResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [hasApplied, setHasApplied] = useState(false);
+  const [applicationId, setApplicationId] = useState<number | null>(null);
+
 
   useEffect(() => {
     if (id) {
       fetchJobDetail(Number(id));
-      if (user) {
-        checkSavedStatus(Number(id));
-      }
     }
-  }, [id, user]);
+  }, [id]);
 
   const fetchJobDetail = async (jobId: number) => {
     setIsLoading(true);
@@ -48,17 +52,6 @@ export default function JobDetail() {
     }
   };
 
-  const checkSavedStatus = async (jobId: number) => {
-    try {
-      const res = await jobService.isJobSaved(jobId);
-      if (res.result !== undefined) {
-        setIsSaved(res.result);
-      }
-    } catch (error) {
-      console.error("Failed to check saved status", error);
-    }
-  };
-
   const handleToggleSave = async () => {
     if (!user) {
       alert("Vui lòng đăng nhập để lưu việc làm!");
@@ -68,12 +61,10 @@ export default function JobDetail() {
 
     setIsSaving(true);
     try {
-      if (isSaved) {
-        await jobService.unsaveJob(job.id);
-        setIsSaved(false);
+      if (isJobSaved(job.id)) {
+        await unsaveJob(job.id);
       } else {
-        await jobService.saveJob(job.id);
-        setIsSaved(true);
+        await saveJob(job.id);
       }
     } catch (error) {
       console.error("Failed to toggle save", error);
@@ -82,8 +73,45 @@ export default function JobDetail() {
     }
   };
 
-  const handleApply = () => {
-    alert("Ứng tuyển thành công! Nhà tuyển dụng sẽ sớm liên hệ với bạn.");
+  const handleApply = async () => {
+    if (!user) {
+      alert("Vui lòng đăng nhập để ứng tuyển!");
+      return;
+    }
+    if (!job) return;
+
+    setIsApplying(true);
+    try {
+      const response = await applicationService.applyJob({ jobId: job.id });
+      if (response.result) {
+        setHasApplied(true);
+        setApplicationId(response.result.id);
+      }
+      alert("Ứng tuyển thành công! Nhà tuyển dụng sẽ sớm liên hệ với bạn.");
+    } catch (error: any) {
+      alert(error.message || "Đã xảy ra lỗi khi ứng tuyển. Vui lòng thử lại sau.");
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
+  const handleCancelApplication = async () => {
+    if (!applicationId) {
+      alert("Không có thông tin ứng tuyển để hủy.");
+      return;
+    }
+
+    setIsCancelling(true);
+    try {
+      await applicationService.deleteApplyJob(applicationId);
+      setHasApplied(false);
+      setApplicationId(null);
+      alert("Bạn đã hủy ứng tuyển thành công.");
+    } catch (error: any) {
+      alert(error.message || "Hủy ứng tuyển thất bại. Vui lòng thử lại sau.");
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   if (isLoading) {
@@ -122,15 +150,13 @@ export default function JobDetail() {
         {/* Job Header */}
         <div className="bg-white rounded-xl overflow-hidden shadow-sm mb-6">
           {/* Job Image Banner */}
-          {job.image && (
-            <div className="w-full h-64 md:h-80 overflow-hidden">
-              <ImageWithFallback
-                src={job.image}
-                alt={job.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
+          <div className="w-full h-64 md:h-80 overflow-hidden">
+            <ImageWithFallback
+              src={job.image || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80"}
+              alt={job.title}
+              className="w-full h-full object-cover"
+            />
+          </div>
 
           <div className="p-6">
             <div className="flex items-start justify-between mb-4">
@@ -157,7 +183,7 @@ export default function JobDetail() {
                   {isSaving ? (
                     <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
                   ) : (
-                    <Bookmark className={`w-5 h-5 ${isSaved ? "fill-blue-600 text-blue-600" : "text-gray-600"}`} />
+                    <Bookmark className={`w-5 h-5 ${job && isJobSaved(job.id) ? "fill-blue-600 text-blue-600" : "text-gray-600"}`} />
                   )}
                 </button>
               </div>
@@ -206,12 +232,35 @@ export default function JobDetail() {
             </div>
 
             {/* Apply Button */}
-            <button 
-              onClick={handleApply}
-              className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300"
-            >
-              Ứng tuyển ngay
-            </button>
+            {hasApplied ? (
+              <button
+                onClick={handleCancelApplication}
+                disabled={isCancelling}
+                className="w-full flex items-center justify-center bg-white border border-red-400 text-red-600 py-3 rounded-lg font-semibold hover:bg-red-50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isCancelling ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Đang hủy...
+                  </>
+                ) : (
+                  "Hủy ứng tuyển"
+                )}
+              </button>
+            ) : (
+              <button 
+                onClick={handleApply}
+                disabled={isApplying}
+                className="w-full flex items-center justify-center bg-gradient-to-r from-cyan-500 to-blue-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              >
+                {isApplying ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Đang xử lý...
+                  </>
+                ) : (
+                  "Ứng tuyển ngay"
+                )}
+              </button>
+            )}
           </div>
         </div>
 

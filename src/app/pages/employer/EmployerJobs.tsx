@@ -1,61 +1,57 @@
 import { Plus, Search, Filter, MoreVertical, Eye, Users, Calendar, MapPin } from "lucide-react";
-import { useState } from "react";
-
+import { useState, useEffect } from "react";
+import { jobService, JobResponse } from "../../../services/jobService";
+import { applicationService, ApplicationResponse } from "../../../services/applicationService";
+import { CreateJobModal } from "../../components/CreateJobModal";
 export default function EmployerJobs() {
   const [activeTab, setActiveTab] = useState<"all" | "active" | "expired">("all");
+  const [jobs, setJobs] = useState<JobResponse[]>([]);
+  const [applications, setApplications] = useState<ApplicationResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const jobs = [
-    {
-      id: 1,
-      title: "Nhân viên phục vụ - Part-time",
-      company: "Highlands Coffee",
-      location: "Quận 1, TP.HCM",
-      salary: "25,000đ/giờ",
-      type: "Part-time",
-      status: "active",
-      postedDate: "2024-03-10",
-      expiryDate: "2024-04-10",
-      views: 245,
-      applicants: 12,
-    },
-    {
-      id: 2,
-      title: "Gia sư Toán - Lớp 10",
-      company: "Center English",
-      location: "Quận 3, TP.HCM",
-      salary: "100,000đ/buổi",
-      type: "Gia sư",
-      status: "active",
-      postedDate: "2024-03-12",
-      expiryDate: "2024-04-12",
-      views: 189,
-      applicants: 8,
-    },
-    {
-      id: 3,
-      title: "Nhân viên kho - Ca tối",
-      company: "Circle K",
-      location: "Quận 7, TP.HCM",
-      salary: "22,000đ/giờ",
-      type: "Part-time",
-      status: "expired",
-      postedDate: "2024-02-15",
-      expiryDate: "2024-03-15",
-      views: 567,
-      applicants: 34,
-    },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [jobsRes, appsRes] = await Promise.all([
+          jobService.getMyJobPost(),
+          applicationService.getEmployerApplications()
+        ]);
+        if (jobsRes.result) setJobs(jobsRes.result);
+        if (appsRes.result) setApplications(appsRes.result);
+      } catch (error) {
+        console.error("Error fetching jobs:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const getJobStatus = (job: JobResponse) => {
+    if (new Date(job.expiredAt) < new Date() || job.status === 'EXPIRED') return 'expired';
+    if (job.status === 'APPROVED') return 'active';
+    return job.status?.toLowerCase() || 'pending';
+  };
+
+  const activeJobsCount = jobs.filter(j => getJobStatus(j) === 'active').length;
+  const expiredJobsCount = jobs.filter(j => getJobStatus(j) === 'expired').length;
+  const totalApplicantsCount = new Set(applications.map(a => a.studentId)).size;
 
   const stats = [
-    { label: "Tổng tin đăng", value: "24", color: "blue", icon: Calendar },
-    { label: "Đang hoạt động", value: "12", color: "green", icon: Eye },
-    { label: "Tổng ứng viên", value: "156", color: "purple", icon: Users },
-    { label: "Đã hết hạn", value: "12", color: "gray", icon: Calendar },
+    { label: "Tổng tin đăng", value: jobs.length.toString(), color: "blue", icon: Calendar },
+    { label: "Đang hoạt động", value: activeJobsCount.toString(), color: "green", icon: Eye },
+    { label: "Tổng ứng viên", value: totalApplicantsCount.toString(), color: "purple", icon: Users },
+    { label: "Đã hết hạn", value: expiredJobsCount.toString(), color: "gray", icon: Calendar },
   ];
 
   const filteredJobs = jobs.filter((job) => {
-    if (activeTab === "all") return true;
-    return job.status === activeTab;
+    const matchesTab = activeTab === "all" || getJobStatus(job) === activeTab;
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = job.title.toLowerCase().includes(searchLower) || 
+                          (job.employerName && job.employerName.toLowerCase().includes(searchLower));
+    return matchesTab && matchesSearch;
   });
 
   return (
@@ -66,7 +62,9 @@ export default function EmployerJobs() {
           <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">Quản lý tin tuyển dụng</h1>
           <p className="text-gray-600 text-lg">Quản lý và theo dõi các tin tuyển dụng của bạn</p>
         </div>
-        <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl font-medium hover:shadow-2xl hover:scale-105 transition-all duration-300">
+        <button 
+          onClick={() => setIsCreateModalOpen(true)}
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl font-medium hover:shadow-2xl hover:scale-105 transition-all duration-300">
           <Plus className="w-5 h-5" />
           <span>Đăng tin mới</span>
         </button>
@@ -129,7 +127,7 @@ export default function EmployerJobs() {
                 : "border-transparent text-gray-600 hover:text-gray-900"
             }`}
           >
-            Đang hoạt động ({jobs.filter((j) => j.status === "active").length})
+            Đang hoạt động ({activeJobsCount})
           </button>
           <button
             onClick={() => setActiveTab("expired")}
@@ -139,35 +137,41 @@ export default function EmployerJobs() {
                 : "border-transparent text-gray-600 hover:text-gray-900"
             }`}
           >
-            Đã hết hạn ({jobs.filter((j) => j.status === "expired").length})
+            Đã hết hạn ({expiredJobsCount})
           </button>
         </div>
       </div>
 
       {/* Jobs List */}
       <div className="space-y-4">
-        {filteredJobs.map((job) => (
+        {filteredJobs.map((job) => {
+          const status = getJobStatus(job);
+          const applicantsCount = applications.filter(a => a.jobId === job.id).length;
+          
+          return (
           <div key={job.id} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-lg hover:shadow-2xl hover:border-orange-300 transition-all duration-300 group">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-start gap-4">
                   <div className="w-14 h-14 bg-gradient-to-br from-orange-600 to-red-600 rounded-xl flex items-center justify-center text-white text-xl font-bold flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                    {job.company.charAt(0)}
+                    {job.employerName?.charAt(0) || "U"}
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold mb-2 text-gray-900 group-hover:text-orange-600 transition-colors">{job.title}</h3>
-                    <p className="text-gray-600 mb-3 font-medium">{job.company}</p>
+                    <p className="text-gray-600 mb-3 font-medium">{job.employerName}</p>
                     <div className="flex flex-wrap gap-3 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
                         <MapPin className="w-4 h-4 text-orange-500" />
-                        <span>{job.location}</span>
+                        <span>{job.address}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span className="text-orange-600 font-semibold">{job.salary}</span>
+                        <span className="text-orange-600 font-semibold">
+                          {job.salary ? `${job.salary.toLocaleString()}đ` : 'Thỏa thuận'}
+                        </span>
                       </div>
                       <div>
-                        <span className="px-3 py-1 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 rounded-full text-xs font-medium">
-                          {job.type}
+                        <span className="px-3 py-1 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 rounded-full text-xs font-medium uppercase">
+                          {job.workingShift || 'FULL-TIME'}
                         </span>
                       </div>
                     </div>
@@ -180,27 +184,31 @@ export default function EmployerJobs() {
                   <div className="text-center">
                     <div className="flex items-center gap-1 text-gray-900 font-semibold mb-1">
                       <Eye className="w-5 h-5 text-purple-500" />
-                      <span>{job.views}</span>
+                      <span>—</span>
                     </div>
                     <div className="text-xs text-gray-500">Lượt xem</div>
                   </div>
                   <div className="text-center">
                     <div className="flex items-center gap-1 text-gray-900 font-semibold mb-1">
                       <Users className="w-5 h-5 text-green-500" />
-                      <span>{job.applicants}</span>
+                      <span>{applicantsCount}</span>
                     </div>
                     <div className="text-xs text-gray-500">Ứng viên</div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {job.status === "active" ? (
+                  {status === "active" ? (
                     <span className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl text-sm font-medium shadow-lg">
                       Đang hoạt động
                     </span>
-                  ) : (
+                  ) : status === "expired" ? (
                     <span className="px-4 py-2 bg-gradient-to-r from-gray-400 to-gray-500 text-white rounded-xl text-sm font-medium shadow-lg">
                       Đã hết hạn
+                    </span>
+                  ) : (
+                    <span className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white rounded-xl text-sm font-medium shadow-lg">
+                      Chờ duyệt
                     </span>
                   )}
                   <button className="p-2 hover:bg-gradient-to-r hover:from-orange-100 hover:to-red-100 rounded-xl transition-all">
@@ -213,16 +221,27 @@ export default function EmployerJobs() {
             <div className="mt-4 pt-4 border-t-2 border-gray-100 flex justify-between text-sm text-gray-600">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-orange-500" />
-                <span>Đăng ngày: <strong>{new Date(job.postedDate).toLocaleDateString("vi-VN")}</strong></span>
+                <span>Đăng ngày: <strong>{new Date(job.createdAt).toLocaleDateString("vi-VN")}</strong></span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-red-500" />
-                <span>Hết hạn: <strong>{new Date(job.expiryDate).toLocaleDateString("vi-VN")}</strong></span>
+                <span>Hết hạn: <strong>{new Date(job.expiredAt).toLocaleDateString("vi-VN")}</strong></span>
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
+      <CreateJobModal 
+        isOpen={isCreateModalOpen} 
+        onClose={() => setIsCreateModalOpen(false)} 
+        onSuccess={() => {
+          // Re-fetch jobs after creation
+          jobService.getMyJobPost().then(res => {
+            if (res.result) setJobs(res.result);
+          });
+        }} 
+      />
     </div>
   );
 }
