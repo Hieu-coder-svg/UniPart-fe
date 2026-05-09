@@ -175,14 +175,17 @@ export default function EmployerSettings() {
       showToast("error", "Mật khẩu mới phải có ít nhất 6 ký tự.");
       return;
     }
+    if (currentPass === newPass) {
+      showToast("error", "Mật khẩu mới phải khác mật khẩu hiện tại.");
+      return;
+    }
     if (newPass !== confirmPass) {
       showToast("error", "Xác nhận mật khẩu không khớp.");
       return;
     }
     setChangingPass(true);
     try {
-      const username = profile?.username || localStorage.getItem("username") || "";
-      await authService.changePassword({ username, password: currentPass, newPassword: newPass });
+      await authService.changePassword({ currentPassword: currentPass, newPassword: newPass });
       showToast("success", "Đổi mật khẩu thành công!");
       setCurrentPass(""); setNewPass(""); setConfirmPass("");
     } catch (e: any) {
@@ -461,9 +464,6 @@ export default function EmployerSettings() {
           {/* ── Password Tab ── */}
           {activeTab === "password" && (
             <div className="space-y-6 max-w-md mx-auto pt-4">
-              <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl text-sm text-orange-800">
-                Mật khẩu phải có ít nhất <strong>6 ký tự</strong>. Sau khi đổi, bạn sẽ cần đăng nhập lại.
-              </div>
 
               {[
                 { label: "Mật khẩu hiện tại", value: currentPass, setter: setCurrentPass, show: showCurrent, toggle: () => setShowCurrent(v => !v) },

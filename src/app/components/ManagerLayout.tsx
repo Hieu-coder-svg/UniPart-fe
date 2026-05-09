@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Outlet, Link, useLocation, useNavigate } from "react-router";
+import { Outlet, Link, useLocation, useNavigate, Navigate } from "react-router";
 import {
   LayoutDashboard,
   Users,
@@ -25,9 +25,28 @@ import logoImage from "../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png
 export default function ManagerLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+
+  // --- ROLE GUARD ---
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto mb-4"></div>
+          <p className="text-gray-500">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  if (user.role !== "MANAGER") {
+    return <Navigate to="/unauthorized" replace />;
+  }
+  // --- END ROLE GUARD ---
 
   const menuItems = [
     {

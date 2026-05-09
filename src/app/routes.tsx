@@ -36,12 +36,18 @@ import AccountManagement from "./pages/admin/AccountManagement";
 import SystemBackup from "./pages/admin/SystemBackup";
 import SystemLogs from "./pages/admin/SystemLogs";
 import AdminSettings from "./pages/admin/Settings";
+import AdminReport from "./pages/admin/AdminReport";
 import NotFound from "./pages/NotFound";
+import Unauthorized from "./pages/Unauthorized";
 
 export const router = createBrowserRouter([
   {
     path: "/login",
     Component: Login,
+  },
+  {
+    path: "/unauthorized",
+    Component: Unauthorized,
   },
   {
     path: "/register",
@@ -67,6 +73,7 @@ export const router = createBrowserRouter([
       { path: "accounts", Component: AccountManagement },
       { path: "backup", Component: SystemBackup },
       { path: "logs", Component: SystemLogs },
+      { path: "report", Component: AdminReport },
       { path: "system", Component: AdminOverview }, // Reuse overview for now
       { path: "settings", Component: AdminSettings }, // Reuse overview for now
     ],

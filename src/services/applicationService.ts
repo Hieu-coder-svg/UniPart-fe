@@ -39,7 +39,7 @@ export const applicationService = {
   },
 
   getStudentApplications: async (): Promise<ApiResponse<ApplicationResponse[]>> => {
-    const response = await apiClient.get<ApiResponse<ApplicationResponse[]>>(`${BASE_URL}/student`);
+    const response = await apiClient.get<ApiResponse<ApplicationResponse[]>>(BASE_URL);
     return response.data;
   },
 

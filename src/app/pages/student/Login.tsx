@@ -5,6 +5,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { RegisterStudentForm } from "../../components/auth/RegisterStudentForm";
 import type { StudentRegistrationRequest } from "../../../types/auth";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
+import { authService } from "../../../services/authService";
 const logoImage = "/src/assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
 
 export default function Login() {
@@ -12,6 +13,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isOtpError, setIsOtpError] = useState(false);
   
   const navigate = useNavigate();
   const { login, registerStudent } = useAuth();
@@ -28,13 +30,42 @@ export default function Login() {
     const password = formData.get("password") as string || loginPassword;
 
     setError("");
+    setIsOtpError(false);
     setLoading(true);
 
     try {
-      await login(username, password);
+      const user = await login(username, password);
+      // Tất cả role đều về trang chủ sau khi đăng nhập
       navigate("/");
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Tên đăng nhập hoặc mật khẩu không đúng");
+      let displayMessage = "Tên đăng nhập hoặc mật khẩu không đúng";
+      if (err?.message) {
+        if (err.message.includes("Unauthenticated") || err.message.includes("không tồn tại")) {
+          displayMessage = "Tên đăng nhập hoặc mật khẩu không đúng";
+        } else {
+          displayMessage = err.message;
+        }
+      }
+      // Kiểm tra lỗi OTP chưa xác thực
+      if (
+        displayMessage.toLowerCase().includes("otp") ||
+        displayMessage.includes("chưa được xác thực") ||
+        displayMessage.includes("xác thực OTP")
+      ) {
+        setIsOtpError(true);
+        // Gọi API lấy email thật từ username
+        try {
+          const emailRes = await authService.getEmailByUsername(username);
+          const realEmail = emailRes?.result || username;
+          localStorage.setItem("registeredEmail", realEmail);
+        } catch {
+          // Nếu API không có, lưu username làm fallback
+          localStorage.setItem("registeredEmail", username);
+        }
+      } else {
+        setIsOtpError(false);
+      }
+      setError(displayMessage);
     } finally {
       setLoading(false);
     }
@@ -132,9 +163,21 @@ export default function Login() {
 
             {/* Error Message */}
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-red-700">
-                <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm">{error}</span>
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2 text-red-700">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <span className="text-sm">{error}</span>
+                  {isOtpError && (
+                    <div className="mt-2">
+                      <Link
+                        to="/verify-otp"
+                        className="inline-flex items-center gap-1 text-sm font-semibold text-yellow-500 hover:text-yellow-400 transition-colors underline underline-offset-2"
+                      >
+                        ✉ Xác thực OTP ngay →
+                      </Link>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

@@ -26,6 +26,7 @@ export interface JobResponse {
     expiredAt: string;
     timeSlots: JobTimeSlotResponse[];
     status: string;
+    applicationId?: number;
 }
 
 export interface JobFilterRequest {

@@ -128,6 +128,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const profile = createFallbackUser(username, authResult.token);
       setUser(profile);
       localStorage.setItem(USER_KEY, JSON.stringify(profile));
+      return profile;
     } catch (error: any) {
       setError(error.message || "Login failed");
       throw error;

@@ -150,7 +150,7 @@ export interface AuthContextType {
   user: UserResponse | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (request: AuthenticationRequest) => Promise<ApiResponse<AuthenticationResponse>>;
+  login: (username: string, password: string) => Promise<UserResponse>;
   logout: (request: LogoutRequest) => Promise<ApiResponse<any>>;
   refreshToken: (request: RefreshRequest) => Promise<ApiResponse<AuthenticationResponse>>;
   introspect: (request: IntrospectRequest) => Promise<ApiResponse<IntrospectResponse>>;
