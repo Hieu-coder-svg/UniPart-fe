@@ -182,7 +182,11 @@ export default function SavedJobs() {
 
                 <div className="flex gap-4 items-start mb-4">
                   <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-100 shadow-sm flex-shrink-0 relative group-hover:scale-105 transition-transform duration-300">
-                    <ImageWithFallback src={job.image || ""} alt={job.title} className="w-full h-full object-cover" />
+                    <ImageWithFallback
+                      src={job.image || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=150&q=80"}
+                      alt={job.title}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div className="flex-1 pr-12">
                     <Link to={`/jobs/${job.id}`}>

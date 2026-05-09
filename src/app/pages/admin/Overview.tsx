@@ -8,6 +8,8 @@ import {
   Cpu,
   HardDrive,
 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { userService } from "../../../services/userService";
 import {
   AreaChart,
   Area,
@@ -24,15 +26,34 @@ import {
 } from "recharts";
 
 export default function AdminOverview() {
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await userService.getAdminStats();
+        if (response.result) {
+          setStats(response.result);
+        }
+      } catch (error) {
+        console.error("Failed to fetch admin stats:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
   const systemStats = {
-    totalUsers: 12458,
-    totalJobs: 1847,
+    totalUsers: stats?.totalUsers || 0,
+    totalJobs: stats?.totalJobs || 0,
     serverUptime: "99.9%",
-    activeConnections: 342,
+    activeConnections: stats?.activeUsers || 0,
     storageUsed: "234GB / 500GB",
     cpuUsage: "45%",
     memoryUsage: "68%",
-    requestsToday: 145832,
+    requestsToday: stats?.totalRequests || 0,
   };
 
   const activityData = [

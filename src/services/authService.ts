@@ -136,6 +136,13 @@ class AuthService {
     return response.data;
   }
 
+  async getEmailByUsername(username: string): Promise<ApiResponse<string>> {
+    const response = await this.api.get<ApiResponse<string>>(
+      `/auth/get-email?username=${encodeURIComponent(username)}`
+    );
+    return response.data;
+  }
+
   async getUserInfo(): Promise<ApiResponse<UserResponse>> {
     const endpoints = ["/users/me", "/auth/me", "/auth/user", "/me"];
 

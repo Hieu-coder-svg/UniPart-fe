@@ -1,5 +1,15 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Minimize2, Move, MapPin, Clock, DollarSign, ExternalLink, Sparkles } from "lucide-react";
+import {
+  MessageCircle,
+  X,
+  Send,
+  Sparkles,
+  ExternalLink,
+  DollarSign,
+  Clock,
+  MapPin,
+} from "lucide-react";
+import unibotAvatar from "../../assets/unibot-avatar.png";
 import { Link } from "react-router";
 import { mockJobs, type Job } from "../data/mockData";
 import { chatService } from "../../services/chatService";
@@ -71,12 +81,12 @@ export default function ChatBot() {
       // Get bounds
       const chatElement = chatRef.current;
       if (chatElement) {
-        const maxX = window.innerWidth - chatElement.offsetWidth - 24;
-        const maxY = window.innerHeight - chatElement.offsetHeight - 24;
+        const maxX = window.innerWidth - chatElement.offsetWidth - 8;
+        const maxY = window.innerHeight - chatElement.offsetHeight - 8;
         
         setPosition({
-          x: Math.max(-window.innerWidth + chatElement.offsetWidth + 24, Math.min(newX, maxX)),
-          y: Math.max(-window.innerHeight + chatElement.offsetHeight + 24, Math.min(newY, maxY)),
+          x: Math.max(-window.innerWidth + chatElement.offsetWidth + 8, Math.min(newX, maxX)),
+          y: Math.max(-window.innerHeight + chatElement.offsetHeight + 8, Math.min(newY, maxY)),
         });
       }
     }
@@ -110,6 +120,16 @@ export default function ChatBot() {
     setIsSending(true);
 
     try {
+      const token = localStorage.getItem("access_token");
+
+      // Chỉ gọi AI API khi đã đăng nhập
+      if (!token) {
+        const botResponse = generateBotResponse(messageText);
+        setMessages((prev) => [...prev, botResponse]);
+        setIsSending(false);
+        return;
+      }
+
       // Call the backend API
       const chatRequest: ChatRequest = {
         message: messageText,
@@ -118,6 +138,7 @@ export default function ChatBot() {
 
       const response = await chatService.sendMessage(chatRequest);
       const aiResponse = response.result;
+
 
       let finalJobs: Job[] = [];
 
@@ -372,29 +393,21 @@ export default function ChatBot() {
         {/* Header */}
         <div className="drag-handle bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-3 cursor-grab active:cursor-grabbing flex items-center justify-between select-none flex-shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-              🤖
+            <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center overflow-hidden border border-white/20">
+              <img src={unibotAvatar} alt="UniBot" className="w-full h-full object-cover" />
             </div>
             <div>
               <div className="font-semibold flex items-center gap-1">
-                UniPart AI
+                UniBot
                 <Sparkles className="w-3 h-3" />
               </div>
               <div className="text-xs text-blue-100">Trợ lý tìm việc thông minh</div>
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <Move className="w-4 h-4 opacity-60" />
-            <button
-              onClick={() => setIsMinimized(!isMinimized)}
-              className="p-1 hover:bg-white/20 rounded transition-colors"
-            >
-              <Minimize2 className="w-4 h-4" />
-            </button>
             <button
               onClick={() => {
                 setIsOpen(false);
-                setPosition({ x: 0, y: 0 });
               }}
               className="p-1 hover:bg-white/20 rounded transition-colors"
             >
@@ -412,21 +425,28 @@ export default function ChatBot() {
                   <div
                     className={`flex ${msg.isBot ? "justify-start" : "justify-end"} animate-fadeIn`}
                   >
-                    <div
-                      className={`max-w-[85%] px-4 py-3 rounded-lg shadow-sm ${
-                        msg.isBot
-                          ? "bg-white text-gray-800 border border-gray-100"
-                          : "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-                      }`}
-                    >
-                      {msg.isBot ? (
-                        <div
-                          className="text-sm leading-relaxed"
-                          dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.text) }}
-                        />
-                      ) : (
-                        <div className="text-sm leading-relaxed whitespace-pre-line">{msg.text}</div>
+                    <div className="flex gap-2 items-end max-w-[85%]">
+                      {msg.isBot && (
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-white border border-gray-100 overflow-hidden">
+                          <img src={unibotAvatar} alt="UniBot" className="w-full h-full object-cover" />
+                        </div>
                       )}
+                      <div
+                        className={`px-4 py-3 rounded-lg shadow-sm ${
+                          msg.isBot
+                            ? "bg-white text-gray-800 border border-gray-100"
+                            : "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                        }`}
+                      >
+                        {msg.isBot ? (
+                          <div
+                            className="text-sm leading-relaxed"
+                            dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.text) }}
+                          />
+                        ) : (
+                          <div className="text-sm leading-relaxed whitespace-pre-line">{msg.text}</div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -449,6 +469,24 @@ export default function ChatBot() {
                   )}
                 </div>
               ))}
+
+              {/* Typing indicator */}
+              {isSending && (
+                <div className="flex justify-start animate-fadeIn">
+                  <div className="flex gap-2 items-end">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-white border border-gray-100 overflow-hidden">
+                      <img src={unibotAvatar} alt="UniBot" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="bg-white rounded-2xl px-4 py-3 border border-gray-100 shadow-sm">
+                      <div className="flex gap-1 items-center">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }} />
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Quick Replies */}
               {showSuggestions && messages.length === 1 && (
@@ -503,11 +541,7 @@ function JobChatCard({ job }: { job: Job }) {
       to={`/jobs/${job.id}`}
       className="block bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-3 border border-blue-100 hover:border-blue-300 hover:shadow-md transition-all group"
     >
-      <div className="flex items-start gap-3">
-        {/* Logo */}
-        <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center text-xl shadow-sm border border-blue-100 flex-shrink-0">
-          {job.logo || "🏢"}
-        </div>
+      <div className="flex flex-col gap-2">
 
         {/* Job Info */}
         <div className="flex-1 min-w-0">

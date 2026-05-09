@@ -118,6 +118,75 @@ class UserService {
         const response = await this.api.post<ApiResponse<EmployerResponse>>("/users/myEmployerInfo", request);
         return response.data;
     }
+
+    async getAllUsers(): Promise<ApiResponse<any>> {
+        const response = await this.api.get<ApiResponse<any>>("/users");
+        return response.data;
+    }
+
+    async blockUser(userId: string): Promise<ApiResponse<any>> {
+        const response = await this.api.put<ApiResponse<any>>(`/users/${userId}/block`);
+        return response.data;
+    }
+
+    async unblockUser(userId: string): Promise<ApiResponse<any>> {
+        const response = await this.api.put<ApiResponse<any>>(`/users/${userId}/unblock`);
+        return response.data;
+    }
+
+    async createStudentAccount(request: {
+        username: string;
+        email: string;
+        password: string;
+        fullName: string;
+        university?: string;
+        major?: string;
+        phoneNumber?: string;
+        gender?: string;
+    }): Promise<ApiResponse<any>> {
+        const response = await this.api.post<ApiResponse<any>>("/auth/register-student", request);
+        return response.data;
+    }
+
+    async createEmployerAccount(request: {
+        username: string;
+        email: string;
+        password: string;
+        fullName: string;
+        companyName?: string;
+        companyAddress?: string;
+        phoneNumber?: string;
+        description?: string;
+    }): Promise<ApiResponse<any>> {
+        const response = await this.api.post<ApiResponse<any>>("/auth/register-employer", request);
+        return response.data;
+    }
+
+    async createAccount(request: {
+        username: string;
+        email: string;
+        password: string;
+        fullName: string;
+        roleName: string;
+    }): Promise<ApiResponse<any>> {
+        const role = request.roleName.toUpperCase();
+        if (role === "STUDENT") {
+            const response = await this.api.post<ApiResponse<any>>("/auth/register-student", request);
+            return response.data;
+        } else if (role === "EMPLOYER") {
+            const response = await this.api.post<ApiResponse<any>>("/auth/register-employer", request);
+            return response.data;
+        } else {
+            // ADMIN, MANAGER — dùng endpoint admin
+            const response = await this.api.post<ApiResponse<any>>("/admin/create-account", request);
+            return response.data;
+        }
+    }
+
+    async getAdminStats(): Promise<ApiResponse<any>> {
+        const response = await this.api.get<ApiResponse<any>>("/admin/stats");
+        return response.data;
+    }
 }
 
 export const userService = new UserService();

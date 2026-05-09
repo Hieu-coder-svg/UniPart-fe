@@ -25,6 +25,8 @@ export default function VerifyOtp() {
   const navigate = useNavigate();
   const { verifyOtp, resetOtp } = useAuth();
   const [email, setEmail] = useState<string>("");
+  const [isEditingEmail, setIsEditingEmail] = useState<boolean>(false);
+  const [editEmailValue, setEditEmailValue] = useState<string>("");
   const [countdown, setCountdown] = useState<number>(0);
   const [isResending, setIsResending] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
@@ -36,6 +38,12 @@ export default function VerifyOtp() {
     const storedEmail = localStorage.getItem("registeredEmail");
     if (storedEmail) {
       setEmail(storedEmail);
+      setEditEmailValue(storedEmail);
+      // Nếu không phải email hợp lệ (không có @) thì mở chế độ chỉnh sửa
+      if (!storedEmail.includes("@")) {
+        setIsEditingEmail(true);
+        setEditEmailValue("");
+      }
     } else {
       toast.error("Không tìm thấy email cần xác thực. Vui lòng đăng ký lại.");
       navigate("/login");
@@ -143,8 +151,40 @@ export default function VerifyOtp() {
           <h1 className="text-2xl font-bold tracking-tight">Xác thực tài khoản</h1>
           <p className="text-muted-foreground text-sm">
             Mã xác thực gồm 6 chữ số đã được gửi tới email <br />
-            <span className="font-medium text-foreground">{email}</span>
           </p>
+          {isEditingEmail ? (
+            <div className="space-y-2">
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-sm text-yellow-700">
+                ⚠️ Vui lòng nhập đúng địa chỉ email đã đăng ký
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={editEmailValue}
+                  onChange={(e) => setEditEmailValue(e.target.value)}
+                  placeholder="Nhập email của bạn..."
+                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (editEmailValue.includes("@")) {
+                      setEmail(editEmailValue);
+                      localStorage.setItem("registeredEmail", editEmailValue);
+                      setIsEditingEmail(false);
+                    } else {
+                      toast.error("Email không hợp lệ");
+                    }
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Xác nhận
+                </button>
+              </div>
+            </div>
+          ) : (
+            <span className="font-medium text-foreground">{email}</span>
+          )}
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

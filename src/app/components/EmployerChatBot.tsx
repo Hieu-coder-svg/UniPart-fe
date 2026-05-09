@@ -3,8 +3,6 @@ import {
   MessageCircle,
   X,
   Send,
-  Minimize2,
-  Move,
   Bot,
   User,
   Sparkles,
@@ -12,6 +10,7 @@ import {
 } from "lucide-react";
 import { chatService } from "../../services/chatService";
 import { ChatRequest } from "../../types/chat";
+import unibotAvatar from "../../assets/unibot-avatar.png";
 
 // Lightweight markdown → HTML converter
 const renderMarkdown = (text: string): string => {
@@ -135,11 +134,11 @@ export function EmployerChatBot() {
       const newY = e.clientY - dragStart.y;
       const el = chatRef.current;
       if (el) {
-        const maxX = window.innerWidth - el.offsetWidth - 24;
-        const maxY = window.innerHeight - el.offsetHeight - 24;
+        const maxX = window.innerWidth - el.offsetWidth - 8;
+        const maxY = window.innerHeight - el.offsetHeight - 8;
         setPosition({
-          x: Math.max(-window.innerWidth + el.offsetWidth + 24, Math.min(newX, maxX)),
-          y: Math.max(-window.innerHeight + el.offsetHeight + 24, Math.min(newY, maxY)),
+          x: Math.max(-window.innerWidth + el.offsetWidth + 8, Math.min(newX, maxX)),
+          y: Math.max(-window.innerHeight + el.offsetHeight + 8, Math.min(newY, maxY)),
         });
       }
     }
@@ -235,12 +234,12 @@ export function EmployerChatBot() {
         {/* Header */}
         <div className="drag-handle bg-gradient-to-r from-orange-600 to-red-600 text-white px-4 py-3 cursor-grab active:cursor-grabbing flex items-center justify-between select-none flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-              <Bot className="w-5 h-5" />
+            <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center overflow-hidden border border-white/20">
+              <img src={unibotAvatar} alt="UniBot" className="w-full h-full object-cover" />
             </div>
             <div>
               <div className="font-semibold flex items-center gap-1 text-sm">
-                UniPart AI
+                UniBot
                 <Sparkles className="w-3 h-3" />
               </div>
               <div className="text-xs text-orange-100 flex items-center gap-1">
@@ -250,16 +249,8 @@ export function EmployerChatBot() {
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <Move className="w-4 h-4 opacity-50" />
             <button
-              onClick={() => setIsMinimized(!isMinimized)}
-              className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
-              title={isMinimized ? "Mở rộng" : "Thu nhỏ"}
-            >
-              <Minimize2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => { setIsOpen(false); setPosition({ x: 0, y: 0 }); }}
+              onClick={() => { setIsOpen(false); }}
               className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
             >
               <X className="w-4 h-4" />
@@ -280,16 +271,16 @@ export function EmployerChatBot() {
                   <div className={`flex gap-2 max-w-[85%] ${message.sender === "user" ? "flex-row-reverse" : "flex-row"}`}>
                     {/* Avatar */}
                     <div
-                      className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        message.sender === "user"
-                          ? "bg-gradient-to-br from-orange-600 to-red-600"
-                          : "bg-gradient-to-br from-blue-600 to-purple-600"
+                      className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${
+                        message.sender === "bot"
+                          ? "bg-white border border-gray-100"
+                          : "bg-gradient-to-br from-orange-600 to-red-600"
                       }`}
                     >
-                      {message.sender === "user" ? (
-                        <User className="w-3.5 h-3.5 text-white" />
+                      {message.sender === "bot" ? (
+                        <img src={unibotAvatar} alt="UniBot" className="w-full h-full object-cover" />
                       ) : (
-                        <Bot className="w-3.5 h-3.5 text-white" />
+                        <User className="w-3.5 h-3.5 text-white" />
                       )}
                     </div>
 
@@ -323,8 +314,8 @@ export function EmployerChatBot() {
               {isTyping && (
                 <div className="flex justify-start">
                   <div className="flex gap-2">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-blue-600 to-purple-600">
-                      <Bot className="w-3.5 h-3.5 text-white" />
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-white border border-gray-100 overflow-hidden">
+                      <img src={unibotAvatar} alt="UniBot" className="w-full h-full object-cover" />
                     </div>
                     <div className="bg-white rounded-2xl px-4 py-3 border border-gray-100 shadow-sm">
                       <div className="flex gap-1 items-center">
@@ -379,7 +370,7 @@ export function EmployerChatBot() {
                 </button>
               </div>
               <div className="text-[10px] text-gray-400 mt-2 text-center">
-                Powered by UniPart AI · Phản hồi tức thì
+                Powered by UniBot · Phản hồi tức thì
               </div>
             </div>
           </>

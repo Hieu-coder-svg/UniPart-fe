@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Outlet, Link, useLocation, useNavigate } from "react-router";
+import { Outlet, Link, useLocation, useNavigate, Navigate } from "react-router";
 import {
   LayoutDashboard,
   Users,
@@ -14,6 +14,7 @@ import {
   UserCircle,
   ChevronLeft,
   ChevronRight,
+  Flag,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import logoImage from "../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
@@ -21,9 +22,28 @@ import logoImage from "../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png
 export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // --- ROLE GUARD ---
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-gray-500">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  if (user.role !== "ADMIN") {
+    return <Navigate to="/unauthorized" replace />;
+  }
+  // --- END ROLE GUARD ---
 
   const menuItems: Array<{ path: string; icon: any; label: string; exact?: boolean; badge?: string | number }> = [
     {
@@ -41,6 +61,11 @@ export default function AdminLayout() {
       path: "/admin/backup",
       icon: Database,
       label: "Sao lưu dữ liệu",
+    },
+    {
+      path: "/admin/report",
+      icon: Flag,
+      label: "Quản lý báo cáo",
     },
     {
       path: "/admin/logs",
@@ -73,7 +98,7 @@ export default function AdminLayout() {
             sidebarCollapsed ? "flex flex-col items-center gap-4" : "flex items-center justify-between"
           }`}
         >
-          <Link to="/admin" className="block">
+          <Link to="/" className="block">
             <img
               src={logoImage}
               alt="UniPart Admin"

@@ -32,10 +32,19 @@ export default function EmployerLogin() {
     setLoading(true);
 
     try {
-      await login(email, password);
-      navigate("/employer/dashboard");
+      const user = await login(email, password);
+      // Tất cả role đều về trang chủ sau khi đăng nhập
+      navigate("/");
     } catch (err: any) {
-      setError(err.message || "Đã có lỗi xảy ra. Vui lòng kiểm tra lại tài khoản.");
+      let displayMessage = "Tên đăng nhập hoặc mật khẩu không đúng";
+      if (err?.message) {
+        if (err.message.includes("Unauthenticated") || err.message.includes("không tồn tại") || err.message.includes("Login failed")) {
+          displayMessage = "Tên đăng nhập hoặc mật khẩu không đúng";
+        } else {
+          displayMessage = err.message;
+        }
+      }
+      setError(displayMessage);
     } finally {
       setLoading(false);
     }

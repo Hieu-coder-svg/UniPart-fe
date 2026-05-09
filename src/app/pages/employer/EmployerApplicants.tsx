@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { applicationService, ApplicationResponse } from "../../../services/applicationService";
+import { useNotifications } from "../../contexts/NotificationContext";
 
 type TabStatus = "all" | "PENDING" | "ACCEPTED" | "REJECTED" | "COMPLETED";
 
@@ -48,24 +49,39 @@ export default function EmployerApplicants() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const { notifications } = useNotifications();
+  const latestNotificationId = notifications[0]?.id;
 
-  const fetchApplications = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchApplications = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    if (showLoading) setError(null);
     try {
       const res = await applicationService.getEmployerApplications();
       if (res.result) setApplications(res.result);
     } catch (err) {
       console.error("Error fetching applications:", err);
-      setError("Không thể tải danh sách ứng viên. Vui lòng thử lại.");
+      if (showLoading) setError("Không thể tải danh sách ứng viên. Vui lòng thử lại.");
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchApplications();
+    fetchApplications(true); // Initial load with spinner
+
+    // Set up polling for real-time updates (every 3 seconds)
+    const intervalId = setInterval(() => {
+      fetchApplications(false); // Silent fetch
+    }, 3000);
+
+    return () => clearInterval(intervalId);
   }, []);
+
+  useEffect(() => {
+    if (latestNotificationId) {
+      fetchApplications(false); // Silent fetch on new notification
+    }
+  }, [latestNotificationId]);
 
   // --- Computed stats ---
   const stats = useMemo(() => {

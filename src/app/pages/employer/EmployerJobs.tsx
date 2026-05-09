@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { jobService, JobResponse } from "../../../services/jobService";
 import { applicationService, ApplicationResponse } from "../../../services/applicationService";
 import { CreateJobModal } from "../../components/CreateJobModal";
+import { useNotifications } from "../../contexts/NotificationContext";
+
 export default function EmployerJobs() {
   const [activeTab, setActiveTab] = useState<"all" | "active" | "expired">("all");
   const [jobs, setJobs] = useState<JobResponse[]>([]);
@@ -10,24 +12,41 @@ export default function EmployerJobs() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { notifications } = useNotifications();
+  const latestNotificationId = notifications[0]?.id;
+
+  const fetchData = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    try {
+      const [jobsRes, appsRes] = await Promise.all([
+        jobService.getMyJobPost(),
+        applicationService.getEmployerApplications()
+      ]);
+      if (jobsRes.result) setJobs(jobsRes.result);
+      if (appsRes.result) setApplications(appsRes.result);
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [jobsRes, appsRes] = await Promise.all([
-          jobService.getMyJobPost(),
-          applicationService.getEmployerApplications()
-        ]);
-        if (jobsRes.result) setJobs(jobsRes.result);
-        if (appsRes.result) setApplications(appsRes.result);
-      } catch (error) {
-        console.error("Error fetching jobs:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    fetchData(true); // Initial load with spinner
+
+    // Poll every 3 seconds for real-time stats updates
+    const intervalId = setInterval(() => {
+      fetchData(false); // Silent fetch
+    }, 3000);
+
+    return () => clearInterval(intervalId);
   }, []);
+
+  useEffect(() => {
+    if (latestNotificationId) {
+      fetchData(false);
+    }
+  }, [latestNotificationId]);
 
   const getJobStatus = (job: JobResponse) => {
     if (new Date(job.expiredAt) < new Date() || job.status === 'EXPIRED') return 'expired';
@@ -97,7 +116,7 @@ export default function EmployerJobs() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="T��m kiếm tin tuyển dụng..."
+              placeholder="Tìm kiếm tin tuyển dụng..."
               className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all"
             />
           </div>

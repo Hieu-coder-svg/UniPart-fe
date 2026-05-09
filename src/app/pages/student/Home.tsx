@@ -19,6 +19,20 @@ import {
 } from "lucide-react";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 
+const HANOI_DISTRICTS = [
+  // 12 Quận nội thành
+  "Ba Đình", "Hoàn Kiếm", "Tây Hồ", "Long Biên", "Cầu Giấy",
+  "Đống Đa", "Hai Bà Trưng", "Hoàng Mai", "Thanh Xuân",
+  "Nam Từ Liêm", "Bắc Từ Liêm", "Hà Đông",
+  // Thị xã
+  "Sơn Tây",
+  // 17 Huyện ngoại thành
+  "Ba Vì", "Chương Mỹ", "Đan Phượng", "Đông Anh", "Gia Lâm",
+  "Hoài Đức", "Mê Linh", "Mỹ Đức", "Phú Xuyên", "Phúc Thọ",
+  "Quốc Oai", "Sóc Sơn", "Thạch Thất", "Thanh Oai",
+  "Thường Tín", "Ứng Hòa",
+];
+
 const quickTags = [
   { label: "Việc làm từ xa", icon: Monitor, query: "từ xa" },
   { label: "Phục vụ", icon: Coffee, query: "phục vụ" },
@@ -36,8 +50,12 @@ export default function Home() {
 
   const handleSearch = (query?: string) => {
     const q = query ?? searchValue;
-    navigate(`/jobs?q=${encodeURIComponent(q)}`);
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (locationValue && !query) params.set("location", locationValue);
+    navigate(`/jobs?${params.toString()}`);
   };
+
 
   return (
     <div className="min-h-screen font-sans">
@@ -196,6 +214,7 @@ export default function Home() {
                   onChange={(e) => setLocationValue(e.target.value)}
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setIsFocused(false)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   className="flex-1 bg-transparent text-white placeholder-slate-400 outline-none text-base"
                 />
               </div>

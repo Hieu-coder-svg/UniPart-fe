@@ -22,6 +22,26 @@ export default function Layout() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isEmployer = user?.role === "EMPLOYER";
+  const isAdmin = user?.role === "ADMIN";
+  const isManager = user?.role === "MANAGER";
+
+  const getRoleLabel = () => {
+    switch (user?.role) {
+      case "ADMIN": return "Quản trị viên";
+      case "MANAGER": return "Quản lý";
+      case "EMPLOYER": return "Nhà tuyển dụng";
+      default: return "Sinh viên";
+    }
+  };
+
+  const getDashboardLink = () => {
+    switch (user?.role) {
+      case "ADMIN": return "/admin";
+      case "MANAGER": return "/manager";
+      case "EMPLOYER": return "/employer/dashboard";
+      default: return "/profile";
+    }
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -37,13 +57,20 @@ export default function Layout() {
   const navItems = [
     { path: "/", icon: Home, label: "Trang chủ" },
     { path: "/jobs", icon: Briefcase, label: "Việc làm" },
-    { path: "/saved", icon: Bookmark, label: "Đã lưu" },
-    { path: "/community", icon: Users, label: "Cộng đồng" },
-    { path: "/profile", icon: User, label: "Hồ sơ" },
   ];
 
+  if (!isAdmin) {
+    navItems.push({ path: "/saved", icon: Bookmark, label: "Đã lưu" });
+  }
+
+  navItems.push({ path: "/community", icon: Users, label: "Cộng đồng" });
+
+  if (!isAdmin) {
+    navItems.push({ path: "/profile", icon: User, label: "Hồ sơ" });
+  }
+
   if (user?.role === "STUDENT") {
-    navItems.splice(3, 0, { path: "/student/applications", icon: FileText, label: "Ứng tuyển" });
+    navItems.splice(navItems.length - 1, 0, { path: "/student/applications", icon: FileText, label: "Ứng tuyển" });
   }
 
   const isActive = (path: string) => {
@@ -177,12 +204,12 @@ export default function Layout() {
                       </div>
                       <div className="text-left">
                         <div className={`text-xs font-semibold max-w-[110px] truncate leading-tight ${
-                          isEmployer ? "text-orange-700" : "text-blue-700"
+                          isEmployer ? "text-orange-700" : isAdmin ? "text-red-700" : "text-blue-700"
                         }`}>
                           {user?.fullName || user?.username}
                         </div>
                         <div className="text-[10px] text-gray-400 leading-tight">
-                          {isEmployer ? "Nhà tuyển dụng" : "Sinh viên"}
+                          {getRoleLabel()}
                         </div>
                       </div>
                       <ChevronDown
@@ -209,9 +236,11 @@ export default function Layout() {
                               </div>
                               <div className="text-xs text-gray-400 flex items-center gap-1">
                                 {isEmployer ? (
-                                  <><Briefcase className="w-3 h-3" /> Nhà tuyển dụng</>
+                                  <><Briefcase className="w-3 h-3" /> {getRoleLabel()}</>
+                                ) : isAdmin || isManager ? (
+                                  <><Settings className="w-3 h-3" /> {getRoleLabel()}</>
                                 ) : (
-                                  <><GraduationCap className="w-3 h-3" /> Sinh viên</>
+                                  <><GraduationCap className="w-3 h-3" /> {getRoleLabel()}</>
                                 )}
                               </div>
                             </div>
@@ -221,12 +250,12 @@ export default function Layout() {
                         {/* Menu items */}
                         <div className="py-1">
                           <Link
-                            to={isEmployer ? "/employer/dashboard" : "/profile"}
+                            to={getDashboardLink()}
                             onClick={() => setDropdownOpen(false)}
                             className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                           >
                             <User className="w-4 h-4 text-gray-400" />
-                            Hồ sơ của tôi
+                            {isAdmin || isManager ? "Dashboard" : "Hồ sơ của tôi"}
                           </Link>
                         </div>
 
