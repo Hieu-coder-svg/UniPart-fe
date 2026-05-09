@@ -4,6 +4,7 @@ import { jobService, JobResponse } from "../../../services/jobService";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSavedJobs } from "../../contexts/SavedJobsContext";
 import { applicationService } from "../../../services/applicationService";
+import { userService } from "../../../services/userService";
 import {
   MapPin,
   Clock,
@@ -14,7 +15,8 @@ import {
   ArrowLeft,
   Share2,
   Bookmark,
-  Loader2
+  Loader2,
+  Timer
 } from "lucide-react";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 
@@ -30,13 +32,39 @@ export default function JobDetail() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
   const [applicationId, setApplicationId] = useState<number | null>(null);
+  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
 
 
   useEffect(() => {
     if (id) {
       fetchJobDetail(Number(id));
+      if (user?.role === "STUDENT") {
+        checkApplicationStatus(Number(id));
+      }
     }
-  }, [id]);
+  }, [id, user]);
+
+  const checkApplicationStatus = async (jobId: number) => {
+    try {
+      const studentRes = await userService.getStudentMyInfo();
+      if (!studentRes.result) return;
+      
+      const res = await jobService.getStudentJobHistory(studentRes.result.id);
+      if (res.result) {
+        // jobService.getStudentJobHistory returns JobResponse[] where id is jobId, and applicationId is the application's ID.
+        const applicationJob = res.result.find(app => app.id === jobId);
+        if (applicationJob && applicationJob.applicationId) {
+          setHasApplied(true);
+          setApplicationId(applicationJob.applicationId);
+        } else {
+          setHasApplied(false);
+          setApplicationId(null);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to check application status:", e);
+    }
+  };
 
   const fetchJobDetail = async (jobId: number) => {
     setIsLoading(true);
@@ -51,6 +79,36 @@ export default function JobDetail() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!job) return;
+    const cooldownData = localStorage.getItem(`cooldown_job_${job.id}`);
+    if (cooldownData) {
+      const cooldownUntil = parseInt(cooldownData, 10);
+      const now = new Date().getTime();
+      if (now < cooldownUntil) {
+        setCooldownRemaining(Math.floor((cooldownUntil - now) / 1000));
+      } else {
+        localStorage.removeItem(`cooldown_job_${job.id}`);
+      }
+    }
+  }, [job, hasApplied]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (cooldownRemaining > 0 && !hasApplied) {
+      interval = setInterval(() => {
+        setCooldownRemaining(prev => {
+          if (prev <= 1) {
+            if (job) localStorage.removeItem(`cooldown_job_${job.id}`);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [cooldownRemaining, hasApplied, job]);
 
   const handleToggleSave = async () => {
     if (!user) {
@@ -79,6 +137,11 @@ export default function JobDetail() {
       return;
     }
     if (!job) return;
+    
+    if (cooldownRemaining > 0) {
+      alert("Bạn phải chờ hết thời gian đếm ngược mới được ứng tuyển lại!");
+      return;
+    }
 
     setIsApplying(true);
     try {
@@ -86,6 +149,9 @@ export default function JobDetail() {
       if (response.result) {
         setHasApplied(true);
         setApplicationId(response.result.id);
+        // Clear cooldown if it exists when successfully applying
+        localStorage.removeItem(`cooldown_job_${job.id}`);
+        setCooldownRemaining(0);
       }
       alert("Ứng tuyển thành công! Nhà tuyển dụng sẽ sớm liên hệ với bạn.");
     } catch (error: any) {
@@ -106,7 +172,15 @@ export default function JobDetail() {
       await applicationService.deleteApplyJob(applicationId);
       setHasApplied(false);
       setApplicationId(null);
-      alert("Bạn đã hủy ứng tuyển thành công.");
+      
+      // Set 5 minutes cooldown (5 * 60 * 1000)
+      if (job) {
+        const cooldownUntil = new Date().getTime() + 5 * 60 * 1000;
+        localStorage.setItem(`cooldown_job_${job.id}`, cooldownUntil.toString());
+        setCooldownRemaining(5 * 60);
+      }
+      
+      alert("Bạn đã hủy ứng tuyển thành công. Vui lòng đợi 5 phút để có thể ứng tuyển lại công việc này.");
     } catch (error: any) {
       alert(error.message || "Hủy ứng tuyển thất bại. Vui lòng thử lại sau.");
     } finally {
@@ -245,6 +319,14 @@ export default function JobDetail() {
                 ) : (
                   "Hủy ứng tuyển"
                 )}
+              </button>
+            ) : cooldownRemaining > 0 ? (
+              <button 
+                disabled
+                className="w-full flex items-center justify-center bg-gray-300 text-gray-600 py-3 rounded-lg font-semibold cursor-not-allowed"
+              >
+                <Timer className="w-5 h-5 mr-2" />
+                Thử lại sau {Math.floor(cooldownRemaining / 60)}:{(cooldownRemaining % 60).toString().padStart(2, '0')}
               </button>
             ) : (
               <button 

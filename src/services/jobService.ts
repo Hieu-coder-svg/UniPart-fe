@@ -27,6 +27,7 @@ export interface JobResponse {
     timeSlots: JobTimeSlotResponse[];
     status: string;
     applicationId?: number;
+    appliedAt?: string;
 }
 
 export interface JobFilterRequest {

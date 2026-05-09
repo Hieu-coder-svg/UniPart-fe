@@ -63,14 +63,58 @@ export default function StudentApplications() {
       const studentRes = await userService.getStudentMyInfo();
       if (!studentRes.result) throw new Error("Không thể lấy thông tin sinh viên.");
 
-      // 2. Get history from jobService
-      const res = await jobService.getStudentJobHistory(studentRes.result.id);
+      // 2. Fetch job history details and applications simultaneously
+      const [historyRes, appsRes] = await Promise.all([
+        jobService.getStudentJobHistory(studentRes.result.id),
+        applicationService.getStudentApplications().catch(err => {
+          console.warn("Backend API GET /application chưa sẵn sàng:", err);
+          return null; // Fallback gracefully if endpoint doesn't exist
+        })
+      ]);
       
-      if (res.result) {
-        // Sort by newest
-        const sorted = res.result.sort((a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
+      if (historyRes?.result) {
+        const studentApps = appsRes?.result || [];
+        console.log("Danh sách ứng tuyển từ API /application:", studentApps);
+        
+        // Helper to handle Spring Boot LocalDateTime array format: [year, month, day, hour, minute, second]
+        const parseDateHelper = (val: any) => {
+          if (!val) return new Date();
+          if (Array.isArray(val)) {
+            const [year, month, day, hour = 0, minute = 0, second = 0] = val;
+            return new Date(year, month - 1, day, hour, minute, second);
+          }
+          return new Date(val);
+        };
+
+        // Merge the appliedAt from applications into the job history items if available
+        const merged = historyRes.result.map(job => {
+          const app = studentApps.find((a: any) => 
+            (a.id && job.applicationId && String(a.id) === String(job.applicationId)) || 
+            (a.jobId && String(a.jobId) === String(job.id)) ||
+            (a.job_id && String(a.job_id) === String(job.id))
+          );
+          
+          if (app) {
+            return {
+              ...job,
+              // Backend might return applied_at or appliedAt
+              appliedAt: app.appliedAt || app.applied_at,
+              applicationId: app.id || job.applicationId,
+              status: app.status || job.status
+            };
+          }
+          return {
+            ...job,
+            appliedAt: undefined // Explicitly unset it if not found, to trigger the "Đang cập nhật..." text
+          };
+        });
+
+        // Sort by newest application date (or job creation date if appliedAt missing)
+        const sorted = merged.sort((a, b) => {
+          const dateA = parseDateHelper(a.appliedAt || a.createdAt).getTime();
+          const dateB = parseDateHelper(b.appliedAt || b.createdAt).getTime();
+          return dateB - dateA;
+        });
         setApplications(sorted);
         setFilteredApplications(sorted);
       }
@@ -330,6 +374,15 @@ function ApplicationCard({ application, onDelete, isDeleting, canDelete }: {
     REJECTED: "TỪ CHỐI",
   };
 
+  const parseDateHelper = (val: any) => {
+    if (!val) return new Date();
+    if (Array.isArray(val)) {
+      const [year, month, day, hour = 0, minute = 0, second = 0] = val;
+      return new Date(year, month - 1, day, hour, minute, second);
+    }
+    return new Date(val);
+  };
+
   return (
     <motion.div 
       layout
@@ -373,7 +426,7 @@ function ApplicationCard({ application, onDelete, isDeleting, canDelete }: {
             )}
             <div className="flex items-center gap-1.5 text-xs text-gray-500">
               <Clock className="w-3.5 h-3.5 text-indigo-400" />
-              <span>{format(new Date(application.createdAt || new Date()), "HH:mm, dd/MM/yyyy", { locale: vi })}</span>
+              <span>{application.appliedAt ? format(parseDateHelper(application.appliedAt), "HH:mm, dd/MM/yyyy", { locale: vi }) : "Đang cập nhật ngày ứng tuyển"}</span>
             </div>
           </div>
         </div>
