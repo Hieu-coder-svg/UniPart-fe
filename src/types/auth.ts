@@ -62,7 +62,7 @@ export interface UserResponse {
   updatedAt: string;
 }
 
-export type UserRole = "ADMIN" | "EMPLOYER" | "MANAGER" | "EMPLOYEE";
+export type UserRole = "ADMIN" | "EMPLOYER" | "STUDENT" | "EMPLOYEE";
 
 // API Response Types
 export interface ApiResponse<T> {

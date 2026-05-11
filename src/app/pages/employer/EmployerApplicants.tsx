@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { applicationService, ApplicationResponse } from "../../../services/applicationService";
-import { useNotifications } from "../../contexts/NotificationContext";
+import { useApplicationRealTime } from "../../../hooks/useApplicationRealTime";
 
 type TabStatus = "all" | "PENDING" | "ACCEPTED" | "REJECTED" | "COMPLETED";
 
@@ -49,8 +49,6 @@ export default function EmployerApplicants() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
-  const { notifications } = useNotifications();
-  const latestNotificationId = notifications[0]?.id;
 
   const fetchApplications = async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -66,22 +64,25 @@ export default function EmployerApplicants() {
     }
   };
 
+  // --- WebSocket real-time: listen for new application notifications ---
+  useApplicationRealTime({
+    onNewApplication: () => {
+      fetchApplications(false); // Silent refresh on new application
+    },
+  });
+
+  // --- Polling fallback (every 10s) in case WebSocket drops ---
   useEffect(() => {
-    fetchApplications(true); // Initial load with spinner
-
-    // Set up polling for real-time updates (every 3 seconds)
     const intervalId = setInterval(() => {
-      fetchApplications(false); // Silent fetch
-    }, 3000);
-
+      fetchApplications(false);
+    }, 10000);
     return () => clearInterval(intervalId);
   }, []);
 
+  // --- Initial load ---
   useEffect(() => {
-    if (latestNotificationId) {
-      fetchApplications(false); // Silent fetch on new notification
-    }
-  }, [latestNotificationId]);
+    fetchApplications(true);
+  }, []);
 
   // --- Computed stats ---
   const stats = useMemo(() => {
@@ -155,6 +156,22 @@ export default function EmployerApplicants() {
       }
     } catch (err) {
       console.error("Error rejecting application:", err);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleComplete = async (id: number) => {
+    setUpdatingId(id);
+    try {
+      const res = await applicationService.completeApplication(id);
+      if (res.result) {
+        setApplications((prev) =>
+          prev.map((a) => (a.id === id ? { ...a, status: res.result!.status } : a))
+        );
+      }
+    } catch (err) {
+      console.error("Error completing application:", err);
     } finally {
       setUpdatingId(null);
     }
@@ -392,6 +409,17 @@ export default function EmployerApplicants() {
                         className="px-4 py-3 border-2 border-red-200 text-red-600 rounded-xl hover:bg-red-50 hover:border-red-400 transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isUpdating ? "Đang xử lý..." : "✕ Từ chối"}
+                      </button>
+                    )}
+
+                    {/* Complete button — only when ACCEPTED */}
+                    {applicant.status === "ACCEPTED" && (
+                      <button
+                        onClick={() => handleComplete(applicant.id)}
+                        disabled={isUpdating}
+                        className="px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isUpdating ? "Đang xử lý..." : "✓ Hoàn thành"}
                       </button>
                     )}
                   </div>

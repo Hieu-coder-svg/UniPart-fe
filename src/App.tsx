@@ -9,7 +9,6 @@ import { ProtectedRoute } from "./app/components/ProtectedRoute";
 import Login from "./app/pages/Login";
 import AdminDashboard from "./app/pages/AdminDashboard";
 import EmployerDashboard from "./app/pages/EmployerDashboard";
-import ManagerDashboard from "./app/pages/ManagerDashboard";
 import Unauthorized from "./app/pages/Unauthorized";
 import VerifyOtp from "./app/pages/VerifyOtp";
 import ForgotPassword from "./app/pages/ForgotPassword";
@@ -34,13 +33,6 @@ function Router() {
         {() => (
           <ProtectedRoute requiredRoles={["EMPLOYER"]}>
             <EmployerDashboard />
-          </ProtectedRoute>
-        )}
-      </Route>
-      <Route path="/manager/dashboard">
-        {() => (
-          <ProtectedRoute requiredRoles={["MANAGER"]}>
-            <ManagerDashboard />
           </ProtectedRoute>
         )}
       </Route>

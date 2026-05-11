@@ -11,8 +11,6 @@ export default function Unauthorized() {
       navigate("/login");
     } else if (user.role === "ADMIN") {
       navigate("/admin");
-    } else if (user.role === "MANAGER") {
-      navigate("/manager");
     } else if (user.role === "EMPLOYER") {
       navigate("/employer/dashboard");
     } else {

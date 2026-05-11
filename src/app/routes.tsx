@@ -1,7 +1,6 @@
 import { createBrowserRouter } from "react-router";
 import Layout from "./components/Layout";
 import EmployerLayout from "./components/EmployerLayout";
-import ManagerLayout from "./components/ManagerLayout";
 import AdminLayout from "./components/AdminLayout";
 import Home from "./pages/student/Home";
 import JobBrowse from "./pages/student/JobBrowse";
@@ -26,12 +25,12 @@ import EmployerAnalytics from "./pages/employer/EmployerAnalytics";
 import EmployerBilling from "./pages/employer/EmployerBilling";
 import EmployerBuyPosts from "./pages/employer/EmployerBuyPosts";
 import EmployerSettings from "./pages/employer/EmployerSettings";
+import PaymentSuccess from "./pages/employer/PaymentSuccess";
 import StudentApplications from "./pages/student/StudentApplications";
-import ManagerOverview from "./pages/manager/Overview";
-import ManagerPackages from "./pages/manager/Packages";
-import ManagerReports from "./pages/manager/Reports";
-import UsersManagement from "./pages/manager/UsersManagement";
 import AdminOverview from "./pages/admin/Overview";
+import AdminPackages from "./pages/admin/Packages";
+import AdminReports from "./pages/admin/Reports";
+import AdminUsersManagement from "./pages/admin/UsersManagement";
 import AccountManagement from "./pages/admin/AccountManagement";
 import SystemBackup from "./pages/admin/SystemBackup";
 import SystemLogs from "./pages/admin/SystemLogs";
@@ -66,28 +65,24 @@ export const router = createBrowserRouter([
     Component: VerifyOtp,
   },
   {
+    path: "/payment/success",
+    Component: PaymentSuccess,
+  },
+  {
     path: "/admin",
     Component: AdminLayout,
     children: [
       { index: true, Component: AdminOverview },
+      { path: "packages", Component: AdminPackages },
+      { path: "reports", Component: AdminReports },
+      { path: "users", Component: AdminUsersManagement },
       { path: "accounts", Component: AccountManagement },
+      { path: "analytics", Component: AdminOverview },
+      { path: "report", Component: AdminReport },
       { path: "backup", Component: SystemBackup },
       { path: "logs", Component: SystemLogs },
-      { path: "report", Component: AdminReport },
-      { path: "system", Component: AdminOverview }, // Reuse overview for now
-      { path: "settings", Component: AdminSettings }, // Reuse overview for now
-    ],
-  },
-  {
-    path: "/manager",
-    Component: ManagerLayout,
-    children: [
-      { index: true, Component: ManagerOverview },
-      { path: "packages", Component: ManagerPackages },
-      { path: "reports", Component: ManagerReports },
-      { path: "users", Component: UsersManagement },
-      { path: "analytics", Component: ManagerOverview }, // Reuse overview for now
-      { path: "settings", Component: ManagerOverview }, // Reuse overview for now
+      { path: "settings", Component: AdminSettings },
+      { path: "system", Component: AdminOverview },
     ],
   },
   {
