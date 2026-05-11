@@ -11,10 +11,11 @@ import {
   Menu,
   X,
   ShieldCheck,
-  UserCircle,
   ChevronLeft,
   ChevronRight,
   Flag,
+  Package,
+  BarChart3,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import logoImage from "../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
@@ -53,19 +54,35 @@ export default function AdminLayout() {
       exact: true,
     },
     {
-      path: "/admin/accounts",
+      path: "/admin/packages",
+      icon: Package,
+      label: "Gói dịch vụ",
+    },
+    {
+      path: "/admin/users",
       icon: Users,
+      label: "Quản lý người dùng",
+    },
+    {
+      path: "/admin/accounts",
+      icon: ShieldCheck,
       label: "Quản lý tài khoản",
+    },
+    {
+      path: "/admin/analytics",
+      icon: BarChart3,
+      label: "Thống kê",
+    },
+    {
+      path: "/admin/report",
+      icon: Flag,
+      label: "Báo cáo",
+      badge: 12,
     },
     {
       path: "/admin/backup",
       icon: Database,
       label: "Sao lưu dữ liệu",
-    },
-    {
-      path: "/admin/report",
-      icon: Flag,
-      label: "Quản lý báo cáo",
     },
     {
       path: "/admin/logs",

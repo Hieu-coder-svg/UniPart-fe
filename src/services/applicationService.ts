@@ -52,4 +52,9 @@ export const applicationService = {
     const response = await apiClient.put<ApiResponse<ApplicationResponse>>(`${BASE_URL}/employer/${id}/reject`);
     return response.data;
   },
+
+  completeApplication: async (id: number): Promise<ApiResponse<ApplicationResponse>> => {
+    const response = await apiClient.put<ApiResponse<ApplicationResponse>>(`${BASE_URL}/employer/${id}/complete`);
+    return response.data;
+  },
 };

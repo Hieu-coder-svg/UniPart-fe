@@ -23,12 +23,10 @@ export default function Layout() {
 
   const isEmployer = user?.role === "EMPLOYER";
   const isAdmin = user?.role === "ADMIN";
-  const isManager = user?.role === "MANAGER";
 
   const getRoleLabel = () => {
     switch (user?.role) {
       case "ADMIN": return "Quản trị viên";
-      case "MANAGER": return "Quản lý";
       case "EMPLOYER": return "Nhà tuyển dụng";
       default: return "Sinh viên";
     }
@@ -37,7 +35,6 @@ export default function Layout() {
   const getDashboardLink = () => {
     switch (user?.role) {
       case "ADMIN": return "/admin";
-      case "MANAGER": return "/manager";
       case "EMPLOYER": return "/employer/dashboard";
       default: return "/profile";
     }
@@ -237,7 +234,7 @@ export default function Layout() {
                               <div className="text-xs text-gray-400 flex items-center gap-1">
                                 {isEmployer ? (
                                   <><Briefcase className="w-3 h-3" /> {getRoleLabel()}</>
-                                ) : isAdmin || isManager ? (
+                                ) : isAdmin ? (
                                   <><Settings className="w-3 h-3" /> {getRoleLabel()}</>
                                 ) : (
                                   <><GraduationCap className="w-3 h-3" /> {getRoleLabel()}</>
@@ -255,7 +252,7 @@ export default function Layout() {
                             className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                           >
                             <User className="w-4 h-4 text-gray-400" />
-                            {isAdmin || isManager ? "Dashboard" : "Hồ sơ của tôi"}
+                            {isAdmin ? "Dashboard" : "Hồ sơ của tôi"}
                           </Link>
                         </div>
 
