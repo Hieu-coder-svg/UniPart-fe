@@ -172,6 +172,11 @@ class JobService {
         const response = await this.api.get<ApiResponse<boolean>>(`/saved-jobs/check/${jobId}`);
         return response.data;
     }
+
+    async updateJob(id: number, request: Partial<JobCreationRequest> & { isHide?: boolean }): Promise<ApiResponse<JobResponse>> {
+        const response = await this.api.put<ApiResponse<JobResponse>>(`/job/${id}`, request);
+        return response.data;
+    }
 }
 
 export const jobService = new JobService();

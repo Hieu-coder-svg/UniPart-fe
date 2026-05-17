@@ -1,8 +1,9 @@
-import { Plus, Search, Filter, MoreVertical, Eye, Users, Calendar, MapPin } from "lucide-react";
+import { Plus, Search, Filter, MoreVertical, Eye, Users, Calendar, MapPin, Pencil } from "lucide-react";
 import { useState, useEffect } from "react";
 import { jobService, JobResponse } from "../../../services/jobService";
 import { applicationService, ApplicationResponse } from "../../../services/applicationService";
 import { CreateJobModal } from "../../components/CreateJobModal";
+import { EditJobModal } from "../../components/EditJobModal";
 import { useNotifications } from "../../contexts/NotificationContext";
 
 export default function EmployerJobs() {
@@ -12,6 +13,8 @@ export default function EmployerJobs() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingJob, setEditingJob] = useState<JobResponse | null>(null);
   const { notifications } = useNotifications();
   const latestNotificationId = notifications[0]?.id;
 
@@ -49,9 +52,8 @@ export default function EmployerJobs() {
   }, [latestNotificationId]);
 
   const getJobStatus = (job: JobResponse) => {
-    if (new Date(job.expiredAt) < new Date() || job.status === 'EXPIRED') return 'expired';
-    if (job.status === 'APPROVED') return 'active';
-    return job.status?.toLowerCase() || 'pending';
+    if (new Date(job.expiredAt) < new Date()) return 'expired';
+    return 'active';
   };
 
   const activeJobsCount = jobs.filter(j => getJobStatus(j) === 'active').length;
@@ -221,18 +223,23 @@ export default function EmployerJobs() {
                     <span className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl text-sm font-medium shadow-lg">
                       Đang hoạt động
                     </span>
-                  ) : status === "expired" ? (
+                  ) : (
                     <span className="px-4 py-2 bg-gradient-to-r from-gray-400 to-gray-500 text-white rounded-xl text-sm font-medium shadow-lg">
                       Đã hết hạn
                     </span>
-                  ) : (
-                    <span className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white rounded-xl text-sm font-medium shadow-lg">
-                      Chờ duyệt
-                    </span>
                   )}
-                  <button className="p-2 hover:bg-gradient-to-r hover:from-orange-100 hover:to-red-100 rounded-xl transition-all">
-                    <MoreVertical className="w-5 h-5 text-gray-600" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button 
+                      onClick={() => {
+                        setEditingJob(job);
+                        setIsEditModalOpen(true);
+                      }}
+                      className="p-2 hover:bg-blue-50 text-blue-600 rounded-xl transition-all"
+                      title="Chỉnh sửa"
+                    >
+                      <Pencil className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -255,11 +262,19 @@ export default function EmployerJobs() {
         isOpen={isCreateModalOpen} 
         onClose={() => setIsCreateModalOpen(false)} 
         onSuccess={() => {
-          // Re-fetch jobs after creation
-          jobService.getMyJobPost().then(res => {
-            if (res.result) setJobs(res.result);
-          });
+          fetchData();
         }} 
+      />
+      <EditJobModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingJob(null);
+        }}
+        onSuccess={() => {
+          fetchData();
+        }}
+        job={editingJob}
       />
     </div>
   );

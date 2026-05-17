@@ -5,20 +5,21 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useSavedJobs } from "../../contexts/SavedJobsContext";
 import { applicationService } from "../../../services/applicationService";
 import { userService } from "../../../services/userService";
-import {
-  MapPin,
-  Clock,
-  DollarSign,
-  Star,
-  AlertCircle,
-  CheckCircle,
-  ArrowLeft,
-  Share2,
-  Bookmark,
-  Loader2,
-  Timer
-} from "lucide-react";
+import { Timer, Map as MapIcon, Calendar, Info, Clock, DollarSign, Star, AlertCircle, CheckCircle, ArrowLeft, Share2, Bookmark, Loader2, MapPin } from "lucide-react";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+import { calculateDistance, formatDistance } from "../../../utils/location";
+import { StudentResponse } from "../../../services/userService";
+
+// Fix for default marker icon in Leaflet
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
 
 export default function JobDetail() {
   const { id } = useParams();
@@ -33,16 +34,28 @@ export default function JobDetail() {
   const [hasApplied, setHasApplied] = useState(false);
   const [applicationId, setApplicationId] = useState<number | null>(null);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
-
+  const [studentInfo, setStudentInfo] = useState<StudentResponse | null>(null);
 
   useEffect(() => {
     if (id) {
       fetchJobDetail(Number(id));
-      if (user?.role === "STUDENT") {
+      if (user && user.role === "STUDENT") {
         checkApplicationStatus(Number(id));
+        fetchStudentInfo();
       }
     }
   }, [id, user]);
+
+  const fetchStudentInfo = async () => {
+    try {
+      const res = await userService.getStudentMyInfo();
+      if (res.result) {
+        setStudentInfo(res.result);
+      }
+    } catch (error) {
+      console.error("Failed to fetch student info", error);
+    }
+  };
 
   const checkApplicationStatus = async (jobId: number) => {
     try {
@@ -271,36 +284,66 @@ export default function JobDetail() {
             </div>
 
             {/* Job Info Grid */}
-            <div className="grid md:grid-cols-2 gap-4 mb-6">
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <MapPin className="w-5 h-5 text-blue-600" />
-                <div>
-                  <div className="text-sm text-gray-600">Địa điểm</div>
-                  <div>{job.address}</div>
-                </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="flex flex-col items-center text-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <DollarSign className="w-5 h-5 text-emerald-600 mb-1" />
+                <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Lương/giờ</div>
+                <div className="text-sm font-bold text-emerald-700">{job.salary.toLocaleString()}đ</div>
               </div>
 
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <Clock className="w-5 h-5 text-purple-600" />
-                <div>
-                  <div className="text-sm text-gray-600">Ca làm việc</div>
-                  <div>{job.workingShift}</div>
-                </div>
+              <div className="flex flex-col items-center text-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <Clock className="w-5 h-5 text-blue-600 mb-1" />
+                <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Ca làm</div>
+                <div className="text-sm font-bold text-blue-700">{job.workingShift}</div>
               </div>
 
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <DollarSign className="w-5 h-5 text-green-600" />
-                <div>
-                  <div className="text-sm text-gray-600">Lương</div>
-                  <div>{job.salary.toLocaleString()}đ</div>
-                </div>
+              <div className="flex flex-col items-center text-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <AlertCircle className="w-5 h-5 text-orange-600 mb-1" />
+                <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Số lượng</div>
+                <div className="text-sm font-bold text-orange-700">{job.vacancies} người</div>
               </div>
 
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-orange-600" />
+              <div className="flex flex-col items-center text-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <Calendar className="w-5 h-5 text-purple-600 mb-1" />
+                <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Hạn nộp</div>
+                <div className="text-sm font-bold text-purple-700">
+                  {job.expiredAt ? new Date(job.expiredAt).toLocaleDateString("vi-VN") : "N/A"}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 mb-6">
+              <div className="flex items-center gap-3 p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                <MapIcon className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                <div className="flex-1">
+                  <div className="text-xs font-bold text-blue-400 uppercase tracking-wider">Địa điểm làm việc</div>
+                  <div className="text-sm text-gray-700 font-medium">{job.address}</div>
+                </div>
+                {user?.role === "STUDENT" && (
+                  <>
+                    {studentInfo?.latitude != null && studentInfo?.longitude != null && job.locationLatitude != null && job.locationLongitude != null ? (
+                      <div className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm">
+                        <MapPin className="w-3.5 h-3.5" />
+                        {formatDistance(calculateDistance(studentInfo.latitude, studentInfo.longitude, job.locationLatitude, job.locationLongitude))}
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-gray-400 italic text-right">
+                        {studentInfo?.latitude == null || studentInfo?.longitude == null 
+                          ? "Cập nhật vị trí hồ sơ để xem khoảng cách"
+                          : "Công việc này chưa có tọa độ vị trí"}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3 p-4 bg-amber-50/50 rounded-xl border border-amber-100">
+                <Timer className="w-5 h-5 text-amber-600 flex-shrink-0" />
                 <div>
-                  <div className="text-sm text-gray-600">Số lượng tuyển</div>
-                  <div>{job.vacancies} người</div>
+                  <div className="text-xs font-bold text-amber-400 uppercase tracking-wider">Ngày đăng tin</div>
+                  <div className="text-sm text-gray-700 font-medium">
+                    {new Date(job.createdAt).toLocaleDateString("vi-VN")}
+                  </div>
                 </div>
               </div>
             </div>
@@ -347,12 +390,65 @@ export default function JobDetail() {
         </div>
 
         {/* Job Description */}
-        <div className="bg-white rounded-xl p-6 mb-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-bold">Mô tả công việc</h2>
+        <div className="bg-white rounded-xl p-6 mb-6 shadow-sm border border-gray-100">
+          <h2 className="mb-4 text-lg font-bold flex items-center gap-2">
+            <Info className="w-5 h-5 text-blue-600" />
+            Mô tả công việc
+          </h2>
           <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
             {job.description}
           </div>
         </div>
+
+        {/* Time Slots */}
+        {job.timeSlots && job.timeSlots.length > 0 && (
+          <div className="bg-white rounded-xl p-6 mb-6 shadow-sm border border-gray-100">
+            <h2 className="mb-4 text-lg font-bold flex items-center gap-2">
+              <Clock className="w-5 h-5 text-emerald-600" />
+              Lịch làm việc chi tiết
+            </h2>
+            <div className="grid gap-3">
+              {job.timeSlots.map((slot, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm font-bold text-gray-700">
+                      {new Date(slot.workDate).toLocaleDateString("vi-VN", { weekday: 'long', day: 'numeric', month: 'numeric' })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">
+                    {slot.startTime.substring(0, 5)} - {slot.endTime.substring(0, 5)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Location Map */}
+        {job.locationLatitude && job.locationLongitude && (
+          <div className="bg-white rounded-xl p-6 mb-6 shadow-sm border border-gray-100">
+            <h2 className="mb-4 text-lg font-bold flex items-center gap-2">
+              <MapIcon className="w-5 h-5 text-rose-600" />
+              Vị trí trên bản đồ
+            </h2>
+            <div className="relative h-64 w-full rounded-xl overflow-hidden border border-gray-200" style={{ zIndex: 0, isolation: "isolate" }}>
+              <MapContainer
+                center={[job.locationLatitude, job.locationLongitude]}
+                zoom={15}
+                scrollWheelZoom={false}
+                style={{ height: "100%", width: "100%" }}
+              >
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <Marker position={[job.locationLatitude, job.locationLongitude]}>
+                  <Popup>{job.title}</Popup>
+                </Marker>
+              </MapContainer>
+            </div>
+          </div>
+        )}
 
         {/* Reviews - Removed since backend doesn't have review data for jobs yet */}
       </div>

@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useSearchParams } from "react-router";
 import { jobService, JobResponse, JobFilterRequest } from "../../../services/jobService";
+import { userService, StudentScheduleResponse, StudentResponse } from "../../../services/userService";
 import { useAuth } from "../../contexts/AuthContext";
+import { calculateDistance, formatDistance } from "../../../utils/location";
 import { useSavedJobs } from "../../contexts/SavedJobsContext";
 import {
   Search,
@@ -74,7 +76,11 @@ export default function JobBrowse() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedShifts, setSelectedShifts] = useState<string[]>([]);
   const [selectedSalary, setSelectedSalary] = useState<string>("all");
-  
+  const [filterByDistance, setFilterByDistance] = useState(false);
+  const [filterBySchedule, setFilterBySchedule] = useState(true);
+  const [studentSchedule, setStudentSchedule] = useState<Record<string, number[]>>({});
+  const [studentInfo, setStudentInfo] = useState<StudentResponse | null>(null);
+
   const [jobs, setJobs] = useState<JobResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
@@ -89,14 +95,42 @@ export default function JobBrowse() {
     const loc = searchParams.get("location") || "all";
     setSearchTerm(q);
     setSelectedLocation(loc);
-  }, [searchParams]);
+    if (user && user.role === "STUDENT") {
+      fetchStudentSchedule();
+      fetchStudentInfo();
+    }
+  }, [searchParams, user]);
+
+  const fetchStudentInfo = async () => {
+    try {
+      const res = await userService.getStudentMyInfo();
+      if (res.result) {
+        setStudentInfo(res.result);
+      }
+    } catch (error) {
+      console.error("Failed to fetch student info", error);
+    }
+  };
+
+  const fetchStudentSchedule = async () => {
+    try {
+      const res = await userService.getMySchedule();
+      if (res.result) {
+        setStudentSchedule(res.result.scheduleMatrix || {});
+      }
+    } catch (error) {
+      console.error("Failed to fetch schedule", error);
+    }
+  };
 
   const hasActiveFilters =
     searchTerm !== "" ||
     selectedLocation !== "all" ||
     selectedCategory !== "all" ||
     selectedShifts.length > 0 ||
-    selectedSalary !== "all";
+    selectedSalary !== "all" ||
+    filterByDistance ||
+    filterBySchedule;
 
   const clearAll = () => {
     setSearchTerm("");
@@ -104,6 +138,7 @@ export default function JobBrowse() {
     setSelectedCategory("all");
     setSelectedShifts([]);
     setSelectedSalary("all");
+    setFilterByDistance(false);
   };
 
   const toggleShift = (shift: string) => {
@@ -161,8 +196,44 @@ export default function JobBrowse() {
 
 
 
-  const featuredJobs = jobs.filter((job) => job.urgent);
-  const normalJobs = jobs.filter((job) => !job.urgent);
+  const isConflict = (job: JobResponse) => {
+    if (!filterBySchedule || !studentSchedule) return false;
+    if (!job.timeSlots || job.timeSlots.length === 0) return false;
+
+    const daysMap: Record<number, string> = {
+      0: "CN", 1: "Thứ 2", 2: "Thứ 3", 3: "Thứ 4", 4: "Thứ 5", 5: "Thứ 6", 6: "Thứ 7"
+    };
+
+    return job.timeSlots.some(slot => {
+      const date = new Date(slot.workDate);
+      const dayName = daysMap[date.getDay()];
+      const busyIds = studentSchedule[dayName] || [];
+      if (busyIds.length === 0) return false;
+
+      // Convert startTime/endTime to slot IDs
+      const startHour = parseInt(slot.startTime.split(":")[0]);
+      const endHour = parseInt(slot.endTime.split(":")[0]);
+
+      for (let h = startHour; h < endHour; h++) {
+        const slotId = h - 5; // Assuming ID 1 is 6am, so 6am is slotId 1 (6-5)
+        if (busyIds.includes(slotId)) return true;
+      }
+      return false;
+    });
+  };
+
+  const filteredJobs = jobs.filter(job => {
+    if (isConflict(job)) return false;
+    if (filterByDistance) {
+      if (studentInfo?.latitude == null || studentInfo?.longitude == null) return false;
+      if (job.locationLatitude == null || job.locationLongitude == null) return false;
+      const dist = calculateDistance(studentInfo.latitude, studentInfo.longitude, job.locationLatitude, job.locationLongitude);
+      if (dist > 10) return false;
+    }
+    return true;
+  });
+  const featuredJobs = filteredJobs.filter((job) => job.urgent);
+  const normalJobs = filteredJobs.filter((job) => !job.urgent);
 
   const scrollCarousel = (dir: "left" | "right") => {
     if (!carouselRef.current) return;
@@ -265,11 +336,10 @@ export default function JobBrowse() {
             >
               <button
                 onClick={() => setSelectedCategory("all")}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
-                  selectedCategory === "all"
-                    ? "bg-blue-600 text-white shadow-md"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${selectedCategory === "all"
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
               >
                 🌟 Tất cả
               </button>
@@ -277,11 +347,10 @@ export default function JobBrowse() {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(selectedCategory === cat ? "all" : cat)}
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
-                    selectedCategory === cat
-                      ? "bg-blue-600 text-white shadow-md"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${selectedCategory === cat
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
                 >
                   {categoryIcons[cat] ?? "💼"} {cat}
                 </button>
@@ -333,11 +402,10 @@ export default function JobBrowse() {
                       <button
                         key={shift}
                         onClick={() => toggleShift(shift)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
-                          active
-                            ? "bg-blue-600 text-white shadow-sm"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                        }`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${active
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                          }`}
                       >
                         {shift}
                       </button>
@@ -354,11 +422,10 @@ export default function JobBrowse() {
                 <div className="flex flex-col gap-2">
                   <button
                     onClick={() => setSelectedSalary("all")}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                      selectedSalary === "all"
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-all ${selectedSalary === "all"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
                   >
                     Tất cả mức lương
                   </button>
@@ -368,17 +435,65 @@ export default function JobBrowse() {
                       onClick={() =>
                         setSelectedSalary(selectedSalary === opt.value ? "all" : opt.value)
                       }
-                      className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                        selectedSalary === opt.value
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      }`}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-all ${selectedSalary === opt.value
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        }`}
                     >
                       {opt.label}
                     </button>
                   ))}
                 </div>
               </div>
+
+              {/* ── KHOẢNG CÁCH ── */}
+              <div className="mb-6">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                  Khoảng cách
+                </p>
+                <button
+                  onClick={() => setFilterByDistance((prev) => !prev)}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all border ${
+                    filterByDistance
+                      ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                      : "bg-gray-100 text-gray-600 border-transparent hover:bg-gray-200"
+                  }`}
+                >
+                  <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                  Dưới 10 km
+                  {filterByDistance && (
+                    <span className="ml-auto text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full font-bold">✓</span>
+                  )}
+                </button>
+                {filterByDistance && studentInfo?.latitude == null && (
+                  <p className="text-[10px] text-orange-500 italic mt-2 leading-tight">
+                    ⚠️ Cập nhật hồ sơ để dùng bộ lọc này.
+                  </p>
+                )}
+              </div>
+
+              {/* ── LỊCH HỌC ── */}
+              {user?.roleName === "STUDENT" && (
+                <div className="pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                      Theo lịch học
+                    </p>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filterBySchedule}
+                        onChange={(e) => setFilterBySchedule(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                  <p className="text-[10px] text-gray-400 italic leading-tight">
+                    Chỉ hiển thị các công việc không trùng với lịch học của bạn.
+                  </p>
+                </div>
+              )}
 
             </div>
           </aside>
@@ -388,14 +503,19 @@ export default function JobBrowse() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-gray-800">
-                  {jobs.length > 0 ? (
+                  {filteredJobs.length > 0 ? (
                     <>
-                      <span className="text-blue-600">{jobs.length}</span> việc làm phù hợp
+                      <span className="text-blue-600">{filteredJobs.length}</span> việc làm phù hợp
                     </>
                   ) : (
                     "Không tìm thấy kết quả"
                   )}
                 </h2>
+                {filterBySchedule && user?.roleName === "STUDENT" && Object.keys(studentSchedule).length > 0 && (
+                  <p className="text-xs text-orange-600 mt-1 flex items-center gap-1 font-medium">
+                    <Clock className="w-3 h-3" /> Đã ẩn {jobs.length - filteredJobs.length} việc trùng lịch học của bạn
+                  </p>
+                )}
               </div>
               {hasActiveFilters && (
                 <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full">
@@ -432,15 +552,21 @@ export default function JobBrowse() {
                       </span>
                     </div>
                     <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-                      {featuredJobs.map((job) => (
-                        <JobCard 
-                          key={job.id} 
-                          job={job} 
-                          featured 
-                          isSaved={savedJobIds.has(job.id)}
-                          onToggleSave={toggleSaveJob}
-                        />
-                      ))}
+                      {featuredJobs.map((job) => {
+                        const distance = studentInfo?.latitude != null && studentInfo?.longitude != null && job.locationLatitude != null && job.locationLongitude != null
+                          ? calculateDistance(studentInfo.latitude, studentInfo.longitude, job.locationLatitude, job.locationLongitude)
+                          : null;
+                        return (
+                          <JobCard
+                            key={job.id}
+                            job={job}
+                            featured
+                            isSaved={savedJobIds.has(job.id)}
+                            onToggleSave={toggleSaveJob}
+                            distance={distance}
+                          />
+                        );
+                      })}
                     </div>
                   </section>
                 )}
@@ -449,19 +575,25 @@ export default function JobBrowse() {
                   <section>
                     <h3 className="font-bold text-gray-800 text-base mb-4">Tất cả việc làm</h3>
                     <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-                      {normalJobs.map((job) => (
-                        <JobCard 
-                          key={job.id} 
-                          job={job} 
-                          isSaved={savedJobIds.has(job.id)}
-                          onToggleSave={toggleSaveJob}
-                        />
-                      ))}
+                      {normalJobs.map((job) => {
+                        const distance = studentInfo?.latitude != null && studentInfo?.longitude != null && job.locationLatitude != null && job.locationLongitude != null
+                          ? calculateDistance(studentInfo.latitude, studentInfo.longitude, job.locationLatitude, job.locationLongitude)
+                          : null;
+                        return (
+                          <JobCard
+                            key={job.id}
+                            job={job}
+                            isSaved={savedJobIds.has(job.id)}
+                            onToggleSave={toggleSaveJob}
+                            distance={distance}
+                          />
+                        );
+                      })}
                     </div>
                   </section>
                 )}
 
-                {jobs.length === 0 && <EmptyState onReset={clearAll} />}
+                {filteredJobs.length === 0 && <EmptyState onReset={clearAll} />}
               </>
             )}
           </main>
@@ -474,7 +606,7 @@ export default function JobBrowse() {
 /* ─────────────────────────────────────────
    JOB CARD
 ───────────────────────────────────────── */
-function JobCard({ job, featured = false, isSaved, onToggleSave }: { job: JobResponse; featured?: boolean; isSaved: boolean; onToggleSave: (id: number) => void; }) {
+function JobCard({ job, featured = false, isSaved, onToggleSave, distance }: { job: JobResponse; featured?: boolean; isSaved: boolean; onToggleSave: (id: number) => void; distance: number | null; }) {
   return (
     <Link
       to={`/jobs/${job.id}`}
@@ -512,6 +644,17 @@ function JobCard({ job, featured = false, isSaved, onToggleSave }: { job: JobRes
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
               {job.employerName || "Nhà tuyển dụng"}
             </p>
+            {distance !== null ? (
+              <p className="text-[10px] text-blue-600 font-bold mt-1.5 flex items-center gap-1 bg-blue-50 w-fit px-2 py-0.5 rounded-full border border-blue-100">
+                <MapPin className="w-2.5 h-2.5" />
+                Cách bạn {formatDistance(distance)}
+              </p>
+            ) : (
+              <p className="text-[10px] text-gray-400 italic mt-1.5 flex items-center gap-1">
+                <MapPin className="w-2.5 h-2.5" />
+                {job.locationLatitude != null ? "Cập nhật hồ sơ để xem khoảng cách" : "Chưa có tọa độ vị trí"}
+              </p>
+            )}
           </div>
 
           {/* Bookmark button */}
