@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   User,
   MapPin,
@@ -31,16 +31,19 @@ import {
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import { Link } from "react-router";
 import { useAuth } from "../../contexts/AuthContext";
-import { userService, StudentResponse, StudentUpdateRequest } from "../../../services/userService";
+import { userService, StudentResponse, StudentUpdateRequest, StudentScheduleRequest } from "../../../services/userService";
 import { uploadImageToCloudinary } from "../../../services/uploadService";
+import MapPicker from "../../components/MapPicker";
+import WeeklySchedule from "../../components/WeeklySchedule";
 
 /* ─────────────────────────────────────────────────────────────
    TAB DEFINITION
 ───────────────────────────────────────────────────────────── */
-type TabKey = "info" | "history" | "password";
+type TabKey = "info" | "history" | "schedule" | "password";
 const TABS: { key: TabKey; label: string; icon: typeof User }[] = [
-  { key: "info",     label: "Thông tin",  icon: User },
-  { key: "history",  label: "Lịch sử",   icon: Briefcase },
+  { key: "info", label: "Thông tin", icon: User },
+  { key: "schedule", label: "Lịch học", icon: Calendar },
+  { key: "history", label: "Lịch sử", icon: Briefcase },
   { key: "password", label: "Đổi mật khẩu", icon: Shield },
 ];
 
@@ -72,7 +75,7 @@ const workHistory = [
 export default function Profile() {
   const [activeTab, setActiveTab] = useState<TabKey>("info");
   const { user, changePassword } = useAuth();
-  
+
   // States
   const [studentInfo, setStudentInfo] = useState<StudentResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -80,6 +83,12 @@ export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [mapPosition, setMapPosition] = useState<[number, number] | null>(null);
+  const [busySlots, setBusySlots] = useState<Record<string, number[]>>({});
+  const [isLoadingAddress, setIsLoadingAddress] = useState(false);
+  const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Form States
   const [formData, setFormData] = useState<StudentUpdateRequest>({
@@ -91,6 +100,8 @@ export default function Profile() {
     major: "",
     address: "",
     avatar: "",
+    latitude: undefined,
+    longitude: undefined,
   });
 
   const [passwordForm, setPasswordForm] = useState({
@@ -104,7 +115,72 @@ export default function Profile() {
 
   useEffect(() => {
     fetchStudentInfo();
+    fetchSchedule();
   }, []);
+
+  const handleMapClick = async (lat: number, lng: number) => {
+    setMapPosition([lat, lng]);
+    setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
+    
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
+      const data = await response.json();
+      if (data && data.display_name) {
+        setFormData(prev => ({ ...prev, address: data.display_name }));
+        setErrors(prev => ({ ...prev, address: '' }));
+      }
+    } catch (error) {
+      console.error("Failed to fetch address", error);
+    }
+  };
+  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({ ...formData, address: value });
+    setErrors({ ...errors, address: '' });
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (value.trim().length > 2) {
+      searchTimeoutRef.current = setTimeout(async () => {
+        setIsLoadingAddress(true);
+        try {
+          const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=5`);
+          const data = await response.json();
+          setAddressSuggestions(data || []);
+          setShowSuggestions(true);
+        } catch (error) {
+          console.error("Failed to fetch suggestions", error);
+        } finally {
+          setIsLoadingAddress(false);
+        }
+      }, 500);
+    } else {
+      setAddressSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSelectSuggestion = (suggestion: any) => {
+    const lat = parseFloat(suggestion.lat);
+    const lng = parseFloat(suggestion.lon);
+    setFormData({ ...formData, address: suggestion.display_name, latitude: lat, longitude: lng });
+    setMapPosition([lat, lng]);
+    setShowSuggestions(false);
+    setAddressSuggestions([]);
+  };
+
+  const fetchSchedule = async () => {
+    try {
+      const res = await userService.getMySchedule();
+      if (res.result) {
+        setBusySlots(res.result.scheduleMatrix || {});
+      }
+    } catch (error) {
+      console.error("Failed to fetch schedule", error);
+    }
+  };
 
   const fetchStudentInfo = async () => {
     setIsLoading(true);
@@ -121,7 +197,13 @@ export default function Profile() {
           major: res.result.major || "",
           address: res.result.address || "",
           avatar: res.result.avatar || "",
+          latitude: res.result.latitude || undefined,
+          longitude: res.result.longitude || undefined,
         });
+        // Khôi phục vị trí bản đồ nếu có
+        if (res.result.latitude && res.result.longitude) {
+          setMapPosition([res.result.latitude, res.result.longitude]);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch student info", error);
@@ -133,14 +215,14 @@ export default function Profile() {
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
-    
+
     try {
       setIsUploadingAvatar(true);
       const imageUrl = await uploadImageToCloudinary(file);
-      
+
       setStudentInfo(prev => prev ? { ...prev, avatar: imageUrl } : null);
       setFormData(prev => ({ ...prev, avatar: imageUrl }));
-      
+
       // Auto-save the avatar directly
       await userService.updateProfileStudent({
         ...formData,
@@ -234,6 +316,29 @@ export default function Profile() {
     }
   };
 
+  const handleSaveSchedule = async (newBusySlots: Record<string, number[]>) => {
+    setIsLoading(true);
+    setMessage({ type: "", text: "" });
+    try {
+      const request: StudentScheduleRequest = {
+        schedules: Object.entries(newBusySlots).map(([day, ids]) => ({
+          dayOfWeek: day,
+          busyTimeSlotIds: ids
+        }))
+      };
+      const res = await userService.saveSchedule(request);
+      if (res.result) {
+        setBusySlots(res.result.scheduleMatrix || {});
+        setMessage({ type: "success", text: "Cập nhật lịch học thành công!" });
+        setTimeout(() => setMessage({ type: "", text: "" }), 3000);
+      }
+    } catch (error: any) {
+      setMessage({ type: "error", text: error.message || "Lỗi lưu lịch học." });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordForm.oldPassword === passwordForm.newPassword) {
@@ -244,7 +349,7 @@ export default function Profile() {
       setMessage({ type: "error", text: "Mật khẩu xác nhận không khớp!" });
       return;
     }
-    
+
     setIsLoading(true);
     setMessage({ type: "", text: "" });
     try {
@@ -408,16 +513,14 @@ export default function Profile() {
                       setMessage({ type: "", text: "" });
                       setErrors({});
                     }}
-                    className={`relative flex-1 min-w-[120px] flex items-center justify-center gap-2 py-4 px-5 text-sm font-semibold transition-colors duration-200 ${
-                      active ? "text-blue-600" : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
-                    }`}
+                    className={`relative flex-1 min-w-[120px] flex items-center justify-center gap-2 py-4 px-5 text-sm font-semibold transition-colors duration-200 ${active ? "text-blue-600" : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
+                      }`}
                   >
                     <Icon className="w-4 h-4" />
                     {label}
                     <span
-                      className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 to-violet-600 rounded-full transition-opacity duration-200 ${
-                        active ? "opacity-100" : "opacity-0"
-                      }`}
+                      className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 to-violet-600 rounded-full transition-opacity duration-200 ${active ? "opacity-100" : "opacity-0"
+                        }`}
                     />
                   </button>
                 );
@@ -446,12 +549,12 @@ export default function Profile() {
                     </h2>
                     <div className="grid md:grid-cols-2 gap-3">
                       {[
-                        { icon: MapPin,       color: "bg-blue-100 text-blue-600",    label: "Địa chỉ",    value: studentInfo?.address },
-                        { icon: Calendar,     color: "bg-violet-100 text-violet-600", label: "Ngày sinh", value: studentInfo?.dateOfBirth },
-                        { icon: GraduationCap,color: "bg-cyan-100 text-cyan-600",    label: "Trường",     value: studentInfo?.university },
-                        { icon: TrendingUp,   color: "bg-emerald-100 text-emerald-600",label: "Chuyên ngành",value: studentInfo?.major },
-                        { icon: Mail,         color: "bg-pink-100 text-pink-600",    label: "Email",      value: studentInfo?.email },
-                        { icon: Phone,        color: "bg-orange-100 text-orange-600", label: "Điện thoại", value: studentInfo?.phoneNumber },
+                        { icon: MapPin, color: "bg-blue-100 text-blue-600", label: "Địa chỉ", value: studentInfo?.address },
+                        { icon: Calendar, color: "bg-violet-100 text-violet-600", label: "Ngày sinh", value: studentInfo?.dateOfBirth },
+                        { icon: GraduationCap, color: "bg-cyan-100 text-cyan-600", label: "Trường", value: studentInfo?.university },
+                        { icon: TrendingUp, color: "bg-emerald-100 text-emerald-600", label: "Chuyên ngành", value: studentInfo?.major },
+                        { icon: Mail, color: "bg-pink-100 text-pink-600", label: "Email", value: studentInfo?.email },
+                        { icon: Phone, color: "bg-orange-100 text-orange-600", label: "Điện thoại", value: studentInfo?.phoneNumber },
                       ].map(({ icon: Icon, color, label, value }) => (
                         <div key={label} className="flex items-center gap-3 p-3.5 bg-gray-50 hover:bg-blue-50/50 rounded-xl transition-colors border border-transparent hover:border-blue-100">
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
@@ -464,6 +567,19 @@ export default function Profile() {
                         </div>
                       ))}
                     </div>
+                    {studentInfo?.latitude && studentInfo?.longitude && (
+                      <div className="mt-4 rounded-xl overflow-hidden border border-gray-100 shadow-sm">
+                        <div className="h-32 w-full">
+                          <MapPicker 
+                            position={[studentInfo.latitude, studentInfo.longitude]} 
+                            onPositionChange={() => {}} // Read-only in view mode
+                          />
+                        </div>
+                        <div className="bg-white p-2 text-[10px] text-gray-400 text-center border-t border-gray-50">
+                          Vị trí của bạn trên bản đồ
+                        </div>
+                      </div>
+                    )}
                   </section>
                 ) : (
                   <form onSubmit={handleUpdateProfile} className="space-y-5 bg-gray-50 p-6 rounded-2xl border border-gray-100">
@@ -471,31 +587,31 @@ export default function Profile() {
                     <div className="grid md:grid-cols-2 gap-5">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên</label>
-                        <input type="text" value={formData.fullName} onChange={e => {setFormData({...formData, fullName: e.target.value}); setErrors({...errors, fullName: ''})}} className={`w-full p-2.5 rounded-lg border ${errors.fullName ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`} required />
+                        <input type="text" value={formData.fullName} onChange={e => { setFormData({ ...formData, fullName: e.target.value }); setErrors({ ...errors, fullName: '' }) }} className={`w-full p-2.5 rounded-lg border ${errors.fullName ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`} required />
                         {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
-                        <input 
-                          type="tel" 
-                          value={formData.phoneNumber} 
+                        <input
+                          type="tel"
+                          value={formData.phoneNumber}
                           onChange={e => {
                             const onlyNums = e.target.value.replace(/[^0-9+]/g, '');
-                            setFormData({...formData, phoneNumber: onlyNums}); 
-                            setErrors({...errors, phoneNumber: ''});
-                          }} 
-                          className={`w-full p-2.5 rounded-lg border ${errors.phoneNumber ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`} 
+                            setFormData({ ...formData, phoneNumber: onlyNums });
+                            setErrors({ ...errors, phoneNumber: '' });
+                          }}
+                          className={`w-full p-2.5 rounded-lg border ${errors.phoneNumber ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`}
                         />
                         {errors.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Ngày sinh (YYYY-MM-DD)</label>
-                        <input type="date" value={formData.dateOfBirth} onChange={e => {setFormData({...formData, dateOfBirth: e.target.value}); setErrors({...errors, dateOfBirth: ''})}} className={`w-full p-2.5 rounded-lg border ${errors.dateOfBirth ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`} />
+                        <input type="date" value={formData.dateOfBirth} onChange={e => { setFormData({ ...formData, dateOfBirth: e.target.value }); setErrors({ ...errors, dateOfBirth: '' }) }} className={`w-full p-2.5 rounded-lg border ${errors.dateOfBirth ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`} />
                         {errors.dateOfBirth && <p className="text-red-500 text-xs mt-1">{errors.dateOfBirth}</p>}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Giới tính</label>
-                        <select value={formData.gender} onChange={e => {setFormData({...formData, gender: e.target.value}); setErrors({...errors, gender: ''})}} className={`w-full p-2.5 rounded-lg border ${errors.gender ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`}>
+                        <select value={formData.gender} onChange={e => { setFormData({ ...formData, gender: e.target.value }); setErrors({ ...errors, gender: '' }) }} className={`w-full p-2.5 rounded-lg border ${errors.gender ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`}>
                           <option value="">Chọn giới tính</option>
                           <option value="MALE">Nam</option>
                           <option value="FEMALE">Nữ</option>
@@ -505,18 +621,60 @@ export default function Profile() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Trường đại học</label>
-                        <input type="text" value={formData.university} onChange={e => {setFormData({...formData, university: e.target.value}); setErrors({...errors, university: ''})}} className={`w-full p-2.5 rounded-lg border ${errors.university ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`} />
+                        <input type="text" value={formData.university} onChange={e => { setFormData({ ...formData, university: e.target.value }); setErrors({ ...errors, university: '' }) }} className={`w-full p-2.5 rounded-lg border ${errors.university ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`} />
                         {errors.university && <p className="text-red-500 text-xs mt-1">{errors.university}</p>}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Chuyên ngành</label>
-                        <input type="text" value={formData.major} onChange={e => {setFormData({...formData, major: e.target.value}); setErrors({...errors, major: ''})}} className={`w-full p-2.5 rounded-lg border ${errors.major ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`} />
+                        <input type="text" value={formData.major} onChange={e => { setFormData({ ...formData, major: e.target.value }); setErrors({ ...errors, major: '' }) }} className={`w-full p-2.5 rounded-lg border ${errors.major ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`} />
                         {errors.major && <p className="text-red-500 text-xs mt-1">{errors.major}</p>}
                       </div>
-                      <div className="md:col-span-2">
+                      <div className="md:col-span-2 relative">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ</label>
-                        <input type="text" value={formData.address} onChange={e => {setFormData({...formData, address: e.target.value}); setErrors({...errors, address: ''})}} className={`w-full p-2.5 rounded-lg border ${errors.address ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`} />
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            value={formData.address} 
+                            onChange={handleAddressChange} 
+                            onFocus={() => { if (addressSuggestions.length > 0) setShowSuggestions(true); }}
+                            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                            className={`w-full p-2.5 rounded-lg border ${errors.address ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`} 
+                            autoComplete="off"
+                          />
+                          {isLoadingAddress && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />}
+                        </div>
                         {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
+                        
+                        {showSuggestions && addressSuggestions.length > 0 && (
+                          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+                            {addressSuggestions.map((suggestion, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => handleSelectSuggestion(suggestion)}
+                                className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors"
+                              >
+                                <div className="text-sm font-medium text-gray-800 line-clamp-1">{suggestion.display_name.split(',')[0]}</div>
+                                <div className="text-xs text-gray-500 line-clamp-1">{suggestion.display_name}</div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-blue-500" />
+                          Chọn vị trí trên bản đồ
+                        </label>
+                        <MapPicker
+                          position={mapPosition}
+                          onPositionChange={handleMapClick}
+                        />
+                        {formData.latitude && (
+                          <p className="text-[10px] text-gray-400 mt-1 italic">
+                            Tọa độ đã chọn: {formData.latitude.toFixed(6)}, {formData.longitude?.toFixed(6)}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
@@ -533,7 +691,16 @@ export default function Profile() {
               </>
             )}
 
-            {/* ════ HISTORY TAB ════ */}
+            {/* ════ SCHEDULE TAB ════ */}
+            {activeTab === "schedule" && (
+              <div className="bg-white p-2 rounded-2xl">
+                <WeeklySchedule 
+                  busySlots={busySlots} 
+                  onSave={handleSaveSchedule}
+                  isLoading={isLoading}
+                />
+              </div>
+            )}
             {activeTab === "history" && (
               <section className="space-y-4">
                 <h2 className="text-sm font-bold text-gray-700 uppercase tracking-widest mb-2 flex items-center gap-2">
@@ -605,16 +772,16 @@ export default function Profile() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu hiện tại</label>
                     <div className="relative">
-                      <input 
-                        type={showOldPassword ? "text" : "password"} 
-                        value={passwordForm.oldPassword} 
-                        onChange={e => setPasswordForm({...passwordForm, oldPassword: e.target.value})} 
-                        className="w-full p-3 pr-12 rounded-xl border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500" 
-                        required 
+                      <input
+                        type={showOldPassword ? "text" : "password"}
+                        value={passwordForm.oldPassword}
+                        onChange={e => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
+                        className="w-full p-3 pr-12 rounded-xl border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                        required
                       />
-                      <button 
-                        type="button" 
-                        onClick={() => setShowOldPassword(!showOldPassword)} 
+                      <button
+                        type="button"
+                        onClick={() => setShowOldPassword(!showOldPassword)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                       >
                         {showOldPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -624,16 +791,16 @@ export default function Profile() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu mới</label>
                     <div className="relative">
-                      <input 
-                        type={showNewPassword ? "text" : "password"} 
-                        value={passwordForm.newPassword} 
-                        onChange={e => setPasswordForm({...passwordForm, newPassword: e.target.value})} 
-                        className="w-full p-3 pr-12 rounded-xl border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500" 
-                        required 
+                      <input
+                        type={showNewPassword ? "text" : "password"}
+                        value={passwordForm.newPassword}
+                        onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                        className="w-full p-3 pr-12 rounded-xl border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                        required
                       />
-                      <button 
-                        type="button" 
-                        onClick={() => setShowNewPassword(!showNewPassword)} 
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                       >
                         {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -643,16 +810,16 @@ export default function Profile() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu mới</label>
                     <div className="relative">
-                      <input 
-                        type={showConfirmPassword ? "text" : "password"} 
-                        value={passwordForm.confirmPassword} 
-                        onChange={e => setPasswordForm({...passwordForm, confirmPassword: e.target.value})} 
-                        className="w-full p-3 pr-12 rounded-xl border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500" 
-                        required 
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={passwordForm.confirmPassword}
+                        onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                        className="w-full p-3 pr-12 rounded-xl border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                        required
                       />
-                      <button 
-                        type="button" 
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)} 
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                       >
                         {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}

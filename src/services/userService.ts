@@ -37,6 +37,20 @@ export interface StudentUpdateRequest {
     avatar?: string;
 }
 
+export interface StudentScheduleRequest {
+    schedules: DayScheduleRequest[];
+}
+
+export interface DayScheduleRequest {
+    dayOfWeek: string;
+    busyTimeSlotIds: number[];
+}
+
+export interface StudentScheduleResponse {
+    userId: string;
+    scheduleMatrix: Record<string, number[]>;
+}
+
 export interface EmployerResponse {
     id: string;
     username: string;
@@ -185,6 +199,17 @@ class UserService {
 
     async getAdminStats(): Promise<ApiResponse<any>> {
         const response = await this.api.get<ApiResponse<any>>("/admin/stats");
+        return response.data;
+    }
+
+    // Schedule APIs
+    async getMySchedule(): Promise<ApiResponse<StudentScheduleResponse>> {
+        const response = await this.api.get<ApiResponse<StudentScheduleResponse>>("/my-schedule");
+        return response.data;
+    }
+
+    async saveSchedule(request: StudentScheduleRequest): Promise<ApiResponse<StudentScheduleResponse>> {
+        const response = await this.api.post<ApiResponse<StudentScheduleResponse>>("/my-schedule", request);
         return response.data;
     }
 }

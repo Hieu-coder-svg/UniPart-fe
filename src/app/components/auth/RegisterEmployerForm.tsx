@@ -109,10 +109,10 @@ export function RegisterEmployerForm({ onSubmit, isLoading = false }: RegisterEm
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="gender">Giới tính (tuỳ chọn)</Label>
-          <select 
-            id="gender" 
-            {...register('gender')} 
-            disabled={isLoading} 
+          <select
+            id="gender"
+            {...register('gender')}
+            disabled={isLoading}
             className="flex h-9 w-full min-w-0 rounded-md border border-input px-3 py-1 text-base bg-input-background transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
           >
             <option value="">Chọn giới tính</option>
