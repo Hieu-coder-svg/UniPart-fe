@@ -4,14 +4,14 @@ import { jobService, JobResponse } from "../../../services/jobService";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSavedJobs } from "../../contexts/SavedJobsContext";
 import { applicationService } from "../../../services/applicationService";
-import { userService } from "../../../services/userService";
-import { Timer, Map as MapIcon, Calendar, Info, Clock, DollarSign, Star, AlertCircle, CheckCircle, ArrowLeft, Share2, Bookmark, Loader2, MapPin } from "lucide-react";
+import { userService, EmployerResponse, StudentResponse } from "../../../services/userService";
+import { Timer, Map as MapIcon, Calendar, Info, Clock, DollarSign, Star, AlertCircle, CheckCircle, ArrowLeft, Share2, Bookmark, Loader2, MapPin, Flag, X, Building, Mail, Phone, Upload } from "lucide-react";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { calculateDistance, formatDistance } from "../../../utils/location";
-import { StudentResponse } from "../../../services/userService";
+
 
 // Fix for default marker icon in Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -20,6 +20,9 @@ L.Icon.Default.mergeOptions({
   iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
+import { reportService, ReportRequest } from "../../../services/reportService";
+import { reviewService, ReviewResponse } from "../../../services/reviewService";
+import { uploadImageToCloudinary } from "../../../services/uploadService";
 
 export default function JobDetail() {
   const { id } = useParams();
@@ -35,6 +38,19 @@ export default function JobDetail() {
   const [applicationId, setApplicationId] = useState<number | null>(null);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
   const [studentInfo, setStudentInfo] = useState<StudentResponse | null>(null);
+
+  const [reportTarget, setReportTarget] = useState<{ type: "JOB" | "USER", targetId: string, title: string } | null>(null);
+  const [reportReason, setReportReason] = useState("");
+  const [reportEvidence, setReportEvidence] = useState<string | null>(null);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+
+  const [isEmployerModalOpen, setIsEmployerModalOpen] = useState(false);
+  const [employerDetail, setEmployerDetail] = useState<EmployerResponse | null>(null);
+  const [isLoadingEmployer, setIsLoadingEmployer] = useState(false);
+
+  const [reviews, setReviews] = useState<ReviewResponse[]>([]);
+  const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false);
+
 
   useEffect(() => {
     if (id) {
@@ -85,11 +101,24 @@ export default function JobDetail() {
       const res = await jobService.getJobDetail(jobId);
       if (res.result) {
         setJob(res.result);
+        fetchReviews(res.result.employerId);
       }
     } catch (error) {
       console.error("Failed to fetch job details", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchReviews = async (employerId: string) => {
+    try {
+      const res = await reviewService.getReviewsByEmployerId(employerId);
+      if (res.result) {
+        const studentReviews = res.result.filter(r => r.reviewType === "STUDENT_TO_EMPLOYER");
+        setReviews(studentReviews);
+      }
+    } catch (error) {
+      console.error("Failed to fetch reviews", error);
     }
   };
 
@@ -201,6 +230,69 @@ export default function JobDetail() {
     }
   };
 
+  const handleViewEmployer = async () => {
+    if (!job) return;
+    setIsEmployerModalOpen(true);
+    if (!employerDetail) {
+      setIsLoadingEmployer(true);
+      try {
+        const res = await userService.getEmployerById(job.employerId);
+        if (res.result) {
+          setEmployerDetail(res.result);
+        } else {
+          throw new Error("Không có dữ liệu");
+        }
+      } catch (e) {
+        console.error("Failed to fetch employer", e);
+        // Fallback using job info
+        setEmployerDetail({
+          id: job.employerId,
+          username: "",
+          email: "",
+          fullName: job.employerName,
+          companyName: job.employerName,
+          companyAddress: job.address || "Đang cập nhật",
+          description: "Thông tin chi tiết về nhà tuyển dụng này hiện đang được cập nhật.",
+          isBlocked: false,
+          isActived: true,
+        });
+      } finally {
+        setIsLoadingEmployer(false);
+      }
+    }
+  };
+
+  const handleReport = async () => {
+    if (!user) {
+      alert("Vui lòng đăng nhập để báo cáo!");
+      return;
+    }
+    if (!reportReason.trim()) {
+      alert("Vui lòng nhập lý do báo cáo!");
+      return;
+    }
+    if (!reportTarget) return;
+
+    setIsSubmittingReport(true);
+    try {
+      const request: ReportRequest = {
+        targetType: reportTarget.type,
+        targetId: reportTarget.targetId,
+        reason: reportReason.trim(),
+        evidenceUrl: reportEvidence || undefined,
+      };
+      await reportService.createReport(request);
+      alert("Báo cáo thành công! Cảm ơn bạn đã phản hồi.");
+      setReportTarget(null);
+      setReportReason("");
+      setReportEvidence(null);
+    } catch (error: any) {
+      alert(error.message || "Báo cáo thất bại. Vui lòng thử lại.");
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -256,7 +348,14 @@ export default function JobDetail() {
                     </span>
                   )}
                 </div>
-                <h3 className="text-gray-600">{job.employerName}</h3>
+                <h3 
+                  className="text-gray-600 font-medium hover:text-blue-600 cursor-pointer inline-flex items-center gap-1.5 transition-colors"
+                  onClick={handleViewEmployer}
+                  title="Xem thông tin nhà tuyển dụng"
+                >
+                  <Building className="w-4 h-4" />
+                  {job.employerName}
+                </h3>
               </div>
               <div className="flex gap-2">
                 <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
@@ -273,14 +372,26 @@ export default function JobDetail() {
                     <Bookmark className={`w-5 h-5 ${job && isJobSaved(job.id) ? "fill-blue-600 text-blue-600" : "text-gray-600"}`} />
                   )}
                 </button>
+                <button 
+                  onClick={() => setReportTarget({ type: "JOB", targetId: job.id.toString(), title: "Báo cáo công việc" })}
+                  className="p-2 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
+                  title="Báo cáo công việc"
+                >
+                  <Flag className="w-5 h-5" />
+                </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 mb-6">
+            <div 
+              className="flex items-center gap-2 mb-6 cursor-pointer hover:bg-gray-50 p-2 -ml-2 rounded-lg transition-colors inline-flex"
+              onClick={() => setIsReviewsModalOpen(true)}
+              title="Nhấn để xem đánh giá về nhà tuyển dụng"
+            >
               <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-              <span>
-                5.0 (0 đánh giá)
+              <span className="font-medium text-gray-700">
+                {reviews.length > 0 ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1) : "5.0"} ({reviews.length} đánh giá)
               </span>
+              <span className="text-sm text-blue-600 hover:underline ml-2">Xem chi tiết</span>
             </div>
 
             {/* Job Info Grid */}
@@ -452,6 +563,240 @@ export default function JobDetail() {
 
         {/* Reviews - Removed since backend doesn't have review data for jobs yet */}
       </div>
+
+      {/* Report Modal */}
+      {reportTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold">{reportTarget.title}</h3>
+                <button onClick={() => setReportTarget(null)} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Vui lòng cho biết lý do bạn muốn báo cáo. Quản trị viên sẽ xem xét và xử lý.
+              </p>
+              <textarea
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                placeholder="Nhập lý do báo cáo..."
+                className="w-full border border-gray-300 rounded-lg p-3 h-32 focus:outline-none focus:ring-2 focus:ring-red-500 mb-4"
+              />
+              
+              {reportEvidence && (
+                <div className="relative mb-4">
+                  <img src={reportEvidence} alt="Bằng chứng" className="max-h-40 rounded-lg object-contain border border-gray-200" />
+                  <button 
+                    onClick={() => setReportEvidence(null)}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center mb-4">
+                <label className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors text-sm font-medium border border-gray-200">
+                  <Upload className="w-4 h-4" />
+                  Tải ảnh minh chứng
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const url = await uploadImageToCloudinary(file);
+                        setReportEvidence(url);
+                      } catch (error) {
+                        alert("Lỗi tải ảnh lên. Vui lòng thử lại.");
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setReportTarget(null)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleReport}
+                  disabled={isSubmittingReport || !reportReason.trim()}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isSubmittingReport && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Báo cáo
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Employer Profile Modal */}
+      {isEmployerModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+              <h3 className="text-xl font-bold">Thông tin nhà tuyển dụng</h3>
+              <button onClick={() => setIsEmployerModalOpen(false)} className="text-white/80 hover:bg-white/20 p-2 rounded-full transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1">
+              {isLoadingEmployer ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
+                  <p className="text-gray-500">Đang tải thông tin...</p>
+                </div>
+              ) : employerDetail ? (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700 rounded-2xl flex items-center justify-center text-3xl font-bold shadow-sm">
+                      {employerDetail.companyName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h4 className="text-2xl font-bold text-gray-900">{employerDetail.companyName}</h4>
+                      <p className="text-gray-500">{employerDetail.fullName}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4">
+                    {employerDetail.email && (
+                      <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+                        <Mail className="w-5 h-5 text-blue-600 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-gray-500 font-medium">Email liên hệ</p>
+                          <p className="text-gray-900 font-medium">{employerDetail.email}</p>
+                        </div>
+                      </div>
+                    )}
+                    {employerDetail.phoneNumber && (
+                      <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+                        <Phone className="w-5 h-5 text-green-600 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-gray-500 font-medium">Số điện thoại</p>
+                          <p className="text-gray-900 font-medium">{employerDetail.phoneNumber}</p>
+                        </div>
+                      </div>
+                    )}
+                    {employerDetail.companyAddress && (
+                      <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+                        <MapPin className="w-5 h-5 text-red-500 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-gray-500 font-medium">Địa chỉ công ty</p>
+                          <p className="text-gray-900 font-medium">{employerDetail.companyAddress}</p>
+                        </div>
+                      </div>
+                    )}
+                    {employerDetail.description && (
+                      <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+                        <Info className="w-5 h-5 text-purple-500 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-gray-500 font-medium">Mô tả</p>
+                          <p className="text-gray-900 whitespace-pre-wrap">{employerDetail.description}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-10 text-gray-500">
+                  <Building className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p>Không thể tải thông tin nhà tuyển dụng lúc này.</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
+              <button
+                onClick={() => {
+                  setIsEmployerModalOpen(false);
+                  setReportTarget({ type: "USER", targetId: job.employerId, title: "Báo cáo nhà tuyển dụng" });
+                }}
+                className="px-4 py-2 text-red-600 font-medium hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <Flag className="w-4 h-4" /> Báo cáo tài khoản
+              </button>
+              <button
+                onClick={() => setIsEmployerModalOpen(false)}
+                className="px-6 py-2 bg-white border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors shadow-sm"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reviews Modal */}
+      {isReviewsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="text-xl font-bold text-gray-900">
+                Đánh giá nhà tuyển dụng
+              </h3>
+              <button onClick={() => setIsReviewsModalOpen(false)} className="text-gray-400 hover:bg-gray-200 hover:text-gray-700 p-2 rounded-full transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1">
+              {reviews.length === 0 ? (
+                <div className="text-center py-10 text-gray-500">
+                  <Star className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p>Chưa có đánh giá nào cho nhà tuyển dụng này.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {reviews.map((review) => (
+                    <div key={review.id} className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700 rounded-full flex items-center justify-center font-bold shadow-sm">
+                            SV
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-900">Sinh viên</div>
+                            <div className="text-xs text-gray-500">
+                              {new Date(review.createdAt).toLocaleDateString("vi-VN")}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg">
+                          <span className="text-sm font-bold text-yellow-700 mr-1">{review.rating}.0</span>
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                        </div>
+                      </div>
+                      <p className="text-gray-700 bg-gray-50 p-4 rounded-lg text-sm whitespace-pre-wrap border border-gray-100 leading-relaxed">
+                        {review.comment}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+              <button
+                onClick={() => setIsReviewsModalOpen(false)}
+                className="px-5 py-2 bg-white border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors shadow-sm"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

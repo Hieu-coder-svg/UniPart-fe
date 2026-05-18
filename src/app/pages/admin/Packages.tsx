@@ -7,10 +7,10 @@ export default function AdminPackages() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingPackage, setEditingPackage] = useState<PackageResponse | null>(null);
-  const [formData, setFormData] = useState<PackageRequest>({
+  const [formData, setFormData] = useState<any>({
     name: "",
     packageType: "MONTHLY",
-    price: 0,
+    price: "",
     description: "",
     durationDays: 30,
     normalTinsLimit: 60,
@@ -47,19 +47,19 @@ export default function AdminPackages() {
         packageType: pkg.packageType as "MONTHLY" | "ONE_TIME",
         price: pkg.price,
         description: pkg.description || "",
-        durationDays: pkg.durationDays || 30,
-        normalTinsLimit: pkg.normalTinsLimit || 60,
-        maxNormalTinsPerDay: pkg.maxNormalTinsPerDay || 2,
-        urgentTinsLimit: pkg.urgentTinsLimit || 5,
+        durationDays: pkg.durationDays ?? 30,
+        normalTinsLimit: pkg.normalTinsLimit ?? 60,
+        maxNormalTinsPerDay: pkg.maxNormalTinsPerDay ?? 2,
+        urgentTinsLimit: pkg.urgentTinsLimit ?? 5,
         tinType: pkg.tinType || "NORMAL",
-        tinQuantity: pkg.tinQuantity || 1,
+        tinQuantity: pkg.tinQuantity ?? 1,
       });
     } else {
       setEditingPackage(null);
       setFormData({
         name: "",
         packageType: "MONTHLY",
-        price: 0,
+        price: "",
         description: "",
         durationDays: 30,
         normalTinsLimit: 60,
@@ -85,10 +85,21 @@ export default function AdminPackages() {
     setError(null);
 
     try {
+      const submitData: PackageRequest = {
+        ...formData,
+        price: Number(formData.price) || 0,
+        durationDays: formData.packageType === "MONTHLY" ? (Number(formData.durationDays) || 30) : undefined,
+        normalTinsLimit: formData.packageType === "MONTHLY" ? (Number(formData.normalTinsLimit) || 0) : undefined,
+        maxNormalTinsPerDay: formData.packageType === "MONTHLY" ? (Number(formData.maxNormalTinsPerDay) || 0) : undefined,
+        urgentTinsLimit: formData.packageType === "MONTHLY" ? (Number(formData.urgentTinsLimit) || 0) : undefined,
+        tinType: formData.packageType === "ONE_TIME" ? formData.tinType : undefined,
+        tinQuantity: formData.packageType === "ONE_TIME" ? (Number(formData.tinQuantity) || 1) : undefined,
+      };
+
       if (editingPackage) {
-        await packageService.updatePackage(editingPackage.id, formData);
+        await packageService.updatePackage(editingPackage.id, submitData);
       } else {
-        await packageService.createPackage(formData);
+        await packageService.createPackage(submitData);
       }
       await fetchPackages();
       handleCloseModal();
@@ -165,9 +176,8 @@ export default function AdminPackages() {
                       <h3 className="text-2xl font-semibold mb-3 text-gray-900">{pkg.name}</h3>
                       <div className="mb-2">
                         <span className="text-4xl font-bold text-gray-900">
-                          {(pkg.price / 1000000).toFixed(1)}
+                          {formatPrice(pkg.price)}
                         </span>
-                        <span className="text-gray-500 ml-1">triệu</span>
                       </div>
                       <div className="text-sm text-gray-500">/ tháng</div>
                     </div>
@@ -351,7 +361,7 @@ export default function AdminPackages() {
                   required
                   min="0"
                   value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value === '' ? '' : Number(e.target.value) })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                   placeholder="VD: 2700000"
                 />
@@ -377,8 +387,8 @@ export default function AdminPackages() {
                     <input
                       type="number"
                       min="1"
-                      value={formData.durationDays || 30}
-                      onChange={(e) => setFormData({ ...formData, durationDays: Number(e.target.value) })}
+                      value={formData.durationDays}
+                      onChange={(e) => setFormData({ ...formData, durationDays: e.target.value === '' ? '' : Number(e.target.value) })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
                   </div>
@@ -389,8 +399,8 @@ export default function AdminPackages() {
                     <input
                       type="number"
                       min="0"
-                      value={formData.normalTinsLimit || 60}
-                      onChange={(e) => setFormData({ ...formData, normalTinsLimit: Number(e.target.value) })}
+                      value={formData.normalTinsLimit}
+                      onChange={(e) => setFormData({ ...formData, normalTinsLimit: e.target.value === '' ? '' : Number(e.target.value) })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
                   </div>
@@ -401,8 +411,8 @@ export default function AdminPackages() {
                     <input
                       type="number"
                       min="1"
-                      value={formData.maxNormalTinsPerDay || 2}
-                      onChange={(e) => setFormData({ ...formData, maxNormalTinsPerDay: Number(e.target.value) })}
+                      value={formData.maxNormalTinsPerDay}
+                      onChange={(e) => setFormData({ ...formData, maxNormalTinsPerDay: e.target.value === '' ? '' : Number(e.target.value) })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
                   </div>
@@ -413,8 +423,8 @@ export default function AdminPackages() {
                     <input
                       type="number"
                       min="0"
-                      value={formData.urgentTinsLimit || 5}
-                      onChange={(e) => setFormData({ ...formData, urgentTinsLimit: Number(e.target.value) })}
+                      value={formData.urgentTinsLimit}
+                      onChange={(e) => setFormData({ ...formData, urgentTinsLimit: e.target.value === '' ? '' : Number(e.target.value) })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
                   </div>
@@ -437,8 +447,8 @@ export default function AdminPackages() {
                     <input
                       type="number"
                       min="1"
-                      value={formData.tinQuantity || 1}
-                      onChange={(e) => setFormData({ ...formData, tinQuantity: Number(e.target.value) })}
+                      value={formData.tinQuantity}
+                      onChange={(e) => setFormData({ ...formData, tinQuantity: e.target.value === '' ? '' : Number(e.target.value) })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
                   </div>

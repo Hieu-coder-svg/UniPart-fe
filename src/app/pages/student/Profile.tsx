@@ -35,6 +35,9 @@ import { userService, StudentResponse, StudentUpdateRequest, StudentScheduleRequ
 import { uploadImageToCloudinary } from "../../../services/uploadService";
 import MapPicker from "../../components/MapPicker";
 import WeeklySchedule from "../../components/WeeklySchedule";
+import { jobService, JobResponse } from "../../../services/jobService";
+import { applicationService } from "../../../services/applicationService";
+import { reviewService, ReviewResponse } from "../../../services/reviewService";
 
 /* ─────────────────────────────────────────────────────────────
    TAB DEFINITION
@@ -48,26 +51,8 @@ const TABS: { key: TabKey; label: string; icon: typeof User }[] = [
 ];
 
 /* ─────────────────────────────────────────────────────────────
-   MOCK DATA FALLBACKS
+   MOCK DATA FALLBACKS (REMOVED - NOW USING REAL DATA)
 ───────────────────────────────────────────────────────────── */
-const workHistory = [
-  {
-    id: "1", title: "Nhân viên pha chế", company: "Highlands Coffee",
-    duration: "3 tháng", rating: 5, earnings: "2,100,000đ",
-    employerFeedback: "Tuấn là một nhân viên xuất sắc! Làm việc rất chăm chỉ, chu đáo và có thái độ phục vụ khách hàng tuyệt vời. Luôn đúng giờ và sẵn sàng hỗ trợ đồng nghiệp.",
-    employerName: "Quản lý Highlands - Quận 5", feedbackDate: "15/03/2026",
-    studentFeedback: "Môi trường làm việc chuyên nghiệp, đồng nghiệp thân thiện. Lương thưởng đúng hạn, chế độ đãi ngộ tốt.",
-    studentRating: 5,
-  },
-  {
-    id: "2", title: "Gia sư Toán", company: "Trung tâm Gia sư",
-    duration: "2 tháng", rating: 5, earnings: "3,200,000đ",
-    employerFeedback: "Học sinh của Tuấn đã cải thiện điểm số đáng kể. Phương pháp giảng dạy dễ hiểu, kiên nhẫn và nhiệt tình.",
-    employerName: "Giám đốc Trung tâm Gia sư Thành Đạt", feedbackDate: "10/03/2026",
-    studentFeedback: "Trung tâm có quy trình làm việc rõ ràng, hỗ trợ giáo án tốt. Học phí được trả đầy đủ và đúng hạn.",
-    studentRating: 5,
-  }
-];
 
 /* ─────────────────────────────────────────────────────────────
    MAIN PAGE
@@ -112,6 +97,12 @@ export default function Profile() {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // History & Reviews States
+  const [completedJobs, setCompletedJobs] = useState<JobResponse[]>([]);
+  const [reviewsReceived, setReviewsReceived] = useState<Record<string, ReviewResponse>>({});
+  const [reviewsWritten, setReviewsWritten] = useState<Record<string, ReviewResponse>>({});
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   useEffect(() => {
     fetchStudentInfo();
@@ -211,6 +202,60 @@ export default function Profile() {
       setIsLoading(false);
     }
   };
+
+  const fetchHistory = async (studentId: string) => {
+    setIsLoadingHistory(true);
+    try {
+      const [historyRes, appsRes, receivedRes, writtenRes] = await Promise.all([
+        jobService.getStudentJobHistory(studentId).catch(() => null),
+        applicationService.getStudentApplications().catch(() => null),
+        reviewService.getStudentReviews(studentId).catch(() => null),
+        reviewService.getReviewsWrittenByStudent(studentId).catch(() => null),
+      ]);
+
+      if (historyRes?.result) {
+        const apps = appsRes?.result || [];
+        const merged = historyRes.result.map((job: any) => {
+          const app = apps.find((a: any) => 
+            (a.id && job.applicationId && String(a.id) === String(job.applicationId)) || 
+            (a.jobId && String(a.jobId) === String(job.id)) ||
+            (a.job_id && String(a.job_id) === String(job.id))
+          );
+          return {
+            ...job,
+            status: app?.status || job.status
+          };
+        });
+        
+        // Filter only COMPLETED jobs
+        const completed = merged.filter((j: any) => j.status?.toUpperCase() === 'COMPLETED');
+        setCompletedJobs(completed);
+      }
+
+      if (receivedRes?.result) {
+        const map: Record<string, ReviewResponse> = {};
+        receivedRes.result.forEach((r: any) => map[`${r.employerId}_${r.jobId}`] = r);
+        setReviewsReceived(map);
+      }
+
+      if (writtenRes?.result) {
+        const map: Record<string, ReviewResponse> = {};
+        writtenRes.result.forEach((r: any) => map[`${r.employerId}_${r.jobId}`] = r);
+        setReviewsWritten(map);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  // Fetch history when tab changes to history
+  useEffect(() => {
+    if (activeTab === "history" && studentInfo?.id && completedJobs.length === 0) {
+      fetchHistory(studentInfo.id);
+    }
+  }, [activeTab, studentInfo?.id]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -475,7 +520,7 @@ export default function Profile() {
                 <div className="w-9 h-9 bg-blue-500 rounded-xl flex items-center justify-center mx-auto mb-2 shadow-sm group-hover:scale-110 transition-transform">
                   <CheckCircle className="w-5 h-5 text-white" />
                 </div>
-                <div className="text-2xl font-extrabold text-blue-600 leading-none">{workHistory.length}</div>
+                <div className="text-2xl font-extrabold text-blue-600 leading-none">{completedJobs.length}</div>
                 <div className="text-[10px] text-blue-500 font-semibold mt-1 uppercase tracking-wide">Việc xong</div>
               </div>
 
@@ -707,51 +752,85 @@ export default function Profile() {
                   <Briefcase className="w-4 h-4 text-blue-500" />
                   Lịch sử làm việc
                   <span className="ml-auto text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-bold">
-                    {workHistory.length} việc
+                    {completedJobs.length} việc
                   </span>
                 </h2>
 
-                {workHistory.map((job, index) => (
-                  <div key={job.id} className="p-5 bg-white border border-gray-100 rounded-2xl hover:border-blue-200 hover:shadow-lg transition-all">
-                    {/* Job header */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex gap-3">
-                        <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-violet-500 rounded-xl flex items-center justify-center text-white font-bold shadow-md text-sm flex-shrink-0">
-                          {index + 1}
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-gray-900">{job.title}</h3>
-                          <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
-                            <Briefcase className="w-3.5 h-3.5" /> {job.company}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 border border-amber-100 rounded-full">
-                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                        <span className="text-amber-700 text-xs font-bold">{job.rating}.0</span>
-                      </div>
-                    </div>
-
-                    {/* Meta chips */}
-                    <div className="flex items-center gap-2 mb-4 flex-wrap">
-                      <span className="flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full font-medium">
-                        <Clock className="w-3.5 h-3.5" /> {job.duration}
-                      </span>
-                      <span className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-full font-medium">
-                        <DollarSign className="w-3.5 h-3.5" /> {job.earnings}
-                      </span>
-                    </div>
-
-                    {/* Employer feedback */}
-                    <FeedbackBlock
-                      label="Đánh giá từ nhà tuyển dụng"
-                      name={job.employerName}
-                      date={job.feedbackDate}
-                      text={job.employerFeedback}
-                      color="blue"
-                    />
+                {isLoadingHistory ? (
+                  <div className="flex flex-col items-center justify-center py-10">
+                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-3" />
+                    <p className="text-gray-500 text-sm">Đang tải lịch sử làm việc...</p>
                   </div>
-                ))}
+                ) : completedJobs.length === 0 ? (
+                  <div className="p-8 text-center bg-white border border-gray-100 rounded-2xl">
+                    <Briefcase className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 font-medium">Bạn chưa hoàn thành công việc nào.</p>
+                  </div>
+                ) : (
+                  completedJobs.map((job, index) => {
+                    const revKey = `${job.employerId}_${job.id}`;
+                    const received = reviewsReceived[revKey];
+                    const written = reviewsWritten[revKey];
+
+                    return (
+                      <div key={job.id} className="p-5 bg-white border border-gray-100 rounded-2xl hover:border-blue-200 hover:shadow-lg transition-all">
+                        {/* Job header */}
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex gap-3">
+                            <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-violet-500 rounded-xl flex items-center justify-center text-white font-bold shadow-md text-sm flex-shrink-0">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <Link to={`/jobs/${job.id}`} className="font-bold text-gray-900 hover:text-blue-600 transition-colors">{job.title}</Link>
+                              <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+                                <Briefcase className="w-3.5 h-3.5" /> {job.employerName || "Nhà tuyển dụng"}
+                              </p>
+                            </div>
+                          </div>
+                          {received && (
+                            <div className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 border border-amber-100 rounded-full">
+                              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                              <span className="text-amber-700 text-xs font-bold">{received.rating}.0</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Meta chips */}
+                        <div className="flex items-center gap-2 mb-4 flex-wrap">
+                          {job.salary && (
+                            <span className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-full font-medium">
+                              <DollarSign className="w-3.5 h-3.5" /> {job.salary.toLocaleString()}đ/giờ
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Employer feedback */}
+                        {received && received.comment && (
+                          <FeedbackBlock
+                            label="Đánh giá từ nhà tuyển dụng"
+                            name={job.employerName || "Nhà tuyển dụng"}
+                            date={new Date(received.createdAt).toLocaleDateString("vi-VN")}
+                            text={received.comment}
+                            color="blue"
+                          />
+                        )}
+
+                        {/* Student feedback */}
+                        {written && written.comment && (
+                          <div className="mt-3">
+                            <FeedbackBlock
+                              label="Đánh giá của bạn"
+                              name="Bạn"
+                              date={new Date(written.createdAt).toLocaleDateString("vi-VN")}
+                              text={written.comment}
+                              color="violet"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
               </section>
             )}
 
