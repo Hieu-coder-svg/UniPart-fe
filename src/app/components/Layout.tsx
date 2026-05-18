@@ -62,9 +62,6 @@ export default function Layout() {
 
   navItems.push({ path: "/community", icon: Users, label: "Cộng đồng" });
 
-  if (!isAdmin) {
-    navItems.push({ path: "/profile", icon: User, label: "Hồ sơ" });
-  }
 
   if (user?.role === "STUDENT") {
     navItems.splice(navItems.length - 1, 0, { path: "/student/applications", icon: FileText, label: "Ứng tuyển" });
@@ -272,6 +269,13 @@ export default function Layout() {
               ) : (
                 /* Not logged in */
                 <div className="flex items-center gap-2">
+                  <Link
+                    to="/employer/login"
+                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-orange-600 border border-orange-300 rounded-xl hover:bg-orange-50 hover:border-orange-400 transition-all"
+                  >
+                    <Briefcase className="w-4 h-4" />
+                    Đăng nhập với nhà tuyển dụng
+                  </Link>
                   <Link
                     to="/login"
                     className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 rounded-xl hover:bg-blue-50 transition-all"

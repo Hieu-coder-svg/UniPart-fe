@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import unibotAvatar from "../../assets/unibot-avatar.png";
 import { Link } from "react-router";
-import { mockJobs, type Job } from "../data/mockData";
+import { type Job } from "../data/mockData";
 import { chatService } from "../../services/chatService";
 import { jobService } from "../../services/jobService";
 import { ChatRequest, AIResponse } from "../../types/chat";
@@ -77,13 +77,13 @@ export default function ChatBot() {
     if (isDragging) {
       const newX = e.clientX - dragStart.x;
       const newY = e.clientY - dragStart.y;
-      
+
       // Get bounds
       const chatElement = chatRef.current;
       if (chatElement) {
         const maxX = window.innerWidth - chatElement.offsetWidth - 8;
         const maxY = window.innerHeight - chatElement.offsetHeight - 8;
-        
+
         setPosition({
           x: Math.max(-window.innerWidth + chatElement.offsetWidth + 8, Math.min(newX, maxX)),
           y: Math.max(-window.innerHeight + chatElement.offsetHeight + 8, Math.min(newY, maxY)),
@@ -124,8 +124,10 @@ export default function ChatBot() {
 
       // Chỉ gọi AI API khi đã đăng nhập
       if (!token) {
-        const botResponse = generateBotResponse(messageText);
-        setMessages((prev) => [...prev, botResponse]);
+        setMessages((prev) => [
+          ...prev,
+          { text: "Bạn cần **đăng nhập** để sử dụng tính năng tìm việc thông minh nhé! 🔐", isBot: true },
+        ]);
         setIsSending(false);
         return;
       }
@@ -145,12 +147,12 @@ export default function ChatBot() {
       // Fetch real jobs if recommendations exist
       if (aiResponse.recommendations && aiResponse.recommendations.length > 0) {
         try {
-          const jobPromises = aiResponse.recommendations.map(rec => 
+          const jobPromises = aiResponse.recommendations.map(rec =>
             jobService.getJobDetail(Number(rec.id)).catch(() => null)
           );
-          
+
           const jobResponses = await Promise.all(jobPromises);
-          
+
           jobResponses.forEach(res => {
             if (res && res.result) {
               const jobData = res.result;
@@ -185,11 +187,11 @@ export default function ChatBot() {
 
       // Process the AI response and add jobs if needed
       if (finalJobs.length === 0) {
-        finalJobs = aiResponse.jobs && aiResponse.jobs.length > 0 
-          ? aiResponse.jobs 
-          : findRelevantJobs(messageText);
+        finalJobs = aiResponse.jobs && aiResponse.jobs.length > 0
+          ? aiResponse.jobs
+          : [];
       }
-      
+
       const botResponse: Message = {
         text: aiResponse.message,
         isBot: true,
@@ -199,9 +201,10 @@ export default function ChatBot() {
       setMessages((prev) => [...prev, botResponse]);
     } catch (error) {
       console.error("Chat API error:", error);
-      // Fallback to local response if API fails
-      const botResponse = generateBotResponse(messageText);
-      setMessages((prev) => [...prev, botResponse]);
+      setMessages((prev) => [
+        ...prev,
+        { text: "Xin lỗi, tôi đang gặp sự cố kết nối. Vui lòng thử lại sau! 🔄", isBot: true },
+      ]);
     } finally {
       setIsSending(false);
     }
@@ -211,154 +214,7 @@ export default function ChatBot() {
     handleSend(suggestion);
   };
 
-  const findRelevantJobs = (query: string): Job[] => {
-    const lowerQuery = query.toLowerCase();
-    
-    let filteredJobs = mockJobs;
 
-    // Filter by distance (10km radius)
-    if (lowerQuery.includes("gần tôi") || lowerQuery.includes("gần đây") || lowerQuery.includes("10km") || lowerQuery.includes("bán kính")) {
-      filteredJobs = filteredJobs.filter(job => job.distance <= 10);
-    }
-
-    // Filter by salary
-    if (lowerQuery.includes("lương cao") || lowerQuery.includes("lương tốt")) {
-      filteredJobs = filteredJobs.filter(job => job.hourlyRate >= 50000);
-    }
-
-    // Filter by shift
-    if (lowerQuery.includes("cuối tuần")) {
-      filteredJobs = filteredJobs.filter(job => job.shift === "Cuối tuần");
-    } else if (lowerQuery.includes("ca tối") || lowerQuery.includes("tối")) {
-      filteredJobs = filteredJobs.filter(job => job.shift === "Tối");
-    } else if (lowerQuery.includes("ca sáng") || lowerQuery.includes("sáng")) {
-      filteredJobs = filteredJobs.filter(job => job.shift === "Sáng");
-    } else if (lowerQuery.includes("ca chiều") || lowerQuery.includes("chiều")) {
-      filteredJobs = filteredJobs.filter(job => job.shift === "Chiều");
-    }
-
-    // Filter by location
-    const locations = ["quận 1", "quận 3", "quận 5", "quận 7", "quận 10", "bình thạnh"];
-    locations.forEach(loc => {
-      if (lowerQuery.includes(loc)) {
-        filteredJobs = filteredJobs.filter(job => 
-          job.location.toLowerCase().includes(loc)
-        );
-      }
-    });
-
-    // Filter by category
-    if (lowerQuery.includes("f&b") || lowerQuery.includes("nhà hàng") || lowerQuery.includes("quán")) {
-      filteredJobs = filteredJobs.filter(job => job.category === "F&B");
-    } else if (lowerQuery.includes("gia sư") || lowerQuery.includes("dạy học")) {
-      filteredJobs = filteredJobs.filter(job => job.category === "Giáo dục");
-    } else if (lowerQuery.includes("bán hàng") || lowerQuery.includes("bán lẻ")) {
-      filteredJobs = filteredJobs.filter(job => job.category === "Bán lẻ");
-    } else if (lowerQuery.includes("marketing") || lowerQuery.includes("content")) {
-      filteredJobs = filteredJobs.filter(job => job.category === "Marketing");
-    }
-
-    // Filter by urgent
-    if (lowerQuery.includes("gấp") || lowerQuery.includes("urgent")) {
-      filteredJobs = filteredJobs.filter(job => job.urgent);
-    }
-
-    // Sort by distance if location-based query
-    if (lowerQuery.includes("gần") || lowerQuery.includes("10km")) {
-      filteredJobs = filteredJobs.sort((a, b) => a.distance - b.distance);
-    }
-
-    // Return top 2 jobs to keep chatbox smaller
-    return filteredJobs.slice(0, 2);
-  };
-
-  const generateBotResponse = (userInput: string): Message => {
-    const input = userInput.toLowerCase();
-    const jobs = findRelevantJobs(input);
-
-    // Job search queries
-    if (
-      input.includes("việc làm") || 
-      input.includes("công việc") || 
-      input.includes("tìm việc") ||
-      input.includes("lương") ||
-      input.includes("cuối tuần") ||
-      input.includes("ca tối") ||
-      input.includes("ca sáng") ||
-      input.includes("ca chiều") ||
-      input.includes("quận") ||
-      input.includes("f&b") ||
-      input.includes("gia sư") ||
-      input.includes("bán hàng") ||
-      input.includes("marketing") ||
-      input.includes("gấp") ||
-      input.includes("gần") ||
-      input.includes("10km") ||
-      input.includes("bán kính")
-    ) {
-      if (jobs.length > 0) {
-        let responseText = `Tuyệt vời! Tôi tìm thấy ${jobs.length} công việc phù hợp:`;
-        
-        if (input.includes("lương cao")) {
-          responseText = "Các công việc có mức lương cao nhất:";
-        } else if (input.includes("cuối tuần")) {
-          responseText = "Công việc làm cuối tuần phù hợp:";
-        } else if (input.includes("ca tối")) {
-          responseText = "Công việc ca tối giúp bạn linh hoạt ban ngày:";
-        } else if (input.includes("gần") || input.includes("10km")) {
-          responseText = "Công việc gần bạn nhất (trong bán kính 10km):";
-        }
-
-        return {
-          text: responseText,
-          isBot: true,
-          jobs: jobs,
-        };
-      } else {
-        return {
-          text: "Rất tiếc, hiện tại chưa có công việc phù hợp với yêu cầu của bạn. Hãy thử tìm kiếm với tiêu chí khác hoặc xem tất cả công việc tại trang Việc làm nhé!",
-          isBot: true,
-        };
-      }
-    }
-
-    // Other queries
-    if (input.includes("cộng đồng") || input.includes("chia sẻ")) {
-      return {
-        text: "Cộng đồng UniPart là nơi sinh viên chia sẻ kinh nghiệm làm việc, cảnh báo về nơi làm không tốt, và hỗ trợ lẫn nhau. Hãy ghé qua mục 'Cộng đồng' để kết nối với hàng ngàn sinh viên khác!",
-        isBot: true,
-      };
-    }
-
-    if (input.includes("ứng tuyển") || input.includes("apply")) {
-      return {
-        text: "Để ứng tuyển, bạn chỉ cần:\n1. Chọn công việc phù hợp\n2. Xem chi tiết và đánh giá\n3. Nhấn 'Ứng tuyển ngay'\n4. Điền thông tin và gửi\n\nĐảm bảo hồ sơ của bạn đã đầy đủ thông tin nhé! 📝",
-        isBot: true,
-      };
-    }
-
-    if (input.includes("đánh giá") || input.includes("review")) {
-      return {
-        text: "Tất cả đánh giá trên UniPart đều được xác thực từ sinh viên đã thực sự làm việc. Bạn có thể xem rating, số lượng đánh giá và nhận xét chi tiết để đưa ra quyết định tốt nhất! ⭐",
-        isBot: true,
-      };
-    }
-
-    if (input.includes("hướng dẫn") || input.includes("help")) {
-      return {
-        text: "UniPart giúp sinh viên:\n• Tìm việc làm part-time phù hợp\n• Xem đánh giá từ sinh viên khác\n• Lọc theo ca làm, địa điểm, lương\n• Kết nối với cộng đồng sinh viên\n• Lưu và theo dõi công việc yêu thích\n\nBạn muốn tìm hiểu chi tiết về phần nào?",
-        isBot: true,
-      };
-    }
-
-    // Default response with job suggestions
-    const randomJobs = [...mockJobs].sort(() => Math.random() - 0.5).slice(0, 2);
-    return {
-      text: "Tôi có thể giúp bạn tìm việc làm phù hợp! Đây là một số gợi ý:",
-      isBot: true,
-      jobs: randomJobs,
-    };
-  };
 
   if (!isOpen) {
     return (
@@ -432,11 +288,10 @@ export default function ChatBot() {
                         </div>
                       )}
                       <div
-                        className={`px-4 py-3 rounded-lg shadow-sm ${
-                          msg.isBot
+                        className={`px-4 py-3 rounded-lg shadow-sm ${msg.isBot
                             ? "bg-white text-gray-800 border border-gray-100"
                             : "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-                        }`}
+                          }`}
                       >
                         {msg.isBot ? (
                           <div

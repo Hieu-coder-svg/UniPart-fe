@@ -1,20 +1,22 @@
-import { useState, useRef } from "react";
-import { X, Briefcase, MapPin, DollarSign, Users, Clock, ImagePlus, Loader2 } from "lucide-react";
-import { jobService, JobCreationRequest } from "../../services/jobService";
+import { useState, useEffect, useRef } from "react";
+import { X, Briefcase, MapPin, DollarSign, Users, Clock, ImagePlus, Eye, EyeOff, Loader2 } from "lucide-react";
+import { jobService, JobResponse, JobCreationRequest } from "../../services/jobService";
 import { uploadImageToCloudinary } from "../../services/uploadService";
 import MapPicker from "./MapPicker";
-interface CreateJobModalProps {
+
+interface EditJobModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  job: JobResponse | null;
 }
 
-export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalProps) {
+export function EditJobModal({ isOpen, onClose, onSuccess, job }: EditJobModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
-  const [formData, setFormData] = useState<JobCreationRequest>({
+  const [formData, setFormData] = useState<JobCreationRequest & { isHide: boolean }>({
     title: "",
     description: "",
     workingShift: "Full-time",
@@ -24,8 +26,9 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
     locationLatitude: undefined,
     locationLongitude: undefined,
     salary: 0,
-    expiredAt: new Date(Date.now() + 7 * 86400000).toISOString().split('.')[0], // default 7 days
-    timeSlots: []
+    expiredAt: "",
+    timeSlots: [],
+    isHide: false
   });
 
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
@@ -83,7 +86,28 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
     setAddressSuggestions([]);
   };
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (job && isOpen) {
+      setFormData({
+        title: job.title || "",
+        description: job.description || "",
+        workingShift: job.workingShift || "Full-time",
+        vacancies: job.vacancies || 1,
+        urgent: job.urgent || false,
+        address: job.address || "",
+        locationLatitude: job.locationLatitude,
+        locationLongitude: job.locationLongitude,
+        salary: job.salary || 0,
+        expiredAt: job.expiredAt ? job.expiredAt.split('.')[0] : "",
+        timeSlots: job.timeSlots || [],
+        isHide: job.isHide || false,
+        image: job.image
+      });
+      setImagePreview(job.image || "");
+    }
+  }, [job, isOpen]);
+
+  if (!isOpen || !job) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,11 +118,33 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
       if (imageFile) {
         imageUrl = await uploadImageToCloudinary(imageFile);
       }
-      await jobService.createJob({ ...formData, image: imageUrl });
-      onSuccess();
-      onClose();
+      
+      // Standardize data for backend
+      const updateData = {
+        ...formData,
+        image: imageUrl,
+        // Ensure LocalDateTime format: YYYY-MM-DDTHH:mm:ss
+        expiredAt: formData.expiredAt ? (formData.expiredAt.length === 16 ? `${formData.expiredAt}:00` : formData.expiredAt) : null,
+        timeSlots: formData.timeSlots?.map(slot => ({
+          ...slot,
+          // Ensure LocalTime format: HH:mm:ss
+          startTime: slot.startTime.length === 5 ? `${slot.startTime}:00` : slot.startTime,
+          endTime: slot.endTime.length === 5 ? `${slot.endTime}:00` : slot.endTime
+        }))
+      };
+
+      console.log("Sending update data:", updateData);
+      const res = await jobService.updateJob(job.id, updateData);
+      
+      if (res.code === 1000) {
+        onSuccess();
+        onClose();
+      } else {
+        setError(res.message || "Cập nhật thất bại");
+      }
     } catch (err: any) {
-      setError(err.message || "Đã xảy ra lỗi khi tạo tin tuyển dụng");
+      console.error("Update job error:", err);
+      setError(err.message || "Đã xảy ra lỗi khi cập nhật tin tuyển dụng");
     } finally {
       setLoading(false);
     }
@@ -108,8 +154,8 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-100 p-6 flex items-center justify-between z-10">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-            Đăng tin tuyển dụng mới
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            Chỉnh sửa tin tuyển dụng
           </h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <X className="w-6 h-6 text-gray-500" />
@@ -124,10 +170,40 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
           )}
 
           <div className="space-y-4">
+            {/* Status & Urgent Toggle Row */}
+            <div className="flex flex-wrap gap-4 items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-100">
+               <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="isHide"
+                      checked={formData.isHide}
+                      onChange={(e) => setFormData({...formData, isHide: e.target.checked})}
+                      className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                    />
+                    <label htmlFor="isHide" className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                       {formData.isHide ? <EyeOff className="w-4 h-4 text-gray-500" /> : <Eye className="w-4 h-4 text-blue-500" />}
+                       Ẩn tin này
+                    </label>
+                  </div>
+               </div>
+
+               <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="urgent"
+                  checked={formData.urgent}
+                  onChange={(e) => setFormData({...formData, urgent: e.target.checked})}
+                  className="w-5 h-5 text-orange-600 rounded focus:ring-orange-500 border-gray-300"
+                />
+                <label htmlFor="urgent" className="text-sm font-semibold text-gray-700">Tuyển gấp 🔥</label>
+              </div>
+            </div>
+
             {/* Image Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Ảnh bìa công việc</label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-xl hover:border-orange-500 transition-colors">
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-xl hover:border-blue-500 transition-colors">
                 <div className="space-y-1 text-center">
                   {imagePreview ? (
                     <div className="relative inline-block">
@@ -137,6 +213,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                         onClick={() => {
                           setImageFile(null);
                           setImagePreview("");
+                          setFormData({...formData, image: ""});
                         }}
                         className="absolute -top-3 -right-3 bg-red-100 text-red-600 hover:bg-red-200 rounded-full p-1.5 shadow-sm transition-colors"
                       >
@@ -148,13 +225,13 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                       <ImagePlus className="mx-auto h-12 w-12 text-gray-400 mb-3" />
                       <div className="flex text-sm text-gray-600 justify-center">
                         <label
-                          htmlFor="file-upload"
-                          className="relative cursor-pointer bg-white rounded-md font-medium text-orange-600 hover:text-orange-500 focus-within:outline-none"
+                          htmlFor="file-upload-edit"
+                          className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none"
                         >
-                          <span>Tải ảnh lên</span>
+                          <span>Thay đổi ảnh</span>
                           <input
-                            id="file-upload"
-                            name="file-upload"
+                            id="file-upload-edit"
+                            name="file-upload-edit"
                             type="file"
                             className="sr-only"
                             accept="image/*"
@@ -167,9 +244,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                             }}
                           />
                         </label>
-                        <p className="pl-1">hoặc kéo thả</p>
                       </div>
-                      <p className="text-xs text-gray-500 mt-2">PNG, JPG, GIF tối đa 10MB</p>
                     </>
                   )}
                 </div>
@@ -185,7 +260,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                   required
                   value={formData.title}
                   onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
                   placeholder="VD: Nhân viên phục vụ part-time"
                 />
               </div>
@@ -197,7 +272,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                 <select
                   value={formData.workingShift}
                   onChange={(e) => setFormData({...formData, workingShift: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="Ca Sáng">Ca Sáng</option>
                   <option value="Ca Chiều">Ca Chiều</option>
@@ -220,7 +295,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                     required
                     value={formData.vacancies}
                     onChange={(e) => setFormData({...formData, vacancies: parseInt(e.target.value) || 1})}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -237,8 +312,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                     required
                     value={formData.salary}
                     onChange={(e) => setFormData({...formData, salary: parseInt(e.target.value) || 0})}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500"
-                    placeholder="VD: 5000000"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -252,7 +326,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                     required
                     value={formData.expiredAt}
                     onChange={(e) => setFormData({...formData, expiredAt: e.target.value})}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -268,7 +342,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                   onChange={handleAddressChange}
                   onFocus={() => { if (addressSuggestions.length > 0) setShowSuggestions(true); }}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500"
+                  className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
                   placeholder="Nhập địa chỉ làm việc"
                   autoComplete="off"
                 />
@@ -282,7 +356,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                       key={idx}
                       type="button"
                       onClick={() => handleSelectSuggestion(suggestion)}
-                      className="w-full text-left px-4 py-3 hover:bg-orange-50 border-b border-gray-100 last:border-0 transition-colors"
+                      className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-gray-100 last:border-0 transition-colors"
                     >
                       <div className="text-sm font-medium text-gray-800 line-clamp-1">{suggestion.display_name.split(',')[0]}</div>
                       <div className="text-xs text-gray-500 line-clamp-1">{suggestion.display_name}</div>
@@ -292,9 +366,6 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
               )}
             </div>
 
-
-
-            {/* Map Picker */}
             <div className="relative z-10">
               <MapPicker 
                 position={formData.locationLatitude && formData.locationLongitude ? [formData.locationLatitude, formData.locationLongitude] : null}
@@ -312,7 +383,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                     ...formData, 
                     timeSlots: [...(formData.timeSlots || []), { workDate: "", startTime: "", endTime: "" }]
                   })}
-                  className="text-sm px-3 py-1 bg-orange-100 text-orange-600 rounded-lg hover:bg-orange-200 font-medium transition-colors"
+                  className="text-sm px-3 py-1 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 font-medium transition-colors"
                 >
                   + Thêm ca làm
                 </button>
@@ -331,7 +402,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                         newSlots[index].workDate = e.target.value;
                         setFormData({...formData, timeSlots: newSlots});
                       }}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div className="sm:col-span-1">
@@ -341,20 +412,11 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                       required
                       value={slot.startTime}
                       onChange={(e) => {
-                        const newStartTime = e.target.value;
                         const newSlots = [...(formData.timeSlots || [])];
-                        newSlots[index].startTime = newStartTime;
-                        
-                        if (newStartTime) {
-                          const [hours, minutes] = newStartTime.split(':');
-                          const endHours = (parseInt(hours, 10) + 1).toString().padStart(2, '0');
-                          const finalHours = endHours === '24' ? '00' : endHours;
-                          newSlots[index].endTime = `${finalHours}:${minutes}`;
-                        }
-                        
+                        newSlots[index].startTime = e.target.value;
                         setFormData({...formData, timeSlots: newSlots});
                       }}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div className="sm:col-span-1">
@@ -368,7 +430,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                         newSlots[index].endTime = e.target.value;
                         setFormData({...formData, timeSlots: newSlots});
                       }}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div className="sm:col-span-1 flex justify-end">
@@ -385,11 +447,6 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                   </div>
                 </div>
               ))}
-              {(!formData.timeSlots || formData.timeSlots.length === 0) && (
-                <div className="text-sm text-gray-500 text-center py-4 bg-white rounded-lg border border-gray-200 border-dashed">
-                  Chưa có ca làm việc nào. Bấm "+ Thêm ca làm" để tạo.
-                </div>
-              )}
             </div>
 
             <div>
@@ -398,20 +455,8 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                 rows={4}
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
-                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500"
-                placeholder="Mô tả chi tiết công việc, yêu cầu, quyền lợi..."
+                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
               ></textarea>
-            </div>
-
-            <div className="flex items-center gap-2 pt-2">
-              <input
-                type="checkbox"
-                id="urgent"
-                checked={formData.urgent}
-                onChange={(e) => setFormData({...formData, urgent: e.target.checked})}
-                className="w-5 h-5 text-orange-600 rounded focus:ring-orange-500 border-gray-300"
-              />
-              <label htmlFor="urgent" className="text-gray-700 font-medium">Đánh dấu là tin tuyển gấp</label>
             </div>
           </div>
 
@@ -426,9 +471,9 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl font-medium hover:shadow-lg disabled:opacity-50 transition-all"
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium hover:shadow-lg disabled:opacity-50 transition-all"
             >
-              {loading ? "Đang xử lý..." : "Đăng tin"}
+              {loading ? "Đang lưu..." : "Cập nhật tin"}
             </button>
           </div>
         </form>

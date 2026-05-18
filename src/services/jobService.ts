@@ -178,6 +178,11 @@ class JobService {
         return response.data;
     }
 
+    async updateJob(id: number, request: Partial<JobCreationRequest> & { isHide?: boolean }): Promise<ApiResponse<JobResponse>> {
+        const response = await this.api.put<ApiResponse<JobResponse>>(`/job/${id}`, request);
+        return response.data;
+    }
+
     // Recommendation APIs
     async getStudentRecommendations(): Promise<ApiResponse<JobRecommendationResponse[]>> {
         const response = await this.api.get<ApiResponse<JobRecommendationResponse[]>>("/student/recommendations");
