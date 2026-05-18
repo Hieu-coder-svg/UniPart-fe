@@ -12,12 +12,14 @@ export interface PurchasePackageResponse {
   packageName: string;
   packageType: string;
   pricePaid: number;
-  paymentStatus: "PENDING" | "SUCCESS" | "FAILED";
+  paymentStatus: "PENDING" | "SUCCESS" | "FAILED" | "EXPIRED";
   transactionRef: string;
   purchasedAt: string;
   startDate?: string;
   endDate?: string;
   tinsPurchased?: number;
+  paymentDeadline?: string;
+  isExpired?: boolean;
 }
 
 export interface ApiResponse<T> {

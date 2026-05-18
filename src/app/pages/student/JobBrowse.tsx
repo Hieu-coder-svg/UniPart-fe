@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useSearchParams } from "react-router";
-import { jobService, JobResponse, JobFilterRequest } from "../../../services/jobService";
+import { jobService, JobResponse, JobFilterRequest, JobRecommendationResponse } from "../../../services/jobService";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSavedJobs } from "../../contexts/SavedJobsContext";
 import {
@@ -76,9 +76,25 @@ export default function JobBrowse() {
   const [selectedSalary, setSelectedSalary] = useState<string>("all");
   
   const [jobs, setJobs] = useState<JobResponse[]>([]);
+  const [recommendedJobs, setRecommendedJobs] = useState<JobRecommendationResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const { savedJobIds, saveJob, unsaveJob, isJobSaved } = useSavedJobs();
+
+  useEffect(() => {
+    if (user?.role === "STUDENT") {
+      jobService.getStudentRecommendations()
+        .then(res => {
+          if (res.result) {
+            const top3 = res.result
+              .sort((a, b) => b.matchScore - a.matchScore)
+              .slice(0, 3);
+            setRecommendedJobs(top3);
+          }
+        })
+        .catch(err => console.error("Failed to fetch recommendations:", err));
+    }
+  }, [user]);
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const categories = Object.keys(categoryIcons);
@@ -440,6 +456,29 @@ export default function JobBrowse() {
                           isSaved={savedJobIds.has(job.id)}
                           onToggleSave={toggleSaveJob}
                         />
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {recommendedJobs.length > 0 && (
+                  <section>
+                    <div className="flex items-center gap-2 mb-4 mt-8">
+                      <Zap className="w-5 h-5 text-blue-500" />
+                      <h3 className="font-bold text-gray-800 text-base">Gợi ý cho bạn</h3>
+                    </div>
+                    <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {recommendedJobs.map((rec) => (
+                        <div key={`rec-${rec.job.id}`} className="relative group">
+                          <JobCard 
+                            job={rec.job} 
+                            isSaved={savedJobIds.has(rec.job.id)}
+                            onToggleSave={toggleSaveJob}
+                          />
+                          <div className="absolute top-3 right-3 bg-blue-50 text-blue-600 text-[11px] font-bold px-2 py-1 rounded-full border border-blue-200 shadow-sm z-10 flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
+                            <Star className="w-3 h-3 fill-blue-500 text-blue-500" /> Phù hợp {Math.round(rec.matchScore)}%
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </section>

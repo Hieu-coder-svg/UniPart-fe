@@ -7,7 +7,7 @@ import {
   MessageSquare,
   UserCircle2,
   BarChart3,
-  CreditCard,
+
   LogOut,
   Menu,
   X,
@@ -87,12 +87,7 @@ export default function EmployerLayout() {
       label: "Gói dịch vụ",
       group: "business",
     },
-    {
-      path: "/employer/dashboard/billing",
-      icon: CreditCard,
-      label: "Thanh toán",
-      group: "business",
-    },
+
     {
       path: "/employer/dashboard/analytics",
       icon: BarChart3,

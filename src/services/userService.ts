@@ -22,6 +22,11 @@ export interface StudentResponse {
     latitude: number;
     longitude: number;
     avatar?: string;
+    
+    bio?: string;
+    skills?: string[];
+    experience?: string;
+    cvUrl?: string;
 }
 
 export interface StudentUpdateRequest {
@@ -101,6 +106,16 @@ class UserService {
 
     async getStudentMyInfo(): Promise<ApiResponse<StudentResponse>> {
         const response = await this.api.get<ApiResponse<StudentResponse>>("/users/myStudentInfo");
+        return response.data;
+    }
+
+    async getStudentById(id: number | string): Promise<ApiResponse<StudentResponse>> {
+        const response = await this.api.get<ApiResponse<StudentResponse>>(`/users/student/${id}`);
+        return response.data;
+    }
+
+    async getEmployerById(id: string): Promise<ApiResponse<EmployerResponse>> {
+        const response = await this.api.get<ApiResponse<EmployerResponse>>(`/users/employer/${id}`);
         return response.data;
     }
 
