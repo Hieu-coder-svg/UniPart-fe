@@ -37,6 +37,14 @@ function LocationMarker({ position, onPositionChange }: MapPickerProps) {
     }
   }, [position, map]);
 
+  // Fix the grey map/partial tile issue inside Modals
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [map]);
+
   return position === null ? null : <Marker position={position}></Marker>;
 }
 
@@ -52,8 +60,9 @@ export default function MapPicker({ position, onPositionChange }: MapPickerProps
         style={{ height: "100%", width: "100%", zIndex: 0 }}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; Google Maps'
+          url="https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+          subdomains={['mt0','mt1','mt2','mt3']}
         />
         <LocationMarker position={position} onPositionChange={onPositionChange} />
       </MapContainer>

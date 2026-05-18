@@ -1,7 +1,9 @@
-import { useState, useRef } from "react";
-import { X, Briefcase, MapPin, DollarSign, Users, Clock, ImagePlus, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { X, Briefcase, MapPin, DollarSign, Users, Clock, ImagePlus, Loader2, AlertTriangle } from "lucide-react";
 import { jobService, JobCreationRequest } from "../../services/jobService";
 import { uploadImageToCloudinary } from "../../services/uploadService";
+import { userService } from "../../services/userService";
+import { Link } from "react-router";
 import MapPicker from "./MapPicker";
 interface CreateJobModalProps {
   isOpen: boolean;
@@ -12,6 +14,8 @@ interface CreateJobModalProps {
 export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [remainingPosts, setRemainingPosts] = useState<number | null>(null);
+  const [currentPackage, setCurrentPackage] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [formData, setFormData] = useState<JobCreationRequest>({
@@ -59,7 +63,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
       searchTimeoutRef.current = setTimeout(async () => {
         setIsLoadingAddress(true);
         try {
-          const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=5`);
+          const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=5&countrycodes=vn`);
           const data = await response.json();
           setAddressSuggestions(data || []);
           setShowSuggestions(true);
@@ -83,10 +87,28 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
     setAddressSuggestions([]);
   };
 
+  useEffect(() => {
+    if (isOpen) {
+      userService.getEmployerMyInfo().then(res => {
+        if (res.result) {
+          // If remainingPosts is undefined from BE, default to 0 to simulate the requirement
+          setRemainingPosts(res.result.remainingPosts !== undefined ? res.result.remainingPosts : 0);
+          setCurrentPackage(res.result.currentPackage || "Gói Cơ bản");
+        }
+      }).catch(err => console.error("Failed to fetch employer info", err));
+    }
+  }, [isOpen]);
+
+  const isPremium = currentPackage !== "Gói Cơ bản" && currentPackage !== "Miễn phí" && currentPackage !== "";
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (remainingPosts !== null && remainingPosts <= 0) {
+      setError("Bạn đã hết lượt đăng tin. Vui lòng mua thêm gói để tiếp tục.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -104,10 +126,12 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
     }
   };
 
+  const isOutOfPosts = remainingPosts !== null && remainingPosts <= 0;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-100 p-6 flex items-center justify-between z-10">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
+        <div className="sticky top-0 bg-white border-b border-gray-100 p-6 flex items-center justify-between z-50">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
             Đăng tin tuyển dụng mới
           </h2>
@@ -116,7 +140,31 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
           </button>
         </div>
 
+        {isOutOfPosts ? (
+          <div className="p-8 text-center flex flex-col items-center justify-center space-y-4">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+              <AlertTriangle className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">Hết lượt đăng tin</h3>
+            <p className="text-gray-600 max-w-md">
+              Tài khoản của bạn hiện không còn lượt đăng tin tuyển dụng nào. Vui lòng nâng cấp gói hoặc mua thêm lượt để tiếp tục đăng tin.
+            </p>
+            <Link 
+              to="/employer/dashboard/buy-posts" 
+              onClick={onClose}
+              className="mt-4 px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl font-medium hover:shadow-lg transition-all inline-block"
+            >
+              Mua thêm lượt đăng
+            </Link>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {remainingPosts !== null && remainingPosts > 0 && (
+            <div className="p-4 bg-blue-50 text-blue-700 rounded-xl text-sm font-medium flex justify-between items-center">
+              <span>Bạn còn <strong>{remainingPosts}</strong> lượt đăng tin.</span>
+              <Link to="/employer/dashboard/buy-posts" onClick={onClose} className="text-blue-600 hover:underline">Mua thêm</Link>
+            </div>
+          )}
           {error && (
             <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium">
               {error}
@@ -408,10 +456,14 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                 type="checkbox"
                 id="urgent"
                 checked={formData.urgent}
+                disabled={!isPremium}
                 onChange={(e) => setFormData({...formData, urgent: e.target.checked})}
-                className="w-5 h-5 text-orange-600 rounded focus:ring-orange-500 border-gray-300"
+                className={`w-5 h-5 rounded border-gray-300 ${isPremium ? 'text-orange-600 focus:ring-orange-500' : 'text-gray-300 bg-gray-100 cursor-not-allowed'}`}
               />
-              <label htmlFor="urgent" className="text-gray-700 font-medium">Đánh dấu là tin tuyển gấp</label>
+              <div className="flex flex-col">
+                <label htmlFor="urgent" className={`font-medium ${isPremium ? 'text-gray-700' : 'text-gray-400'}`}>Đánh dấu là tin tuyển gấp</label>
+                {!isPremium && <span className="text-[10px] text-red-500 mt-0.5">Yêu cầu nâng cấp gói để sử dụng tính năng này</span>}
+              </div>
             </div>
           </div>
 
@@ -432,6 +484,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );

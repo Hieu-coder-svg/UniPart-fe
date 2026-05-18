@@ -133,6 +133,7 @@ export default function Profile() {
       console.error("Failed to fetch address", error);
     }
   };
+
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setFormData({ ...formData, address: value });
@@ -146,7 +147,7 @@ export default function Profile() {
       searchTimeoutRef.current = setTimeout(async () => {
         setIsLoadingAddress(true);
         try {
-          const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=5`);
+          const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=5&countrycodes=vn`);
           const data = await response.json();
           setAddressSuggestions(data || []);
           setShowSuggestions(true);
