@@ -6,7 +6,7 @@ interface Account {
   id: string;
   username: string;
   email: string;
-  role: "admin" | "manager" | "employer" | "student";
+  role: "admin" | "employer" | "student";
   status: "active" | "banned";
   createdAt: string;
   lastLogin: string;
@@ -158,14 +158,12 @@ export default function AccountManagement() {
 
   const roleLabels: Record<string, string> = {
     admin: "Admin",
-    manager: "Manager",
     employer: "Nhà tuyển dụng",
     student: "Sinh viên",
   };
 
   const roleColors: Record<string, string> = {
     admin: "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-sm border-0",
-    manager: "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border-0",
     employer: "bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-sm border-0",
     student: "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-sm border-0",
   };
@@ -268,7 +266,6 @@ export default function AccountManagement() {
             >
               <option value="all">Tất cả vai trò</option>
               <option value="admin">Admin</option>
-              <option value="manager">Manager</option>
               <option value="employer">Nhà tuyển dụng</option>
               <option value="student">Sinh viên</option>
             </select>

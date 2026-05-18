@@ -1,7 +1,7 @@
 import { Search, Filter, Eye, Shield, Ban } from "lucide-react";
 import { mockUsers } from "../../data/mockData";
 
-export default function UsersManagement() {
+export default function AdminUsersManagement() {
   return (
     <div className="p-6 md:p-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -15,7 +15,7 @@ export default function UsersManagement() {
             <input
               type="text"
               placeholder="Tìm người dùng..."
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
           <button className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">

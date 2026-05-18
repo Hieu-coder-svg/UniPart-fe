@@ -30,12 +30,16 @@ import {
   ChevronRight,
   Filter,
   AlertCircle,
-  Banknote
+  Banknote,
+  Star,
+  MessageSquare,
+  User
 } from "lucide-react";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import { motion, AnimatePresence } from "framer-motion";
+import { reviewService, ReviewResponse } from "../../../services/reviewService";
 
 export default function StudentApplications() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -48,11 +52,23 @@ export default function StudentApplications() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
 
+  const [reviewedMap, setReviewedMap] = useState<Record<string, ReviewResponse>>({});
+  const [reviewModal, setReviewModal] = useState<any>(null);
+  const [reviewDetailModal, setReviewDetailModal] = useState<any>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewHover, setReviewHover] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(false);
+
+  const makeReviewKey = (employerId: string, jobId: number) => `${employerId}_${jobId}`;
+
   const stats = {
     total: applications.length,
     pending: applications.filter(a => a.status?.toUpperCase() === 'PENDING').length,
     accepted: applications.filter(a => a.status?.toUpperCase() === 'ACCEPTED' || a.status?.toUpperCase() === 'APPROVED').length,
     rejected: applications.filter(a => a.status?.toUpperCase() === 'REJECTED').length,
+    completed: applications.filter(a => a.status?.toUpperCase() === 'COMPLETED').length,
   };
 
   const fetchApplications = async () => {
@@ -117,6 +133,19 @@ export default function StudentApplications() {
         });
         setApplications(sorted);
         setFilteredApplications(sorted);
+
+        try {
+          const reviewsRes = await reviewService.getReviewsWrittenByStudent(studentRes.result.id);
+          if (reviewsRes.result) {
+            const newMap: Record<string, ReviewResponse> = {};
+            reviewsRes.result.forEach(r => {
+              newMap[makeReviewKey(r.employerId, r.jobId)] = r;
+            });
+            setReviewedMap(newMap);
+          }
+        } catch (e) {
+          console.warn("Could not fetch reviews:", e);
+        }
       }
     } catch (err: any) {
       setError(err.message || "Không thể tải lịch sử ứng tuyển.");
@@ -185,6 +214,69 @@ export default function StudentApplications() {
     return status?.toUpperCase() === 'PENDING';
   };
 
+  const handleOpenReview = (job: JobResponse) => {
+    setReviewModal({
+      jobId: job.id,
+      employerId: job.employerId,
+      employerName: job.employerName || "Nhà tuyển dụng",
+      jobTitle: job.title
+    });
+    setReviewRating(5);
+    setReviewHover(0);
+    setReviewComment("");
+    setReviewSuccess(false);
+  };
+
+  const handleSubmitReview = async () => {
+    if (!reviewModal || !reviewComment.trim()) return;
+    setSubmittingReview(true);
+    try {
+      const res = await reviewService.studentReviewEmployer({
+        jobId: reviewModal.jobId,
+        rating: reviewRating,
+        comment: reviewComment.trim()
+      });
+      if (res.result) {
+        const key = makeReviewKey(reviewModal.employerId, reviewModal.jobId);
+        setReviewedMap(prev => ({ ...prev, [key]: res.result! }));
+        setReviewSuccess(true);
+        setTimeout(() => {
+          setReviewModal(null);
+          setReviewSuccess(false);
+        }, 2000);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Lỗi khi gửi đánh giá.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const handleViewReviewDetail = async (job: JobResponse) => {
+    const key = makeReviewKey(job.employerId, job.id);
+    const myReview = reviewedMap[key] || null;
+    
+    setReviewDetailModal({
+      employerName: job.employerName || "Nhà tuyển dụng",
+      jobTitle: job.title,
+      studentReview: myReview,
+      employerReview: null,
+      loading: true
+    });
+
+    try {
+      const res = await reviewService.getReviewsWrittenByEmployer(job.employerId);
+      if (res.result) {
+        const empReview = res.result.find(r => r.jobId == job.id) || null;
+        setReviewDetailModal(prev => prev ? { ...prev, employerReview: empReview, loading: false } : null);
+      } else {
+        setReviewDetailModal(prev => prev ? { ...prev, loading: false } : null);
+      }
+    } catch {
+      setReviewDetailModal(prev => prev ? { ...prev, loading: false } : null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#f8fafc] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Background Decor */}
@@ -208,11 +300,12 @@ export default function StudentApplications() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <StatCard icon={<FileText className="w-5 h-5" />} label="Tổng ứng tuyển" value={stats.total} color="blue" />
           <StatCard icon={<Timer className="w-5 h-5" />} label="Đang chờ" value={stats.pending} color="amber" />
           <StatCard icon={<CheckCircle2 className="w-5 h-5" />} label="Đã duyệt" value={stats.accepted} color="emerald" />
-          <StatCard icon={<XCircle className="w-5 h-5" />} label="Đã từ chối" value={stats.rejected} color="rose" />
+          <StatCard icon={<Star className="w-5 h-5" />} label="Hoàn thành" value={stats.completed} color="indigo" />
+          <StatCard icon={<XCircle className="w-5 h-5" />} label="Từ chối" value={stats.rejected} color="rose" />
         </div>
 
         {/* Filters & List */}
@@ -238,6 +331,7 @@ export default function StudentApplications() {
                 <option value="ALL">Tất cả trạng thái</option>
                 <option value="PENDING">Đang chờ</option>
                 <option value="ACCEPTED">Đã chấp nhận</option>
+                <option value="COMPLETED">Hoàn thành</option>
                 <option value="REJECTED">Đã từ chối</option>
               </select>
             </div>
@@ -280,11 +374,14 @@ export default function StudentApplications() {
                 <AnimatePresence mode="popLayout">
                   {filteredApplications.map((app) => (
                     <ApplicationCard
-                      key={app.id}
+                      key={app.id || app.applicationId}
                       application={app}
                       onDelete={() => handleDeleteClick(app)}
                       isDeleting={isDeleting === (app.applicationId || app.id)}
                       canDelete={canDelete(app.status)}
+                      reviewedMap={reviewedMap}
+                      onReview={handleOpenReview}
+                      onViewReview={handleViewReviewDetail}
                     />
                   ))}
                 </AnimatePresence>
@@ -325,6 +422,268 @@ export default function StudentApplications() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Review Modal ── */}
+      {reviewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => !submittingReview && setReviewModal(null)}>
+          <div
+            className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl transform transition-all"
+            onClick={e => e.stopPropagation()}
+          >
+            {reviewSuccess ? (
+              <div className="p-8 text-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg animate-bounce">
+                  <CheckCircle2 className="w-10 h-10 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Đánh giá thành công!</h3>
+                <p className="text-gray-500">Cảm ơn bạn đã đánh giá nhà tuyển dụng.</p>
+              </div>
+            ) : (
+              <>
+                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 text-white">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                        <Star className="w-5 h-5 fill-white text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold">Đánh giá nhà tuyển dụng</h3>
+                        <p className="text-sm text-white/80">Chia sẻ trải nghiệm của bạn</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setReviewModal(null)}
+                      disabled={submittingReview}
+                      className="p-2 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"
+                    >
+                      <XCircle className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-md">
+                      {reviewModal.employerName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900">{reviewModal.employerName}</h4>
+                      <p className="text-sm text-gray-500 flex items-center gap-1">
+                        <Building2 className="w-3.5 h-3.5" />
+                        {reviewModal.jobTitle}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">Đánh giá sao</label>
+                    <div className="flex items-center justify-center gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setReviewRating(star)}
+                          onMouseEnter={() => setReviewHover(star)}
+                          onMouseLeave={() => setReviewHover(0)}
+                          className="group transition-all duration-200 hover:scale-125 focus:outline-none"
+                        >
+                          <Star
+                            className={`w-10 h-10 transition-all duration-200 ${
+                              star <= (reviewHover || reviewRating)
+                                ? "fill-amber-400 text-amber-400 drop-shadow-md"
+                                : "fill-gray-200 text-gray-200 group-hover:fill-amber-200 group-hover:text-amber-200"
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    <div className="text-center mt-2">
+                      <span className="text-sm font-medium text-gray-500">
+                        {reviewRating === 1 && "Không tốt"}
+                        {reviewRating === 2 && "Cần cải thiện"}
+                        {reviewRating === 3 && "Bình thường"}
+                        {reviewRating === 4 && "Tốt"}
+                        {reviewRating === 5 && "Xuất sắc"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <MessageSquare className="w-4 h-4 inline mr-1.5" />
+                      Nhận xét
+                    </label>
+                    <textarea
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      placeholder="Chia sẻ trải nghiệm làm việc tại đây..."
+                      rows={4}
+                      className="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none text-sm"
+                    />
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setReviewModal(null)}
+                      disabled={submittingReview}
+                      className="flex-1 px-4 py-3 border-2 border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-all font-medium disabled:opacity-50"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      onClick={handleSubmitReview}
+                      disabled={submittingReview || !reviewComment.trim()}
+                      className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    >
+                      {submittingReview ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Đang gửi...
+                        </>
+                      ) : (
+                        <>
+                          <Star className="w-4 h-4" />
+                          Gửi đánh giá
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Review Detail Modal ── */}
+      {reviewDetailModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setReviewDetailModal(null)}>
+          <div
+            className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden shadow-2xl transform transition-all"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                    <MessageSquare className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">Chi tiết đánh giá</h3>
+                    <p className="text-sm text-white/80">{reviewDetailModal.employerName} — {reviewDetailModal.jobTitle}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setReviewDetailModal(null)}
+                  className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-100px)] space-y-6">
+              {reviewDetailModal.loading ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <Loader2 className="w-10 h-10 text-purple-500 animate-spin mb-3" />
+                  <p className="text-gray-500 text-sm">Đang tải đánh giá...</p>
+                </div>
+              ) : (
+                <>
+                  {/* ── Student's review of employer ── */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-7 h-7 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center">
+                        <Star className="w-4 h-4 text-white fill-white" />
+                      </div>
+                      <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Đánh giá của bạn</h4>
+                    </div>
+                    {reviewDetailModal.studentReview ? (
+                      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map(s => (
+                              <Star
+                                key={s}
+                                className={`w-5 h-5 ${s <= reviewDetailModal.studentReview.rating ? "fill-blue-400 text-blue-400" : "fill-gray-200 text-gray-200"}`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-lg font-bold text-blue-700">{reviewDetailModal.studentReview.rating}/5</span>
+                        </div>
+                        {reviewDetailModal.studentReview.comment && (
+                          <p className="text-gray-700 text-sm leading-relaxed italic">
+                            "{reviewDetailModal.studentReview.comment}"
+                          </p>
+                        )}
+                        <p className="text-xs text-blue-600/60 mt-3">
+                          {new Date(reviewDetailModal.studentReview.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 text-center">
+                        <Star className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                        <p className="text-gray-400 text-sm">Bạn chưa đánh giá nhà tuyển dụng này</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-gray-200" />
+                    <span className="text-xs text-gray-400 font-medium">đánh giá 2 chiều</span>
+                    <div className="flex-1 h-px bg-gray-200" />
+                  </div>
+
+                  {/* ── Employer's review of student ── */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-7 h-7 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
+                        <Building2 className="w-4 h-4 text-white" />
+                      </div>
+                      <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Đánh giá từ nhà tuyển dụng</h4>
+                    </div>
+                    {reviewDetailModal.employerReview ? (
+                      <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-5">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map(s => (
+                              <Star
+                                key={s}
+                                className={`w-5 h-5 ${s <= reviewDetailModal.employerReview.rating ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"}`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-lg font-bold text-amber-700">{reviewDetailModal.employerReview.rating}/5</span>
+                        </div>
+                        {reviewDetailModal.employerReview.comment && (
+                          <p className="text-gray-700 text-sm leading-relaxed italic">
+                            "{reviewDetailModal.employerReview.comment}"
+                          </p>
+                        )}
+                        <p className="text-xs text-amber-600/60 mt-3">
+                          {new Date(reviewDetailModal.employerReview.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 text-center">
+                        <Building2 className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                        <p className="text-gray-400 text-sm">Nhà tuyển dụng chưa đánh giá bạn</p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              <button
+                onClick={() => setReviewDetailModal(null)}
+                className="w-full px-4 py-3 border-2 border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-all font-medium"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -350,11 +709,14 @@ function StatCard({ icon, label, value, color }: { icon: any, label: string, val
   );
 }
 
-function ApplicationCard({ application, onDelete, isDeleting, canDelete }: {
+function ApplicationCard({ application, onDelete, isDeleting, canDelete, reviewedMap, onReview, onViewReview }: {
   application: JobResponse,
   onDelete: () => void,
   isDeleting: boolean,
-  canDelete: boolean
+  canDelete: boolean,
+  reviewedMap?: Record<string, ReviewResponse>,
+  onReview?: (job: JobResponse) => void,
+  onViewReview?: (job: JobResponse) => void
 }) {
   const status = application.status?.toUpperCase() || "PENDING";
 
@@ -432,12 +794,49 @@ function ApplicationCard({ application, onDelete, isDeleting, canDelete }: {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 flex-shrink-0">
+      <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4 flex-shrink-0">
         <div className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider border ${currentStatusStyle.bg} ${currentStatusStyle.text} ${currentStatusStyle.border}`}>
           {currentStatusStyle.icon}
           {statusLabel[status] || status}
         </div>
         
+        {/* View Review Button & Write Review Button */}
+        {status === 'COMPLETED' && reviewedMap && onReview && onViewReview && (() => {
+          const reviewKey = `${application.employerId}_${application.jobId || application.id}`;
+          const existingReview = reviewedMap[reviewKey];
+
+          return (
+            <div className="flex items-center gap-2">
+              {existingReview ? (
+                <button
+                  onClick={() => onViewReview(application)}
+                  className="px-3.5 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl text-sm font-medium flex items-center justify-center gap-1.5 text-blue-700 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer"
+                >
+                  <Star className="w-4 h-4 fill-blue-400 text-blue-400" />
+                  Đã đánh giá ({existingReview.rating}/5)
+                </button>
+              ) : (
+                <button
+                  onClick={() => onReview(application)}
+                  className="px-3.5 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 text-sm font-medium flex items-center justify-center gap-1.5"
+                >
+                  <Star className="w-4 h-4" />
+                  Đánh giá
+                </button>
+              )}
+              
+              <button
+                onClick={() => onViewReview(application)}
+                className="px-3.5 py-1.5 border-2 border-purple-200 text-purple-600 rounded-xl hover:bg-purple-50 hover:border-purple-400 transition-all text-sm font-medium flex items-center justify-center gap-1.5"
+                title="Xem đánh giá 2 chiều"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Xem
+              </button>
+            </div>
+          );
+        })()}
+
         {status === 'PENDING' && (
           <button
             onClick={onDelete}

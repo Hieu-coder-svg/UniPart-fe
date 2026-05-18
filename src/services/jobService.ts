@@ -95,6 +95,11 @@ export interface SavedJobResponse {
     savedAt: string; // LocalDateTime
 }
 
+export interface JobRecommendationResponse {
+    job: JobResponse;
+    matchScore: number;
+}
+
 const API_BASE_URL = "http://localhost:8080";
 const TOKEN_KEY = "access_token";
 
@@ -181,6 +186,23 @@ class JobService {
 
     async updateJob(id: number, request: Partial<JobCreationRequest> & { isHide?: boolean }): Promise<ApiResponse<JobResponse>> {
         const response = await this.api.put<ApiResponse<JobResponse>>(`/job/${id}`, request);
+        return response.data;
+    }
+
+    // Recommendation APIs
+    async getStudentRecommendations(): Promise<ApiResponse<JobRecommendationResponse[]>> {
+        const response = await this.api.get<ApiResponse<JobRecommendationResponse[]>>("/student/recommendations");
+        return response.data;
+    }
+
+    // Admin APIs
+    async hideJob(jobId: number): Promise<ApiResponse<string>> {
+        const response = await this.api.put<ApiResponse<string>>(`/admin/jobs/${jobId}/hide`);
+        return response.data;
+    }
+
+    async unhideJob(jobId: number): Promise<ApiResponse<string>> {
+        const response = await this.api.put<ApiResponse<string>>(`/admin/jobs/${jobId}/unhide`);
         return response.data;
     }
 }

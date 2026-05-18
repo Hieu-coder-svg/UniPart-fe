@@ -51,14 +51,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const rawRoles = payload.roles || payload.authorities || payload.scope || payload.scopes;
     if (Array.isArray(rawRoles)) {
-      const found = rawRoles.find((role: string) => /ADMIN|EMPLOYER|MANAGER|EMPLOYEE|STUDENT/i.test(role));
+      const found = rawRoles.find((role: string) => /ADMIN|EMPLOYER|EMPLOYEE|STUDENT/i.test(role));
       if (found) {
         return found.replace(/^ROLE_/, "").toUpperCase() as UserResponse["role"];
       }
     }
 
     if (typeof rawRoles === "string") {
-      const found = rawRoles.match(/ADMIN|EMPLOYER|MANAGER|EMPLOYEE|STUDENT/i);
+      const found = rawRoles.match(/ADMIN|EMPLOYER|EMPLOYEE|STUDENT/i);
       if (found) {
         return found[0].replace(/^ROLE_/, "").toUpperCase() as UserResponse["role"];
       }

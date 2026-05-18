@@ -1,116 +1,188 @@
-import { useState } from "react";
-import { Search, Filter, AlertTriangle, Eye, CheckCircle, XCircle, MoreVertical, Flag, UserX, FileText } from "lucide-react";
-
-// Mock Data Interfaces
-interface Report {
-  id: string;
-  reporterName: string;
-  reporterRole: string;
-  targetName: string;
-  targetType: "user" | "post" | "comment";
-  reason: string;
-  status: "pending" | "reviewing" | "resolved" | "rejected";
-  createdAt: string;
-  adminNote?: string;
-}
-
-const mockReports: Report[] = [
-  {
-    id: "RP-2024-001",
-    reporterName: "Nguyễn Văn A",
-    reporterRole: "Sinh viên",
-    targetName: "Công ty TNHH Scam",
-    targetType: "user",
-    reason: "Nhà tuyển dụng yêu cầu đóng phí trước khi phỏng vấn.",
-    status: "pending",
-    createdAt: "2024-05-07 08:15",
-  },
-  {
-    id: "RP-2024-002",
-    reporterName: "Trần Thị B",
-    reporterRole: "Sinh viên",
-    targetName: "Tuyển dụng việc nhẹ lương cao",
-    targetType: "post",
-    reason: "Bài đăng có dấu hiệu lừa đảo, đa cấp.",
-    status: "reviewing",
-    createdAt: "2024-05-06 14:30",
-    adminNote: "Đang liên hệ bộ phận kiểm duyệt kiểm tra lại giấy phép kinh doanh."
-  },
-  {
-    id: "RP-2024-003",
-    reporterName: "Lê Văn C",
-    reporterRole: "Nhà tuyển dụng",
-    targetName: "Sinh viên Spam",
-    targetType: "user",
-    reason: "Ứng viên này gửi hàng loạt CV rác và sử dụng ngôn từ xúc phạm.",
-    status: "resolved",
-    createdAt: "2024-05-05 09:12",
-    adminNote: "Đã cảnh cáo tài khoản sinh viên và khóa chức năng ứng tuyển 7 ngày."
-  },
-  {
-    id: "RP-2024-004",
-    reporterName: "Hệ thống tự động",
-    reporterRole: "Hệ thống",
-    targetName: "Bình luận khiếm nhã",
-    targetType: "comment",
-    reason: "Chứa từ khóa vi phạm tiêu chuẩn cộng đồng.",
-    status: "rejected",
-    createdAt: "2024-05-04 18:20",
-    adminNote: "Kiểm tra thấy đây chỉ là hiểu lầm ngữ cảnh, không vi phạm."
-  }
-];
+import { useState, useEffect } from "react";
+import { Search, Filter, AlertTriangle, Eye, CheckCircle, XCircle, MoreVertical, Flag, UserX, FileText, Loader2, EyeOff } from "lucide-react";
+import { reportService, ReportResponse } from "../../../services/reportService";
+import { userService } from "../../../services/userService";
+import { postService } from "../../../services/postService";
+import { jobService } from "../../../services/jobService";
 
 export default function AdminReport() {
-  const [reports, setReports] = useState<Report[]>(mockReports);
+  const [reports, setReports] = useState<ReportResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [selectedReport, setSelectedReport] = useState<ReportResponse | null>(null);
   const [adminNote, setAdminNote] = useState("");
+
+  const [isProcessingTarget, setIsProcessingTarget] = useState(false);
+  // Track hide status of the currently viewed target
+  const [targetIsHidden, setTargetIsHidden] = useState<boolean | null>(null);
+  const [loadingTargetStatus, setLoadingTargetStatus] = useState(false);
+
+  // Load hide status when modal opens
+  const loadTargetStatus = async (report: ReportResponse) => {
+    setTargetIsHidden(null);
+    if (report.targetType === "POST") {
+      setLoadingTargetStatus(true);
+      try {
+        const res = await postService.getPostById(Number(report.targetId));
+        setTargetIsHidden(res.result?.isHide ?? false);
+      } catch { setTargetIsHidden(false); }
+      finally { setLoadingTargetStatus(false); }
+    } else if (report.targetType === "JOB") {
+      setLoadingTargetStatus(true);
+      try {
+        const res = await jobService.getJobDetail(Number(report.targetId));
+        setTargetIsHidden(res.result?.isHide ?? false);
+      } catch { setTargetIsHidden(false); }
+      finally { setLoadingTargetStatus(false); }
+    }
+  };
+
+  const handleToggleJob = async (jobId: string) => {
+    const hide = !targetIsHidden;
+    if (!window.confirm(hide
+      ? "Bạn có chắc muốn ẩn công việc này?"
+      : "Bạn có chắc muốn bỏ ẩn công việc này?")) return;
+    setIsProcessingTarget(true);
+    try {
+      if (hide) await jobService.hideJob(Number(jobId));
+      else await jobService.unhideJob(Number(jobId));
+      setTargetIsHidden(hide);
+      alert(hide ? "Đã ẩn công việc thành công!" : "Đã bỏ ẩn công việc thành công!");
+    } catch (error) {
+      console.error(error);
+      alert("Đã xảy ra lỗi.");
+    } finally {
+      setIsProcessingTarget(false);
+    }
+  };
+
+  const handleTogglePost = async (postId: string) => {
+    const hide = !targetIsHidden;
+    if (!window.confirm(hide
+      ? "Bạn có chắc muốn ẩn bài viết này?"
+      : "Bạn có chắc muốn bỏ ẩn bài viết này?")) return;
+    setIsProcessingTarget(true);
+    try {
+      if (hide) await postService.hidePost(Number(postId));
+      else await postService.unhidePost(Number(postId));
+      setTargetIsHidden(hide);
+      alert(hide ? "Đã ẩn bài viết thành công!" : "Đã bỏ ẩn bài viết thành công!");
+    } catch (error) {
+      console.error(error);
+      alert("Đã xảy ra lỗi.");
+    } finally {
+      setIsProcessingTarget(false);
+    }
+  };
+
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null);
+  const [viewingUser, setViewingUser] = useState<any>(null);
+  const [loadingUser, setLoadingUser] = useState(false);
+
+  const handleViewUser = async (userId: string) => {
+    setViewingUserId(userId);
+    setLoadingUser(true);
+    try {
+      const usersRes = await userService.getAllUsers();
+      const basicUser = usersRes.result?.find((u: any) => u.id === userId);
+      
+      if (!basicUser) {
+        alert("Không tìm thấy thông tin cơ bản của người dùng này.");
+        setLoadingUser(false);
+        return;
+      }
+
+      let detailedUser = { ...basicUser };
+      try {
+        if (basicUser.roleName?.toUpperCase() === "STUDENT") {
+          const res = await userService.getStudentById(userId);
+          if (res.result) detailedUser = { ...detailedUser, ...res.result };
+        } else if (basicUser.roleName?.toUpperCase() === "EMPLOYER") {
+          const res = await userService.getEmployerById(userId);
+          if (res.result) detailedUser = { ...detailedUser, ...res.result };
+        }
+      } catch (err) {
+        console.warn("Could not fetch detailed profile", err);
+      }
+      
+      setViewingUser(detailedUser);
+    } catch (error) {
+      console.error(error);
+      alert("Đã xảy ra lỗi khi tải thông tin người dùng.");
+      setViewingUserId(null);
+    } finally {
+      setLoadingUser(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const fetchReports = async () => {
+    setIsLoading(true);
+    try {
+      const res = await reportService.getAllReports();
+      if (res.result) {
+        setReports(res.result);
+      }
+    } catch (error) {
+      console.error("Failed to fetch reports", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredReports = reports.filter(report => {
     const matchesSearch = 
-      report.targetName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      report.reporterName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.reason.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === "all" || report.status === filterStatus;
+      (report.targetName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) || 
+      (report.reporterName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (report.reason?.toLowerCase() || "").includes(searchTerm.toLowerCase());
+    const matchesFilter = filterStatus === "all" || report.status === filterStatus.toUpperCase();
     return matchesSearch && matchesFilter;
   });
 
   const stats = {
     total: reports.length,
-    pending: reports.filter(r => r.status === "pending").length,
-    reviewing: reports.filter(r => r.status === "reviewing").length,
-    resolved: reports.filter(r => r.status === "resolved").length,
+    pending: reports.filter(r => r.status === "PENDING").length,
+    reviewing: reports.filter(r => r.status === "REVIEWING").length,
+    resolved: reports.filter(r => r.status === "RESOLVED").length,
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "pending": return <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">Chờ xử lý</span>;
-      case "reviewing": return <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">Đang xem xét</span>;
-      case "resolved": return <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Đã giải quyết</span>;
-      case "rejected": return <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">Bị từ chối</span>;
+      case "PENDING": return <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">Chờ xử lý</span>;
+      case "REVIEWING": return <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">Đang xem xét</span>;
+      case "RESOLVED": return <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Đã giải quyết</span>;
+      case "REJECTED": return <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">Bị từ chối</span>;
       default: return null;
     }
   };
 
   const getTargetIcon = (type: string) => {
     switch (type) {
-      case "user": return <UserX className="w-4 h-4 text-red-500" />;
-      case "post": return <FileText className="w-4 h-4 text-orange-500" />;
-      case "comment": return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
+      case "USER": return <UserX className="w-4 h-4 text-red-500" />;
+      case "POST": return <FileText className="w-4 h-4 text-orange-500" />;
+      case "COMMENT": return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
       default: return <Flag className="w-4 h-4 text-gray-500" />;
     }
   };
 
-  const handleUpdateStatus = (newStatus: Report["status"]) => {
+  const handleUpdateStatus = async (newStatus: "PENDING" | "REVIEWING" | "RESOLVED" | "REJECTED") => {
     if (!selectedReport) return;
     
-    setReports(reports.map(r => 
-      r.id === selectedReport.id 
-        ? { ...r, status: newStatus, adminNote } 
-        : r
-    ));
-    setSelectedReport(null);
+    try {
+      await reportService.updateReport(selectedReport.id, {
+        status: newStatus,
+        resolution: adminNote
+      });
+      fetchReports();
+      setSelectedReport(null);
+    } catch (error) {
+      console.error("Failed to update report status", error);
+      alert("Cập nhật thất bại. Vui lòng thử lại.");
+    }
   };
 
   return (
@@ -214,40 +286,48 @@ export default function AdminReport() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredReports.map((report) => (
-                <tr key={report.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="py-4 px-6 font-medium text-gray-900 whitespace-nowrap text-sm">{report.id}</td>
-                  <td className="py-4 px-6 whitespace-nowrap">
-                    <div className="font-medium text-gray-800 text-sm">{report.reporterName}</div>
-                    <div className="text-[11px] text-gray-500">{report.reporterRole}</div>
-                  </td>
-                  <td className="py-4 px-6 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      {getTargetIcon(report.targetType)}
-                      <span className="font-medium text-gray-800 text-sm">{report.targetName}</span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-6 text-sm text-gray-500 whitespace-nowrap">{report.createdAt}</td>
-                  <td className="py-4 px-6 whitespace-nowrap">{getStatusBadge(report.status)}</td>
-                  <td className="py-4 px-6 text-right whitespace-nowrap">
-                    <button 
-                      onClick={() => {
-                        setSelectedReport(report);
-                        setAdminNote(report.adminNote || "");
-                      }}
-                      className="text-red-600 hover:text-red-800 font-medium text-xs bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
-                    >
-                      Xem chi tiết
-                    </button>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-red-500 mx-auto" />
                   </td>
                 </tr>
-              ))}
-              {filteredReports.length === 0 && (
+              ) : filteredReports.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-gray-500">
+                  <td colSpan={6} className="py-12 text-center text-gray-500">
                     Không tìm thấy báo cáo nào phù hợp.
                   </td>
                 </tr>
+              ) : (
+                filteredReports.map((report) => (
+                  <tr key={report.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="py-4 px-6 font-medium text-gray-900 whitespace-nowrap text-sm">RP-{report.id.toString().padStart(3, '0')}</td>
+                    <td className="py-4 px-6 whitespace-nowrap">
+                      <div className="font-medium text-gray-800 text-sm">{report.reporterName}</div>
+                      <div className="text-[11px] text-gray-500">Hệ thống</div>
+                    </td>
+                    <td className="py-4 px-6 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        {getTargetIcon(report.targetType)}
+                        <span className="font-medium text-gray-800 text-sm">{report.targetName}</span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6 text-sm text-gray-500 whitespace-nowrap">{new Date(report.createdAt).toLocaleString("vi-VN")}</td>
+                    <td className="py-4 px-6 whitespace-nowrap">{getStatusBadge(report.status)}</td>
+                    <td className="py-4 px-6 text-right whitespace-nowrap">
+                      <button 
+                        onClick={() => {
+                          setSelectedReport(report);
+                          setAdminNote(report.resolution || "");
+                          loadTargetStatus(report);
+                        }}
+                        className="text-red-600 hover:text-red-800 font-medium text-xs bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                      >
+                        Xem chi tiết
+                      </button>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
@@ -257,8 +337,8 @@ export default function AdminReport() {
       {/* Action Modal */}
       {selectedReport && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <Flag className="w-5 h-5 text-red-500" />
                 Xử lý Báo cáo {selectedReport.id}
@@ -271,12 +351,11 @@ export default function AdminReport() {
               </button>
             </div>
             
-            <div className="p-6">
+            <div className="p-6 overflow-y-auto flex-1">
               <div className="grid grid-cols-2 gap-6 mb-6">
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                   <div className="text-xs text-gray-500 font-medium mb-1 uppercase tracking-wider">Người tố cáo</div>
                   <div className="font-semibold text-gray-900">{selectedReport.reporterName}</div>
-                  <div className="text-sm text-gray-600">{selectedReport.reporterRole}</div>
                 </div>
                 <div className="bg-red-50 p-4 rounded-xl border border-red-100">
                   <div className="text-xs text-red-500 font-medium mb-1 uppercase tracking-wider">Đối tượng vi phạm</div>
@@ -284,7 +363,79 @@ export default function AdminReport() {
                     {getTargetIcon(selectedReport.targetType)}
                     {selectedReport.targetName}
                   </div>
-                  <div className="text-sm text-red-700 capitalize">Loại: {selectedReport.targetType}</div>
+                  <div className="text-sm text-red-700 capitalize mb-2">Loại: {selectedReport.targetType}</div>
+                  
+                  {selectedReport.targetType === "JOB" && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <a href={`/jobs/${selectedReport.targetId}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 hover:underline bg-white/60 px-3 py-1.5 rounded-md border border-blue-100">
+                        <Eye className="w-3 h-3" /> Xem chi tiết
+                      </a>
+                      {loadingTargetStatus ? (
+                        <span className="inline-flex items-center gap-1 text-sm text-gray-500 bg-white/60 px-3 py-1.5 rounded-md border border-gray-200">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Đang tải...
+                        </span>
+                      ) : (
+                        <button 
+                          onClick={() => handleToggleJob(selectedReport.targetId)}
+                          disabled={isProcessingTarget}
+                          className={`inline-flex items-center gap-1 text-sm ${
+                            targetIsHidden 
+                              ? "text-green-600 hover:text-green-800 hover:underline border-green-100" 
+                              : "text-orange-600 hover:text-orange-800 hover:underline border-orange-100"
+                          } bg-white/60 px-3 py-1.5 rounded-md border disabled:opacity-50`}
+                        >
+                          {isProcessingTarget ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : targetIsHidden ? (
+                            <Eye className="w-3 h-3" />
+                          ) : (
+                            <EyeOff className="w-3 h-3" />
+                          )}
+                          {targetIsHidden ? "Bỏ ẩn công việc" : "Ẩn công việc"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {selectedReport.targetType === "POST" && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <a href={`/community/post/${selectedReport.targetId}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 hover:underline bg-white/60 px-3 py-1.5 rounded-md border border-blue-100">
+                        <Eye className="w-3 h-3" /> Xem chi tiết
+                      </a>
+                      {loadingTargetStatus ? (
+                        <span className="inline-flex items-center gap-1 text-sm text-gray-500 bg-white/60 px-3 py-1.5 rounded-md border border-gray-200">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Đang tải...
+                        </span>
+                      ) : (
+                        <button 
+                          onClick={() => handleTogglePost(selectedReport.targetId)}
+                          disabled={isProcessingTarget}
+                          className={`inline-flex items-center gap-1 text-sm ${
+                            targetIsHidden 
+                              ? "text-green-600 hover:text-green-800 hover:underline border-green-100" 
+                              : "text-orange-600 hover:text-orange-800 hover:underline border-orange-100"
+                          } bg-white/60 px-3 py-1.5 rounded-md border disabled:opacity-50`}
+                        >
+                          {isProcessingTarget ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : targetIsHidden ? (
+                            <Eye className="w-3 h-3" />
+                          ) : (
+                            <EyeOff className="w-3 h-3" />
+                          )}
+                          {targetIsHidden ? "Bỏ ẩn bài viết" : "Ẩn bài viết"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {selectedReport.targetType === "USER" && (
+                    <button 
+                      onClick={() => handleViewUser(selectedReport.targetId)}
+                      className="text-sm text-red-800 bg-red-100/60 hover:bg-red-100 p-2.5 rounded-lg mt-2 border border-red-200 w-full text-left flex justify-between items-center transition-colors shadow-sm"
+                    >
+                      <div><span className="font-medium">Mã tài khoản (ID):</span> <span className="font-mono ml-1">{selectedReport.targetId}</span></div>
+                      <Eye className="w-4 h-4 text-red-700" />
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -295,6 +446,20 @@ export default function AdminReport() {
                 </div>
               </div>
 
+              {selectedReport.evidenceUrl && (
+                <div className="mb-6">
+                  <h3 className="font-medium text-gray-900 mb-2">Hình ảnh đính kèm:</h3>
+                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex justify-center">
+                    <img 
+                      src={selectedReport.evidenceUrl} 
+                      alt="Bằng chứng báo cáo" 
+                      className="max-h-64 object-contain rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => window.open(selectedReport.evidenceUrl, '_blank')}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="mb-6">
                 <h3 className="font-medium text-gray-900 mb-2">Ghi chú của Quản trị viên:</h3>
                 <textarea
@@ -304,33 +469,139 @@ export default function AdminReport() {
                   className="w-full h-28 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 resize-none transition-all"
                 />
               </div>
-
-              <div className="flex flex-wrap gap-3 justify-end pt-4 border-t border-gray-100">
+            </div>
+            
+            <div className="p-4 bg-gray-50 border-t border-gray-100 flex flex-wrap gap-3 justify-end shrink-0">
                 <button 
                   onClick={() => setSelectedReport(null)}
-                  className="px-5 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors"
+                  className="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-xl font-medium transition-colors shadow-sm"
                 >
                   Hủy bỏ
                 </button>
                 <button 
-                  onClick={() => handleUpdateStatus("rejected")}
-                  className="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-xl font-medium transition-colors"
+                  onClick={() => handleUpdateStatus("REJECTED")}
+                  className="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-xl font-medium transition-colors shadow-sm"
                 >
                   Từ chối (Bỏ qua)
                 </button>
                 <button 
-                  onClick={() => handleUpdateStatus("reviewing")}
+                  onClick={() => handleUpdateStatus("REVIEWING")}
                   className="px-5 py-2.5 text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-xl font-medium transition-colors"
                 >
                   Chuyển sang Đang xem xét
                 </button>
                 <button 
-                  onClick={() => handleUpdateStatus("resolved")}
+                  onClick={() => handleUpdateStatus("RESOLVED")}
                   className="px-5 py-2.5 text-white bg-red-600 hover:bg-red-700 rounded-xl font-medium shadow-sm transition-colors"
                 >
                   Đánh dấu Đã giải quyết
                 </button>
-              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Details Modal */}
+      {viewingUserId && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <UserX className="w-5 h-5 text-gray-500" />
+                Thông tin người bị báo cáo
+              </h3>
+              <button 
+                onClick={() => { setViewingUserId(null); setViewingUser(null); }}
+                className="p-1 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <XCircle className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              {loadingUser ? (
+                <div className="flex flex-col items-center justify-center py-10">
+                  <Loader2 className="w-8 h-8 animate-spin text-red-500 mb-3" />
+                  <p className="text-gray-500 text-sm">Đang tải thông tin...</p>
+                </div>
+              ) : viewingUser ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-white text-2xl font-bold shadow-inner">
+                      {(viewingUser.fullName || viewingUser.username || "U").charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-gray-900">{viewingUser.fullName || viewingUser.username}</h4>
+                      <div className="text-gray-500 text-sm">{viewingUser.email}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-y-5 gap-x-4 text-sm">
+                    <div>
+                      <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Vai trò</div>
+                      <div className="font-semibold text-gray-900">{viewingUser.roleName || "N/A"}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Trạng thái</div>
+                      <div className="font-semibold">
+                        {viewingUser.isBlocked ? (
+                          <span className="text-red-600 bg-red-50 px-2 py-0.5 rounded">Bị khóa</span>
+                        ) : (
+                          <span className="text-green-600 bg-green-50 px-2 py-0.5 rounded">Hoạt động</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {viewingUser.phoneNumber && (
+                      <div>
+                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Số điện thoại</div>
+                        <div className="font-semibold text-gray-900">{viewingUser.phoneNumber}</div>
+                      </div>
+                    )}
+                    
+                    {viewingUser.dateOfBirth && (
+                      <div>
+                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Ngày sinh</div>
+                        <div className="font-semibold text-gray-900">{new Date(viewingUser.dateOfBirth).toLocaleDateString('vi-VN')}</div>
+                      </div>
+                    )}
+                    
+                    {viewingUser.gender && (
+                      <div>
+                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Giới tính</div>
+                        <div className="font-semibold text-gray-900">{viewingUser.gender}</div>
+                      </div>
+                    )}
+                    
+                    {viewingUser.university && (
+                      <div className="col-span-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Trường học</div>
+                        <div className="font-semibold text-gray-900">{viewingUser.university}</div>
+                      </div>
+                    )}
+                    
+                    {viewingUser.companyName && (
+                      <div className="col-span-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Công ty</div>
+                        <div className="font-semibold text-gray-900">{viewingUser.companyName}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-10 text-gray-500">
+                  Không có thông tin
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+              <button 
+                onClick={() => { setViewingUserId(null); setViewingUser(null); }}
+                className="px-5 py-2 bg-white border border-gray-300 rounded-xl hover:bg-gray-100 transition-colors text-sm font-medium shadow-sm"
+              >
+                Đóng
+              </button>
             </div>
           </div>
         </div>
