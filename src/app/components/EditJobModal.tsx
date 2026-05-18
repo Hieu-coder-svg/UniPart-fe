@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, Briefcase, MapPin, DollarSign, Users, Clock, ImagePlus, Eye, EyeOff, Loader2 } from "lucide-react";
 import { jobService, JobResponse, JobCreationRequest } from "../../services/jobService";
 import { uploadImageToCloudinary } from "../../services/uploadService";
+import { userService } from "../../services/userService";
 import MapPicker from "./MapPicker";
 
 interface EditJobModalProps {
@@ -14,6 +15,7 @@ interface EditJobModalProps {
 export function EditJobModal({ isOpen, onClose, onSuccess, job }: EditJobModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [currentPackage, setCurrentPackage] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [formData, setFormData] = useState<JobCreationRequest & { isHide: boolean }>({
@@ -62,7 +64,7 @@ export function EditJobModal({ isOpen, onClose, onSuccess, job }: EditJobModalPr
       searchTimeoutRef.current = setTimeout(async () => {
         setIsLoadingAddress(true);
         try {
-          const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=5`);
+          const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=5&countrycodes=vn`);
           const data = await response.json();
           setAddressSuggestions(data || []);
           setShowSuggestions(true);
@@ -104,8 +106,16 @@ export function EditJobModal({ isOpen, onClose, onSuccess, job }: EditJobModalPr
         image: job.image
       });
       setImagePreview(job.image || "");
+      
+      userService.getEmployerMyInfo().then(res => {
+        if (res.result) {
+          setCurrentPackage(res.result.currentPackage || "Gói Cơ bản");
+        }
+      }).catch(err => console.error("Failed to fetch employer info", err));
     }
   }, [job, isOpen]);
+
+  const isPremium = currentPackage !== "Gói Cơ bản" && currentPackage !== "Miễn phí" && currentPackage !== "";
 
   if (!isOpen || !job) return null;
 
@@ -153,7 +163,7 @@ export function EditJobModal({ isOpen, onClose, onSuccess, job }: EditJobModalPr
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-100 p-6 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-white border-b border-gray-100 p-6 flex items-center justify-between z-50">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             Chỉnh sửa tin tuyển dụng
           </h2>
@@ -188,15 +198,19 @@ export function EditJobModal({ isOpen, onClose, onSuccess, job }: EditJobModalPr
                   </div>
                </div>
 
-               <div className="flex items-center gap-2">
+               <div className="flex items-start gap-2 pt-0.5">
                 <input
                   type="checkbox"
                   id="urgent"
                   checked={formData.urgent}
+                  disabled={!isPremium}
                   onChange={(e) => setFormData({...formData, urgent: e.target.checked})}
-                  className="w-5 h-5 text-orange-600 rounded focus:ring-orange-500 border-gray-300"
+                  className={`w-5 h-5 rounded border-gray-300 mt-0.5 ${isPremium ? 'text-orange-600 focus:ring-orange-500' : 'text-gray-300 bg-gray-100 cursor-not-allowed'}`}
                 />
-                <label htmlFor="urgent" className="text-sm font-semibold text-gray-700">Tuyển gấp 🔥</label>
+                <div className="flex flex-col">
+                  <label htmlFor="urgent" className={`text-sm font-semibold ${isPremium ? 'text-gray-700' : 'text-gray-400'}`}>Tuyển gấp 🔥</label>
+                  {!isPremium && <span className="text-[10px] text-red-500">Yêu cầu nâng cấp gói</span>}
+                </div>
               </div>
             </div>
 

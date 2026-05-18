@@ -55,6 +55,19 @@ export default function JobDetail() {
   useEffect(() => {
     if (id) {
       fetchJobDetail(Number(id));
+      
+      // Khắc phục tăng 2 lượt xem do React Strict Mode hoặc F5 reload trang
+      const jobIdStr = id.toString();
+      const viewedJobs = JSON.parse(sessionStorage.getItem("viewed_jobs") || "[]");
+      if (!viewedJobs.includes(jobIdStr)) {
+        jobService.incrementViewCount(Number(id))
+          .then(() => {
+            viewedJobs.push(jobIdStr);
+            sessionStorage.setItem("viewed_jobs", JSON.stringify(viewedJobs));
+          })
+          .catch(err => console.error("Failed to increment view count:", err));
+      }
+
       if (user && user.role === "STUDENT") {
         checkApplicationStatus(Number(id));
         fetchStudentInfo();

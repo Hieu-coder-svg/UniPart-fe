@@ -73,6 +73,8 @@ export interface EmployerResponse {
     description?: string;
     rating?: number;
     avatar?: string;
+    remainingPosts?: number;
+    currentPackage?: string;
 }
 
 export interface EmployerUpdateRequest {

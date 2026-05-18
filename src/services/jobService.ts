@@ -28,6 +28,7 @@ export interface JobResponse {
     status: string;
     applicationId?: number;
     appliedAt?: string;
+    viewCount?: number;
 }
 
 export interface JobFilterRequest {
@@ -143,6 +144,11 @@ class JobService {
 
     async getJobDetail(id: number): Promise<ApiResponse<JobResponse>> {
         const response = await this.api.get<ApiResponse<JobResponse>>(`/job/${id}`);
+        return response.data;
+    }
+
+    async incrementViewCount(id: number): Promise<ApiResponse<void>> {
+        const response = await this.api.post<ApiResponse<void>>(`/job/${id}/view`);
         return response.data;
     }
 
