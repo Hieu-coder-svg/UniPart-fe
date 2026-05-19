@@ -261,6 +261,10 @@ export default function JobBrowse() {
       alert("Vui lòng đăng nhập để lưu việc làm!");
       return;
     }
+    if (user.role === "EMPLOYER") {
+      alert("Đăng nhập với tài khoản học sinh để thực hiện chức năng này");
+      return;
+    }
     try {
       if (isJobSaved(jobId)) {
         await unsaveJob(jobId);
@@ -469,11 +473,10 @@ export default function JobBrowse() {
                 </p>
                 <button
                   onClick={() => setFilterByDistance((prev) => !prev)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all border ${
-                    filterByDistance
-                      ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                      : "bg-gray-100 text-gray-600 border-transparent hover:bg-gray-200"
-                  }`}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all border ${filterByDistance
+                    ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                    : "bg-gray-100 text-gray-600 border-transparent hover:bg-gray-200"
+                    }`}
                 >
                   <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
                   Dưới 10 km
@@ -596,8 +599,8 @@ export default function JobBrowse() {
                     <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
                       {recommendedJobs.map((rec) => (
                         <div key={`rec-${rec.job.id}`} className="relative group">
-                          <JobCard 
-                            job={rec.job} 
+                          <JobCard
+                            job={rec.job}
                             isSaved={savedJobIds.has(rec.job.id)}
                             onToggleSave={toggleSaveJob}
                             distance={null}

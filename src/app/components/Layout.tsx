@@ -73,9 +73,10 @@ export default function Layout() {
   };
 
   const handleLogout = () => {
+    const wasEmployer = isEmployer;
     logout();
     setDropdownOpen(false);
-    navigate("/login");
+    navigate(wasEmployer ? "/employer/login" : "/login");
   };
 
   return (
@@ -97,15 +98,15 @@ export default function Layout() {
               {isEmployer ? (
                 <>
                   <Link
-                    to="/employer/dashboard"
+                    to="/jobs"
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                      location.pathname.startsWith("/employer/dashboard")
+                      location.pathname.startsWith("/jobs")
                         ? "bg-gradient-to-r from-orange-100 to-red-100 text-orange-700"
                         : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
                     }`}
                   >
-                    <LayoutDashboard className="w-4 h-4 flex-shrink-0" />
-                    <span>Dashboard</span>
+                    <Briefcase className="w-4 h-4 flex-shrink-0" />
+                    <span>Việc làm</span>
                   </Link>
                   <Link
                     to="/employer/dashboard/jobs"
@@ -187,15 +188,23 @@ export default function Layout() {
                       }`}
                     >
                       {/* Avatar */}
-                      <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm ${
-                          isEmployer
-                            ? "bg-gradient-to-br from-orange-500 to-red-600"
-                            : "bg-gradient-to-br from-blue-500 to-indigo-600"
-                        }`}
-                      >
-                        {(user?.fullName || user?.username || "U").charAt(0).toUpperCase()}
-                      </div>
+                      {user?.avatar ? (
+                        <img 
+                          src={user.avatar} 
+                          alt="Avatar" 
+                          className="w-7 h-7 rounded-full object-cover shadow-sm border border-gray-200" 
+                        />
+                      ) : (
+                        <div
+                          className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm ${
+                            isEmployer
+                              ? "bg-gradient-to-br from-orange-500 to-red-600"
+                              : "bg-gradient-to-br from-blue-500 to-indigo-600"
+                          }`}
+                        >
+                          {(user?.fullName || user?.username || "U").charAt(0).toUpperCase()}
+                        </div>
+                      )}
                       <div className="text-left">
                         <div className={`text-xs font-semibold max-w-[110px] truncate leading-tight ${
                           isEmployer ? "text-orange-700" : isAdmin ? "text-red-700" : "text-blue-700"
@@ -217,13 +226,21 @@ export default function Layout() {
                         {/* User info header */}
                         <div className="px-4 py-3 border-b border-gray-100">
                           <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shadow ${
-                              isEmployer
-                                ? "bg-gradient-to-br from-orange-500 to-red-600"
-                                : "bg-gradient-to-br from-blue-500 to-indigo-600"
-                            }`}>
-                              {(user?.fullName || user?.username || "U").charAt(0).toUpperCase()}
-                            </div>
+                            {user?.avatar ? (
+                              <img 
+                                src={user.avatar} 
+                                alt="Avatar" 
+                                className="w-9 h-9 rounded-full object-cover shadow border border-gray-200" 
+                              />
+                            ) : (
+                              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shadow ${
+                                isEmployer
+                                  ? "bg-gradient-to-br from-orange-500 to-red-600"
+                                  : "bg-gradient-to-br from-blue-500 to-indigo-600"
+                              }`}>
+                                {(user?.fullName || user?.username || "U").charAt(0).toUpperCase()}
+                              </div>
+                            )}
                             <div className="flex-1 min-w-0">
                               <div className="text-sm font-semibold text-gray-900 truncate">
                                 {user?.fullName || user?.username}

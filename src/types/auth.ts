@@ -150,16 +150,19 @@ export interface AuthContextType {
   user: UserResponse | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  error: string;
   login: (username: string, password: string) => Promise<UserResponse>;
-  logout: (request: LogoutRequest) => Promise<ApiResponse<any>>;
-  refreshToken: (request: RefreshRequest) => Promise<ApiResponse<AuthenticationResponse>>;
-  introspect: (request: IntrospectRequest) => Promise<ApiResponse<IntrospectResponse>>;
-  forgotPassword: (request: ForgotPasswordRequest) => Promise<ApiResponse<string>>;
-  changePassword: (request: ChangePasswordRequest) => Promise<ApiResponse<UserResponse>>;
-  registerStudent: (request: StudentRegistrationRequest) => Promise<ApiResponse<StudentResponse>>;
-  registerEmployer: (request: EmployerRegistrationRequest) => Promise<ApiResponse<EmployerResponse>>;
-  verifyOtp: (request: VerifyOTPRequest) => Promise<ApiResponse<string>>;
-  resetOtp: (request: SendOTPRequest) => Promise<ApiResponse<string>>;
+  logout: () => Promise<void>;
+  register: (data: any) => Promise<void>;
+  registerStudent: (data: StudentRegistrationRequest) => Promise<any>;
+  registerEmployer: (data: EmployerRegistrationRequest) => Promise<any>;
+  refreshToken: () => Promise<any>;
+  verifyOtp: (data: VerifyOTPRequest) => Promise<any>;
+  resetOtp: (data: SendOTPRequest) => Promise<any>;
+  forgotPassword: (data: ForgotPasswordRequest) => Promise<any>;
+  changePassword: (oldPassword: string, newPassword: string) => Promise<any>;
+  clearError: () => void;
+  updateUser: (partial: Partial<UserResponse>) => void;
 }
 
 // Theme Types

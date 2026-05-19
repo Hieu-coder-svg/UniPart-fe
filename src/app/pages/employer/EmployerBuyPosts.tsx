@@ -66,7 +66,7 @@ export default function EmployerBuyPosts() {
   };
 
   const monthlyPackages = packages.filter((p) => p.packageType === "MONTHLY");
-  const oneTimePackages = packages.filter((p) => p.packageType === "ONE_TIME");
+  const oneTimePackages = packages.filter((p) => p.packageType === "PAY_PER_TIN" || p.packageType === "ONE_TIME");
 
   const getStatusBadge = (status: string) => {
     switch (status) {

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -25,15 +25,27 @@ function LocationMarker({ position, onPositionChange }: MapPickerProps) {
 
   useMapEvents({
     click(e) {
+      const target = e.originalEvent.target as HTMLElement;
+      if (target.closest('button')) {
+        return;
+      }
       onPositionChange(e.latlng.lat, e.latlng.lng);
       map.flyTo(e.latlng, map.getZoom());
     },
   });
 
+  const prevPosition = useRef<[number, number] | null>(null);
+
   // Automatically fly to position if it changes from outside
   useEffect(() => {
     if (position) {
-      map.setView(position, map.getZoom());
+      const changed = !prevPosition.current || 
+                      prevPosition.current[0] !== position[0] || 
+                      prevPosition.current[1] !== position[1];
+      if (changed) {
+        map.setView(position, map.getZoom());
+        prevPosition.current = [position[0], position[1]];
+      }
     }
   }, [position, map]);
 
@@ -46,6 +58,36 @@ function LocationMarker({ position, onPositionChange }: MapPickerProps) {
   }, [map]);
 
   return position === null ? null : <Marker position={position}></Marker>;
+}
+
+function MapControls({ position }: { position: [number, number] | null }) {
+  const map = useMap();
+  const divRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (divRef.current) {
+      L.DomEvent.disableClickPropagation(divRef.current);
+    }
+  }, []);
+
+  if (!position) return null;
+
+  return (
+    <div ref={divRef} className="absolute bottom-2 right-2 z-[1000]">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          map.setView(position, 16);
+        }}
+        className="bg-white px-3 py-2 rounded-lg shadow-md text-sm font-medium text-orange-600 border border-gray-200 hover:bg-orange-50 transition-colors flex items-center gap-1 cursor-pointer"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4 12H2"/><path d="M22 12h-2"/></svg>
+        Trở về vị trí của bạn
+      </button>
+    </div>
+  );
 }
 
 export default function MapPicker({ position, onPositionChange }: MapPickerProps) {
@@ -65,6 +107,7 @@ export default function MapPicker({ position, onPositionChange }: MapPickerProps
           subdomains={['mt0','mt1','mt2','mt3']}
         />
         <LocationMarker position={position} onPositionChange={onPositionChange} />
+        <MapControls position={position} />
       </MapContainer>
       <div className="absolute top-2 right-2 bg-white/90 px-3 py-1.5 rounded-lg shadow-sm text-xs text-gray-600 font-medium z-[1000] pointer-events-none">
         Click vào bản đồ để chọn vị trí

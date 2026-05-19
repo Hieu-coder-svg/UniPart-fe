@@ -227,9 +227,17 @@ export default function EmployerLayout() {
         {/* User section */}
         <div className="p-4 border-t border-gray-200">
           <div className="flex items-center gap-3 mb-3 p-3 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-600 to-red-600 rounded-full flex items-center justify-center text-white flex-shrink-0">
-              {user?.fullName?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || "E"}
-            </div>
+            {user?.avatar ? (
+              <img 
+                src={user.avatar} 
+                alt="Avatar" 
+                className="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-gray-200" 
+              />
+            ) : (
+              <div className="w-10 h-10 bg-gradient-to-br from-orange-600 to-red-600 rounded-full flex items-center justify-center text-white flex-shrink-0">
+                {user?.fullName?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || "E"}
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium truncate">{user?.fullName || user?.username || "Nhà tuyển dụng"}</div>
               <div className="text-xs text-gray-500 truncate flex items-center gap-1">
@@ -389,9 +397,17 @@ export default function EmployerLayout() {
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
                     className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-lg"
                   >
-                    <div className="w-8 h-8 bg-gradient-to-br from-orange-600 to-red-600 rounded-full flex items-center justify-center text-white text-sm">
-                      {user?.fullName?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || "E"}
-                    </div>
+                    {user?.avatar ? (
+                      <img 
+                        src={user.avatar} 
+                        alt="Avatar" 
+                        className="w-8 h-8 rounded-full object-cover border border-gray-200" 
+                      />
+                    ) : (
+                      <div className="w-8 h-8 bg-gradient-to-br from-orange-600 to-red-600 rounded-full flex items-center justify-center text-white text-sm">
+                        {user?.fullName?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || "E"}
+                      </div>
+                    )}
                     <ChevronDown className="w-4 h-4 text-gray-600" />
                   </button>
 

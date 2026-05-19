@@ -44,7 +44,7 @@ export default function AdminPackages() {
       setEditingPackage(pkg);
       setFormData({
         name: pkg.name,
-        packageType: pkg.packageType as "MONTHLY" | "ONE_TIME",
+        packageType: pkg.packageType as "MONTHLY" | "PAY_PER_TIN",
         price: pkg.price,
         description: pkg.description || "",
         durationDays: pkg.durationDays ?? 30,
@@ -92,8 +92,8 @@ export default function AdminPackages() {
         normalTinsLimit: formData.packageType === "MONTHLY" ? (Number(formData.normalTinsLimit) || 0) : undefined,
         maxNormalTinsPerDay: formData.packageType === "MONTHLY" ? (Number(formData.maxNormalTinsPerDay) || 0) : undefined,
         urgentTinsLimit: formData.packageType === "MONTHLY" ? (Number(formData.urgentTinsLimit) || 0) : undefined,
-        tinType: formData.packageType === "ONE_TIME" ? formData.tinType : undefined,
-        tinQuantity: formData.packageType === "ONE_TIME" ? (Number(formData.tinQuantity) || 1) : undefined,
+        tinType: formData.packageType === "PAY_PER_TIN" || formData.packageType === "ONE_TIME" ? formData.tinType : undefined,
+        tinQuantity: formData.packageType === "PAY_PER_TIN" || formData.packageType === "ONE_TIME" ? (Number(formData.tinQuantity) || 1) : undefined,
       };
 
       if (editingPackage) {
@@ -125,7 +125,7 @@ export default function AdminPackages() {
   };
 
   const monthlyPackages = packages.filter((p) => p.packageType === "MONTHLY");
-  const oneTimePackages = packages.filter((p) => p.packageType === "ONE_TIME");
+  const oneTimePackages = packages.filter((p) => p.packageType === "PAY_PER_TIN" || p.packageType === "ONE_TIME");
 
   return (
     <div className="p-6 md:p-8">
@@ -348,7 +348,7 @@ export default function AdminPackages() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                 >
                   <option value="MONTHLY">Theo tháng (Monthly)</option>
-                  <option value="ONE_TIME">Mua lẻ (One-time)</option>
+                  <option value="PAY_PER_TIN">Mua lẻ (One-time)</option>
                 </select>
               </div>
 

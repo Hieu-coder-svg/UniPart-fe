@@ -303,6 +303,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setError("");
   }, []);
 
+  const updateUser = useCallback((partial: Partial<UserResponse>) => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...partial };
+      localStorage.setItem(USER_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
@@ -319,6 +328,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     forgotPassword,
     changePassword,
     clearError,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
