@@ -16,6 +16,8 @@ export function EditJobModal({ isOpen, onClose, onSuccess, job }: EditJobModalPr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [currentPackage, setCurrentPackage] = useState<string>("");
+  const [remainingUrgentPosts, setRemainingUrgentPosts] = useState<number | null>(null);
+  const [remainingMonthlyUrgentPosts, setRemainingMonthlyUrgentPosts] = useState<number | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [formData, setFormData] = useState<JobCreationRequest & { isHide: boolean }>({
@@ -106,12 +108,22 @@ export function EditJobModal({ isOpen, onClose, onSuccess, job }: EditJobModalPr
         image: job.image
       });
       setImagePreview(job.image || "");
+      const fetchInfo = () => {
+        userService.getEmployerMyInfo().then(res => {
+          if (res.result) {
+            setCurrentPackage(res.result.currentPackage || "Gói Cơ bản");
+            setRemainingUrgentPosts(res.result.remainingUrgentPosts !== undefined ? res.result.remainingUrgentPosts : 0);
+            setRemainingMonthlyUrgentPosts(res.result.remainingMonthlyUrgentPosts !== undefined ? res.result.remainingMonthlyUrgentPosts : 0);
+          }
+        }).catch(err => console.error("Failed to fetch employer info", err));
+      };
+
+      fetchInfo();
       
-      userService.getEmployerMyInfo().then(res => {
-        if (res.result) {
-          setCurrentPackage(res.result.currentPackage || "Gói Cơ bản");
-        }
-      }).catch(err => console.error("Failed to fetch employer info", err));
+      window.addEventListener('focus', fetchInfo);
+      return () => {
+        window.removeEventListener('focus', fetchInfo);
+      };
     }
   }, [job, isOpen]);
 
@@ -121,6 +133,14 @@ export function EditJobModal({ isOpen, onClose, onSuccess, job }: EditJobModalPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!job.urgent && formData.urgent) {
+      if ((remainingUrgentPosts === null || remainingUrgentPosts <= 0) && (remainingMonthlyUrgentPosts === null || remainingMonthlyUrgentPosts <= 0)) {
+        setError("Bạn đã hết lượt đăng tin tuyển gấp. Vui lòng mua thêm gói để tiếp tục.");
+        return;
+      }
+    }
+
     setLoading(true);
     setError("");
     try {
@@ -203,13 +223,19 @@ export function EditJobModal({ isOpen, onClose, onSuccess, job }: EditJobModalPr
                   type="checkbox"
                   id="urgent"
                   checked={formData.urgent}
-                  disabled={!isPremium}
+                  disabled={!job.urgent && (remainingUrgentPosts === null || remainingUrgentPosts <= 0) && (remainingMonthlyUrgentPosts === null || remainingMonthlyUrgentPosts <= 0)}
                   onChange={(e) => setFormData({...formData, urgent: e.target.checked})}
-                  className={`w-5 h-5 rounded border-gray-300 mt-0.5 ${isPremium ? 'text-orange-600 focus:ring-orange-500' : 'text-gray-300 bg-gray-100 cursor-not-allowed'}`}
+                  className={`w-5 h-5 rounded border-gray-300 mt-0.5 ${job.urgent || (remainingUrgentPosts && remainingUrgentPosts > 0) || (remainingMonthlyUrgentPosts && remainingMonthlyUrgentPosts > 0) ? 'text-orange-600 focus:ring-orange-500 cursor-pointer' : 'text-gray-300 bg-gray-100 cursor-not-allowed'}`}
                 />
                 <div className="flex flex-col">
-                  <label htmlFor="urgent" className={`text-sm font-semibold ${isPremium ? 'text-gray-700' : 'text-gray-400'}`}>Tuyển gấp 🔥</label>
-                  {!isPremium && <span className="text-[10px] text-red-500">Yêu cầu nâng cấp gói</span>}
+                  <label htmlFor="urgent" className={`text-sm font-semibold ${job.urgent || (remainingUrgentPosts && remainingUrgentPosts > 0) || (remainingMonthlyUrgentPosts && remainingMonthlyUrgentPosts > 0) ? 'text-gray-700 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}>
+                    Tuyển gấp 🔥 {!job.urgent && ((remainingUrgentPosts !== null && remainingUrgentPosts > 0) || (remainingMonthlyUrgentPosts !== null && remainingMonthlyUrgentPosts > 0)) ? `(Còn ${remainingUrgentPosts} tin lẻ, ${remainingMonthlyUrgentPosts} tin gói tháng)` : ''}
+                  </label>
+                  {!job.urgent && (!remainingUrgentPosts || remainingUrgentPosts <= 0) && (!remainingMonthlyUrgentPosts || remainingMonthlyUrgentPosts <= 0) && (
+                    <span className="text-[10px] text-red-500">
+                      Yêu cầu nâng cấp gói. <a href="/employer/dashboard/buy-posts" target="_blank" rel="noopener noreferrer" className="underline hover:text-red-700">Mua ngay</a>
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -317,15 +343,15 @@ export function EditJobModal({ isOpen, onClose, onSuccess, job }: EditJobModalPr
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mức lương (VNĐ) *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mức lương (VNĐ)/giờ làm *</label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">₫</span>
                   <input
                     type="number"
                     min="0"
                     required
-                    value={formData.salary}
-                    onChange={(e) => setFormData({...formData, salary: parseInt(e.target.value) || 0})}
+                    value={formData.salary === 0 ? '' : formData.salary}
+                    onChange={(e) => setFormData({...formData, salary: e.target.value === '' ? 0 : parseInt(e.target.value)})}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -338,9 +364,9 @@ export function EditJobModal({ isOpen, onClose, onSuccess, job }: EditJobModalPr
                   <input
                     type="datetime-local"
                     required
+                    disabled
                     value={formData.expiredAt}
-                    onChange={(e) => setFormData({...formData, expiredAt: e.target.value})}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed"
                   />
                 </div>
               </div>

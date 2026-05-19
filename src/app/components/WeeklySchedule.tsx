@@ -8,11 +8,11 @@ interface WeeklyScheduleProps {
   isLoading?: boolean;
 }
 
-export default function WeeklySchedule({ 
-  editable = true, 
-  busySlots = {}, 
+export default function WeeklySchedule({
+  editable = true,
+  busySlots = {},
   onSave,
-  isLoading = false 
+  isLoading = false
 }: WeeklyScheduleProps) {
   const days = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"];
   const hours = Array.from({ length: 16 }, (_, i) => i + 6); // 6am to 9pm (6, 7, 8, ..., 21)
@@ -136,13 +136,13 @@ export default function WeeklySchedule({
           <div className="flex items-start gap-2 text-sm text-gray-500 mt-1">
             <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <p>
-              {editable 
+              {editable
                 ? "Đánh dấu những khoảng thời gian bạn phải đi học hoặc bận việc riêng. Hệ thống sẽ tự động lọc các công việc không trùng lịch."
                 : "Thời gian bận của sinh viên (không thể nhận việc)"}
             </p>
           </div>
         </div>
-        
+
         {editable && (
           <div className="flex gap-2">
             <button onClick={selectAll} className="px-3 py-1.5 text-xs bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 transition-colors font-medium border border-orange-100">
@@ -180,9 +180,8 @@ export default function WeeklySchedule({
                 key={day}
                 onClick={() => toggleDay(dayIndex)}
                 disabled={!editable}
-                className={`p-3 text-center text-xs font-bold border-r border-gray-100 last:border-r-0 ${
-                  editable ? 'hover:bg-orange-50 cursor-pointer transition-colors' : 'cursor-default'
-                } ${dayIndex === 6 ? 'text-red-500' : 'text-gray-700'}`}
+                className={`p-3 text-center text-xs font-bold border-r border-gray-100 last:border-r-0 ${editable ? 'hover:bg-orange-50 cursor-pointer transition-colors' : 'cursor-default'
+                  } ${dayIndex === 6 ? 'text-red-500' : 'text-gray-700'}`}
               >
                 {day}
               </button>
@@ -194,9 +193,8 @@ export default function WeeklySchedule({
               <button
                 onClick={() => toggleHour(hourIndex)}
                 disabled={!editable}
-                className={`p-2 text-[10px] font-bold text-gray-500 border-r border-gray-100 flex items-center justify-center bg-gray-50/50 ${
-                  editable ? 'hover:bg-orange-50 cursor-pointer transition-colors' : 'cursor-default'
-                }`}
+                className={`p-2 text-[10px] font-bold text-gray-500 border-r border-gray-100 flex items-center justify-center bg-gray-50/50 ${editable ? 'hover:bg-orange-50 cursor-pointer transition-colors' : 'cursor-default'
+                  }`}
               >
                 {hour}:00
               </button>
@@ -208,11 +206,10 @@ export default function WeeklySchedule({
                   onMouseEnter={() => handleMouseEnter(dayIndex, hourIndex)}
                   onMouseUp={handleMouseUp}
                   disabled={!editable}
-                  className={`p-2 border-r border-gray-100 last:border-r-0 transition-all h-10 ${
-                    schedule[dayIndex][hourIndex]
-                      ? 'bg-orange-500 hover:bg-orange-600 shadow-inner'
-                      : 'bg-white hover:bg-orange-50'
-                  } ${editable ? 'cursor-pointer' : 'cursor-default'}`}
+                  className={`p-2 border-r border-gray-100 last:border-r-0 transition-all h-10 ${schedule[dayIndex][hourIndex]
+                    ? 'bg-orange-500 hover:bg-orange-600 shadow-inner'
+                    : 'bg-white hover:bg-orange-50'
+                    } ${editable ? 'cursor-pointer' : 'cursor-default'}`}
                 />
               ))}
             </div>
@@ -222,7 +219,7 @@ export default function WeeklySchedule({
 
       {editable && onSave && (
         <div className="pt-4">
-          <button 
+          <button
             onClick={handleSave}
             disabled={isLoading}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg hover:shadow-blue-200 disabled:opacity-50"
@@ -234,4 +231,4 @@ export default function WeeklySchedule({
       )}
     </div>
   );
-}
+}

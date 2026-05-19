@@ -18,24 +18,28 @@ import { useNotifications } from "../../contexts/NotificationContext";
 import { Link } from "react-router";
 import { jobService, JobResponse } from "../../../services/jobService";
 import { applicationService, ApplicationResponse } from "../../../services/applicationService";
+import { userService, EmployerResponse } from "../../../services/userService";
 
 export default function EmployerDashboard() {
   const { user } = useAuth();
 
   const [jobs, setJobs] = useState<JobResponse[]>([]);
   const [applications, setApplications] = useState<ApplicationResponse[]>([]);
+  const [employerInfo, setEmployerInfo] = useState<EmployerResponse | null>(null);
   const { notifications } = useNotifications();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [jobsRes, appsRes] = await Promise.all([
-          jobService.getMyJobPost(),
-          applicationService.getEmployerApplications()
+        const [jobsRes, appsRes, empRes] = await Promise.all([
+          jobService.getMyJobPost().catch(e => { console.error("Jobs error:", e); return { result: [] }; }),
+          applicationService.getEmployerApplications().catch(e => { console.error("Apps error:", e); return { result: [] }; }),
+          userService.getEmployerMyInfo().catch(e => { console.error("Emp error:", e); return { result: null }; })
         ]);
         if (jobsRes.result) setJobs(jobsRes.result);
         if (appsRes.result) setApplications(appsRes.result);
+        if (empRes.result) setEmployerInfo(empRes.result);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
@@ -45,10 +49,10 @@ export default function EmployerDashboard() {
     fetchData();
   }, []);
 
-  const activeJobsCount = jobs.filter(j => j.status === 'APPROVED' && new Date(j.expiredAt) > new Date()).length;
+  const activeJobsCount = jobs.filter(j => !j.isHide && new Date(j.expiredAt) > new Date()).length;
   const totalApplicantsCount = new Set(applications.map(a => a.studentId)).size;
-  const expiringJobsCount = jobs.filter(j => j.status === 'APPROVED' && new Date(j.expiredAt) < new Date(Date.now() + 7 * 86400000) && new Date(j.expiredAt) > new Date()).length;
-  const unreadNotificationsCount = notifications.filter(n => !n.isRead).length;
+  const expiringJobsCount = jobs.filter(j => !j.isHide && new Date(j.expiredAt) < new Date(Date.now() + 86400000) && new Date(j.expiredAt) > new Date()).length;
+  const totalViews = jobs.reduce((sum, job) => sum + (job.viewCount || 0), 0);
 
   const stats = [
     {
@@ -79,11 +83,11 @@ export default function EmployerDashboard() {
       bgGradient: "from-purple-500 to-purple-600",
     },
     {
-      label: "Thông báo chưa đọc",
-      value: unreadNotificationsCount.toString(),
+      label: "Tổng lượt xem",
+      value: totalViews.toString(),
       change: "Thực tế",
       trend: "up",
-      icon: MessageSquare,
+      icon: TrendingUp,
       color: "orange",
       bgGradient: "from-orange-500 to-orange-600",
     },
@@ -95,7 +99,7 @@ export default function EmployerDashboard() {
     .map(job => ({
       id: job.id,
       title: job.title,
-      status: new Date(job.expiredAt) < new Date() ? "expired" : new Date(job.expiredAt) < new Date(Date.now() + 7 * 86400000) ? "expiring" : "active",
+      status: new Date(job.expiredAt) < new Date() ? "expired" : new Date(job.expiredAt) < new Date(Date.now() + 86400000) ? "expiring" : "active",
       applicants: applications.filter(a => a.jobId === job.id).length,
       postedDate: job.createdAt,
       urgent: job.urgent,
@@ -158,9 +162,44 @@ export default function EmployerDashboard() {
           <h1 className="text-3xl mb-2">
             Chào mừng trở lại, {user?.fullName || user?.username || "Nhà tuyển dụng"}! 👋
           </h1>
-          <p className="text-orange-100 text-lg">
+          <p className="text-orange-100 text-lg mb-6">
             Hôm nay bạn có {activeJobsCount} tin đang hoạt động và {new Set(applications.filter(a => a.status === 'PENDING').map(a => a.studentId)).size} ứng viên chờ duyệt
           </p>
+
+          {employerInfo && (
+            <div className="flex flex-wrap gap-4 mt-4">
+              <div className="bg-white/20 rounded-xl px-5 py-3 backdrop-blur-sm border border-white/10 shadow-sm flex flex-col">
+                <span className="text-orange-100 text-xs font-medium uppercase tracking-wider mb-1">Gói hiện tại</span>
+                <span className="font-bold text-2xl text-white">{employerInfo.currentPackage || "Cơ bản"}</span>
+              </div>
+              <div className="bg-white/20 rounded-xl px-5 py-3 backdrop-blur-sm border border-white/10 shadow-sm flex flex-col">
+                <span className="text-orange-100 text-xs font-medium uppercase tracking-wider mb-1">Tin thường</span>
+                <span className="font-bold text-2xl text-white">{employerInfo.remainingPosts || 0}</span>
+              </div>
+              <div className="bg-white/20 rounded-xl px-5 py-3 backdrop-blur-sm border border-white/10 shadow-sm flex flex-col">
+                <span className="text-orange-100 text-xs font-medium uppercase tracking-wider mb-1">Tin gấp</span>
+                <span className="font-bold text-2xl text-white">{employerInfo.remainingUrgentPosts || 0}</span>
+              </div>
+              {employerInfo.remainingMonthlyPosts !== undefined && employerInfo.remainingMonthlyPosts > 0 && (
+                <div className="bg-white/20 rounded-xl px-5 py-3 backdrop-blur-sm border border-white/10 shadow-sm flex flex-col">
+                  <span className="text-orange-100 text-xs font-medium uppercase tracking-wider mb-1">Tin tháng</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="font-bold text-2xl text-white">{employerInfo.remainingMonthlyPosts}</span>
+                    <span className="text-sm font-medium text-white/80">tin / ngày</span>
+                  </div>
+                </div>
+              )}
+              {employerInfo.remainingMonthlyUrgentPosts !== undefined && employerInfo.remainingMonthlyUrgentPosts > 0 && (
+                <div className="bg-white/20 rounded-xl px-5 py-3 backdrop-blur-sm border border-white/10 shadow-sm flex flex-col">
+                  <span className="text-orange-100 text-xs font-medium uppercase tracking-wider mb-1">Tin tháng gấp</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="font-bold text-2xl text-white">{employerInfo.remainingMonthlyUrgentPosts}</span>
+                    <span className="text-sm font-medium text-white/80">tin / ngày</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

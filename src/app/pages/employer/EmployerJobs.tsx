@@ -12,7 +12,7 @@ export default function EmployerJobs() {
   const [activeTab, setActiveTab] = useState<"all" | "active" | "expired">("all");
   const [jobs, setJobs] = useState<JobResponse[]>([]);
   const [applications, setApplications] = useState<ApplicationResponse[]>([]);
-  const [packageInfo, setPackageInfo] = useState<{ currentPackage: string; remainingPosts: number } | null>(null);
+  const [packageInfo, setPackageInfo] = useState<{ currentPackage: string; remainingPosts: number; remainingUrgentPosts: number; remainingMonthlyPosts: number; remainingMonthlyUrgentPosts: number; monthlyMaxPostsPerDay: number | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -34,7 +34,11 @@ export default function EmployerJobs() {
       if (employerRes.result) {
         setPackageInfo({
           currentPackage: employerRes.result.currentPackage || "Gói Cơ bản",
-          remainingPosts: employerRes.result.remainingPosts !== undefined ? employerRes.result.remainingPosts : 0
+          remainingPosts: employerRes.result.remainingPosts !== undefined ? employerRes.result.remainingPosts : 0,
+          remainingUrgentPosts: employerRes.result.remainingUrgentPosts !== undefined ? employerRes.result.remainingUrgentPosts : 0,
+          remainingMonthlyPosts: employerRes.result.remainingMonthlyPosts !== undefined ? employerRes.result.remainingMonthlyPosts : 0,
+          remainingMonthlyUrgentPosts: employerRes.result.remainingMonthlyUrgentPosts !== undefined ? employerRes.result.remainingMonthlyUrgentPosts : 0,
+          monthlyMaxPostsPerDay: employerRes.result.monthlyMaxPostsPerDay !== undefined ? employerRes.result.monthlyMaxPostsPerDay : null
         });
       }
     } catch (error) {
@@ -110,11 +114,22 @@ export default function EmployerJobs() {
             </div>
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Gói hiện tại</p>
-              <div className="flex items-center gap-3">
-                <h2 className="text-lg font-bold text-gray-900">{packageInfo.currentPackage}</h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-md border border-blue-100 flex items-center gap-1">
+                  <Package className="w-3.5 h-3.5" />
+                  Tin thường (lẻ): {packageInfo.remainingPosts}
+                </span>
                 <span className="px-2.5 py-1 bg-orange-50 text-orange-700 text-xs font-semibold rounded-md border border-orange-100 flex items-center gap-1">
                   <Zap className="w-3.5 h-3.5" />
-                  Còn {packageInfo.remainingPosts} lượt đăng
+                  Tin gấp (lẻ): {packageInfo.remainingUrgentPosts}
+                </span>
+                <span className="px-2.5 py-1 bg-purple-50 text-purple-700 text-xs font-semibold rounded-md border border-purple-100 flex items-center gap-1">
+                  <Package className="w-3.5 h-3.5" />
+                  Tin thường trong ngày (gói tháng): {packageInfo.remainingMonthlyPosts}
+                </span>
+                <span className="px-2.5 py-1 bg-pink-50 text-pink-700 text-xs font-semibold rounded-md border border-pink-100 flex items-center gap-1">
+                  <Zap className="w-3.5 h-3.5" />
+                  Tin gấp (gói tháng): {packageInfo.remainingMonthlyUrgentPosts}
                 </span>
               </div>
             </div>
@@ -209,7 +224,18 @@ export default function EmployerJobs() {
                   {job.employerName?.charAt(0) || "U"}
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900 mb-1">{job.title}</h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-base font-semibold text-gray-900">{job.title}</h3>
+                    {job.urgent ? (
+                      <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-bold rounded flex items-center gap-1 uppercase tracking-wide">
+                        🔥 Tuyển gấp
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded uppercase tracking-wide">
+                        Tin thường
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-gray-500 mb-3">{job.employerName}</p>
                   <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                     <div className="flex items-center gap-1.5">

@@ -55,7 +55,7 @@ export default function JobDetail() {
   useEffect(() => {
     if (id) {
       fetchJobDetail(Number(id));
-      
+
       // Khắc phục tăng 2 lượt xem do React Strict Mode hoặc F5 reload trang
       const jobIdStr = id.toString();
       const viewedJobs = JSON.parse(sessionStorage.getItem("viewed_jobs") || "[]");
@@ -90,7 +90,7 @@ export default function JobDetail() {
     try {
       const studentRes = await userService.getStudentMyInfo();
       if (!studentRes.result) return;
-      
+
       const res = await jobService.getStudentJobHistory(studentRes.result.id);
       if (res.result) {
         // jobService.getStudentJobHistory returns JobResponse[] where id is jobId, and applicationId is the application's ID.
@@ -170,6 +170,10 @@ export default function JobDetail() {
       alert("Vui lòng đăng nhập để lưu việc làm!");
       return;
     }
+    if (user.role === "EMPLOYER") {
+      alert("Đăng nhập với tài khoản học sinh để thực hiện chức năng này");
+      return;
+    }
     if (!job) return;
 
     setIsSaving(true);
@@ -191,8 +195,12 @@ export default function JobDetail() {
       alert("Vui lòng đăng nhập để ứng tuyển!");
       return;
     }
+    if (user.role === "EMPLOYER") {
+      alert("Đăng nhập với tài khoản học sinh để thực hiện chức năng này");
+      return;
+    }
     if (!job) return;
-    
+
     if (cooldownRemaining > 0) {
       alert("Bạn phải chờ hết thời gian đếm ngược mới được ứng tuyển lại!");
       return;
@@ -227,14 +235,14 @@ export default function JobDetail() {
       await applicationService.deleteApplyJob(applicationId);
       setHasApplied(false);
       setApplicationId(null);
-      
+
       // Set 5 minutes cooldown (5 * 60 * 1000)
       if (job) {
         const cooldownUntil = new Date().getTime() + 5 * 60 * 1000;
         localStorage.setItem(`cooldown_job_${job.id}`, cooldownUntil.toString());
         setCooldownRemaining(5 * 60);
       }
-      
+
       alert("Bạn đã hủy ứng tuyển thành công. Vui lòng đợi 5 phút để có thể ứng tuyển lại công việc này.");
     } catch (error: any) {
       alert(error.message || "Hủy ứng tuyển thất bại. Vui lòng thử lại sau.");
@@ -361,7 +369,7 @@ export default function JobDetail() {
                     </span>
                   )}
                 </div>
-                <h3 
+                <h3
                   className="text-gray-600 font-medium hover:text-blue-600 cursor-pointer inline-flex items-center gap-1.5 transition-colors"
                   onClick={handleViewEmployer}
                   title="Xem thông tin nhà tuyển dụng"
@@ -374,7 +382,7 @@ export default function JobDetail() {
                 <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                   <Share2 className="w-5 h-5 text-gray-600" />
                 </button>
-                <button 
+                <button
                   onClick={handleToggleSave}
                   disabled={isSaving}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -385,7 +393,7 @@ export default function JobDetail() {
                     <Bookmark className={`w-5 h-5 ${job && isJobSaved(job.id) ? "fill-blue-600 text-blue-600" : "text-gray-600"}`} />
                   )}
                 </button>
-                <button 
+                <button
                   onClick={() => setReportTarget({ type: "JOB", targetId: job.id.toString(), title: "Báo cáo công việc" })}
                   className="p-2 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
                   title="Báo cáo công việc"
@@ -395,7 +403,7 @@ export default function JobDetail() {
               </div>
             </div>
 
-            <div 
+            <div
               className="flex items-center gap-2 mb-6 cursor-pointer hover:bg-gray-50 p-2 -ml-2 rounded-lg transition-colors inline-flex"
               onClick={() => setIsReviewsModalOpen(true)}
               title="Nhấn để xem đánh giá về nhà tuyển dụng"
@@ -452,7 +460,7 @@ export default function JobDetail() {
                       </div>
                     ) : (
                       <div className="text-[10px] text-gray-400 italic text-right">
-                        {studentInfo?.latitude == null || studentInfo?.longitude == null 
+                        {studentInfo?.latitude == null || studentInfo?.longitude == null
                           ? "Cập nhật vị trí hồ sơ để xem khoảng cách"
                           : "Công việc này chưa có tọa độ vị trí"}
                       </div>
@@ -488,7 +496,7 @@ export default function JobDetail() {
                 )}
               </button>
             ) : cooldownRemaining > 0 ? (
-              <button 
+              <button
                 disabled
                 className="w-full flex items-center justify-center bg-gray-300 text-gray-600 py-3 rounded-lg font-semibold cursor-not-allowed"
               >
@@ -496,7 +504,7 @@ export default function JobDetail() {
                 Thử lại sau {Math.floor(cooldownRemaining / 60)}:{(cooldownRemaining % 60).toString().padStart(2, '0')}
               </button>
             ) : (
-              <button 
+              <button
                 onClick={handleApply}
                 disabled={isApplying}
                 className="w-full flex items-center justify-center bg-gradient-to-r from-cyan-500 to-blue-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
@@ -597,11 +605,11 @@ export default function JobDetail() {
                 placeholder="Nhập lý do báo cáo..."
                 className="w-full border border-gray-300 rounded-lg p-3 h-32 focus:outline-none focus:ring-2 focus:ring-red-500 mb-4"
               />
-              
+
               {reportEvidence && (
                 <div className="relative mb-4">
                   <img src={reportEvidence} alt="Bằng chứng" className="max-h-40 rounded-lg object-contain border border-gray-200" />
-                  <button 
+                  <button
                     onClick={() => setReportEvidence(null)}
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                   >
@@ -663,7 +671,7 @@ export default function JobDetail() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto flex-1">
               {isLoadingEmployer ? (
                 <div className="flex flex-col items-center justify-center py-12">
@@ -728,7 +736,7 @@ export default function JobDetail() {
                 </div>
               )}
             </div>
-            
+
             <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
               <button
                 onClick={() => {
@@ -762,7 +770,7 @@ export default function JobDetail() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto flex-1">
               {reviews.length === 0 ? (
                 <div className="text-center py-10 text-gray-500">
@@ -798,7 +806,7 @@ export default function JobDetail() {
                 </div>
               )}
             </div>
-            
+
             <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
               <button
                 onClick={() => setIsReviewsModalOpen(false)}

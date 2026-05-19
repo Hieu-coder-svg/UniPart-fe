@@ -2,7 +2,7 @@ import { apiClient } from "./apiClient";
 
 export interface PackageRequest {
   name: string;
-  packageType: "MONTHLY" | "ONE_TIME";
+  packageType: "MONTHLY" | "PAY_PER_TIN";
   price: number;
   description?: string;
   durationDays?: number;

@@ -1,10 +1,22 @@
 import { useState, useRef, useEffect } from "react";
-import { X, Briefcase, MapPin, DollarSign, Users, Clock, ImagePlus, Loader2, AlertTriangle } from "lucide-react";
+import { X, Briefcase, MapPin, DollarSign, Users, Clock, ImagePlus, Loader2, AlertTriangle, Package, Zap } from "lucide-react";
 import { jobService, JobCreationRequest } from "../../services/jobService";
 import { uploadImageToCloudinary } from "../../services/uploadService";
 import { userService } from "../../services/userService";
 import { Link } from "react-router";
 import MapPicker from "./MapPicker";
+
+const getLocalExpiryDate = () => {
+  const date = new Date();
+  date.setDate(date.getDate() + 7);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 interface CreateJobModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -15,6 +27,9 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [remainingPosts, setRemainingPosts] = useState<number | null>(null);
+  const [remainingUrgentPosts, setRemainingUrgentPosts] = useState<number | null>(null);
+  const [remainingMonthlyPosts, setRemainingMonthlyPosts] = useState<number | null>(null);
+  const [remainingMonthlyUrgentPosts, setRemainingMonthlyUrgentPosts] = useState<number | null>(null);
   const [currentPackage, setCurrentPackage] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
@@ -28,7 +43,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
     locationLatitude: undefined,
     locationLongitude: undefined,
     salary: 0,
-    expiredAt: new Date(Date.now() + 7 * 86400000).toISOString().split('.')[0], // default 7 days
+    expiredAt: getLocalExpiryDate(),
     timeSlots: []
   });
 
@@ -45,9 +60,12 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
       const data = await response.json();
       if (data && data.display_name) {
         setFormData(prev => ({ ...prev, address: data.display_name }));
+      } else {
+        setFormData(prev => ({ ...prev, address: `Tọa độ: ${lat.toFixed(4)}, ${lng.toFixed(4)}` }));
       }
     } catch (error) {
       console.error("Failed to fetch address", error);
+      setFormData(prev => ({ ...prev, address: `Tọa độ: ${lat.toFixed(4)}, ${lng.toFixed(4)}` }));
     }
   };
 
@@ -88,14 +106,40 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
   };
 
   useEffect(() => {
-    if (isOpen) {
+    const fetchInfo = () => {
       userService.getEmployerMyInfo().then(res => {
         if (res.result) {
-          // If remainingPosts is undefined from BE, default to 0 to simulate the requirement
           setRemainingPosts(res.result.remainingPosts !== undefined ? res.result.remainingPosts : 0);
+          setRemainingUrgentPosts(res.result.remainingUrgentPosts !== undefined ? res.result.remainingUrgentPosts : 0);
+          setRemainingMonthlyPosts(res.result.remainingMonthlyPosts !== undefined ? res.result.remainingMonthlyPosts : 0);
+          setRemainingMonthlyUrgentPosts(res.result.remainingMonthlyUrgentPosts !== undefined ? res.result.remainingMonthlyUrgentPosts : 0);
           setCurrentPackage(res.result.currentPackage || "Gói Cơ bản");
         }
       }).catch(err => console.error("Failed to fetch employer info", err));
+    };
+
+    if (isOpen) {
+      setFormData({
+        title: "",
+        description: "",
+        workingShift: "Full-time",
+        vacancies: 1,
+        urgent: false,
+        address: "",
+        locationLatitude: undefined,
+        locationLongitude: undefined,
+        salary: 0,
+        expiredAt: getLocalExpiryDate(),
+        timeSlots: []
+      });
+      setImageFile(null);
+      setImagePreview("");
+      fetchInfo();
+      
+      window.addEventListener('focus', fetchInfo);
+      return () => {
+        window.removeEventListener('focus', fetchInfo);
+      };
     }
   }, [isOpen]);
 
@@ -105,9 +149,16 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (remainingPosts !== null && remainingPosts <= 0) {
-      setError("Bạn đã hết lượt đăng tin. Vui lòng mua thêm gói để tiếp tục.");
-      return;
+    if (formData.urgent) {
+      if ((remainingUrgentPosts === null || remainingUrgentPosts <= 0) && (remainingMonthlyUrgentPosts === null || remainingMonthlyUrgentPosts <= 0)) {
+        setError("Bạn đã hết lượt đăng tin tuyển gấp. Vui lòng mua thêm gói để tiếp tục.");
+        return;
+      }
+    } else {
+      if ((remainingPosts === null || remainingPosts <= 0) && (remainingMonthlyPosts === null || remainingMonthlyPosts <= 0)) {
+        setError("Bạn đã hết lượt đăng tin bình thường. Vui lòng mua thêm gói để tiếp tục.");
+        return;
+      }
     }
     setLoading(true);
     setError("");
@@ -126,7 +177,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
     }
   };
 
-  const isOutOfPosts = remainingPosts !== null && remainingPosts <= 0;
+  const isOutOfPosts = remainingPosts !== null && remainingUrgentPosts !== null && remainingMonthlyPosts !== null && remainingMonthlyUrgentPosts !== null && remainingPosts <= 0 && remainingUrgentPosts <= 0 && remainingMonthlyPosts <= 0 && remainingMonthlyUrgentPosts <= 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -159,17 +210,60 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
           </div>
         ) : (
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {remainingPosts !== null && remainingPosts > 0 && (
-            <div className="p-4 bg-blue-50 text-blue-700 rounded-xl text-sm font-medium flex justify-between items-center">
-              <span>Bạn còn <strong>{remainingPosts}</strong> lượt đăng tin.</span>
-              <Link to="/employer/dashboard/buy-posts" onClick={onClose} className="text-blue-600 hover:underline">Mua thêm</Link>
+          {(remainingPosts !== null && remainingPosts > 0) || (remainingUrgentPosts !== null && remainingUrgentPosts > 0) || (remainingMonthlyPosts !== null && remainingMonthlyPosts > 0) || (remainingMonthlyUrgentPosts !== null && remainingMonthlyUrgentPosts > 0) ? (
+            <div className="p-4 bg-white border border-indigo-100 rounded-xl shadow-sm text-sm">
+              <div className="flex justify-between items-center mb-3">
+                <span className="font-semibold text-gray-700">Lượt đăng tin hiện có:</span>
+                <Link to="/employer/dashboard/buy-posts" onClick={onClose} className="text-indigo-600 hover:text-indigo-700 font-medium hover:underline flex items-center gap-1 text-xs bg-indigo-50 px-2.5 py-1 rounded-md transition-colors">
+                  Mua thêm
+                </Link>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-2.5 py-1.5 bg-blue-50 text-blue-700 rounded-lg border border-blue-100 flex items-center gap-1.5 font-medium text-xs">
+                  <Package className="w-3.5 h-3.5" />
+                  Tin thường (lẻ): <span className="font-bold text-sm">{remainingPosts || 0}</span>
+                </span>
+                <span className="px-2.5 py-1.5 bg-orange-50 text-orange-700 rounded-lg border border-orange-100 flex items-center gap-1.5 font-medium text-xs">
+                  <Zap className="w-3.5 h-3.5" />
+                  Tin gấp (lẻ): <span className="font-bold text-sm">{remainingUrgentPosts || 0}</span>
+                </span>
+                <span className="px-2.5 py-1.5 bg-purple-50 text-purple-700 rounded-lg border border-purple-100 flex items-center gap-1.5 font-medium text-xs">
+                  <Package className="w-3.5 h-3.5" />
+                  Tin thường trong ngày (gói tháng): <span className="font-bold text-sm">{remainingMonthlyPosts || 0}</span>
+                </span>
+                <span className="px-2.5 py-1.5 bg-pink-50 text-pink-700 rounded-lg border border-pink-100 flex items-center gap-1.5 font-medium text-xs">
+                  <Zap className="w-3.5 h-3.5" />
+                  Tin gấp (gói tháng): <span className="font-bold text-sm">{remainingMonthlyUrgentPosts || 0}</span>
+                </span>
+              </div>
             </div>
-          )}
+          ) : null}
           {error && (
             <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium">
               {error}
             </div>
           )}
+
+          <div className="flex items-center gap-2 pt-2 pb-2">
+            <input
+              type="checkbox"
+              id="urgent"
+              checked={formData.urgent}
+              disabled={(remainingUrgentPosts === null || remainingUrgentPosts <= 0) && (remainingMonthlyUrgentPosts === null || remainingMonthlyUrgentPosts <= 0)}
+              onChange={(e) => setFormData({...formData, urgent: e.target.checked})}
+              className={`w-5 h-5 rounded border-gray-300 ${((remainingUrgentPosts && remainingUrgentPosts > 0) || (remainingMonthlyUrgentPosts && remainingMonthlyUrgentPosts > 0)) ? 'text-orange-600 focus:ring-orange-500 cursor-pointer' : 'text-gray-300 bg-gray-100 cursor-not-allowed'}`}
+            />
+            <div className="flex flex-col">
+              <label htmlFor="urgent" className={`font-medium ${((remainingUrgentPosts && remainingUrgentPosts > 0) || (remainingMonthlyUrgentPosts && remainingMonthlyUrgentPosts > 0)) ? 'text-gray-700 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}>
+                Đánh dấu là tin tuyển gấp
+              </label>
+              {((!remainingUrgentPosts || remainingUrgentPosts <= 0) && (!remainingMonthlyUrgentPosts || remainingMonthlyUrgentPosts <= 0)) && (
+                <span className="text-[10px] text-red-500 mt-0.5">
+                  Bạn đã hết lượt. <a href="/employer/dashboard/buy-posts" target="_blank" rel="noopener noreferrer" className="underline hover:text-red-700">Mua thêm gói tuyển gấp</a>
+                </span>
+              )}
+            </div>
+          </div>
 
           <div className="space-y-4">
             {/* Image Upload */}
@@ -276,15 +370,15 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mức lương (VNĐ) *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mức lương (VNĐ)/giờ làm *</label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">₫</span>
                   <input
                     type="number"
                     min="0"
                     required
-                    value={formData.salary}
-                    onChange={(e) => setFormData({...formData, salary: parseInt(e.target.value) || 0})}
+                    value={formData.salary === 0 ? '' : formData.salary}
+                    onChange={(e) => setFormData({...formData, salary: e.target.value === '' ? 0 : parseInt(e.target.value)})}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500"
                     placeholder="VD: 5000000"
                   />
@@ -298,9 +392,9 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                   <input
                     type="datetime-local"
                     required
+                    disabled
                     value={formData.expiredAt}
-                    onChange={(e) => setFormData({...formData, expiredAt: e.target.value})}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -449,21 +543,6 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                 className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500"
                 placeholder="Mô tả chi tiết công việc, yêu cầu, quyền lợi..."
               ></textarea>
-            </div>
-
-            <div className="flex items-center gap-2 pt-2">
-              <input
-                type="checkbox"
-                id="urgent"
-                checked={formData.urgent}
-                disabled={!isPremium}
-                onChange={(e) => setFormData({...formData, urgent: e.target.checked})}
-                className={`w-5 h-5 rounded border-gray-300 ${isPremium ? 'text-orange-600 focus:ring-orange-500' : 'text-gray-300 bg-gray-100 cursor-not-allowed'}`}
-              />
-              <div className="flex flex-col">
-                <label htmlFor="urgent" className={`font-medium ${isPremium ? 'text-gray-700' : 'text-gray-400'}`}>Đánh dấu là tin tuyển gấp</label>
-                {!isPremium && <span className="text-[10px] text-red-500 mt-0.5">Yêu cầu nâng cấp gói để sử dụng tính năng này</span>}
-              </div>
             </div>
           </div>
 

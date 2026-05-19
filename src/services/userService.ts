@@ -22,7 +22,7 @@ export interface StudentResponse {
     latitude: number;
     longitude: number;
     avatar?: string;
-    
+
     bio?: string;
     skills?: string[];
     experience?: string;
@@ -74,6 +74,10 @@ export interface EmployerResponse {
     rating?: number;
     avatar?: string;
     remainingPosts?: number;
+    remainingUrgentPosts?: number;
+    remainingMonthlyPosts?: number;
+    remainingMonthlyUrgentPosts?: number;
+    monthlyMaxPostsPerDay?: number;
     currentPackage?: string;
 }
 

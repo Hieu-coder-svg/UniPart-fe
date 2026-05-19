@@ -59,7 +59,7 @@ const TABS: { key: TabKey; label: string; icon: typeof User }[] = [
 ───────────────────────────────────────────────────────────── */
 export default function Profile() {
   const [activeTab, setActiveTab] = useState<TabKey>("info");
-  const { user, changePassword } = useAuth();
+  const { user, changePassword, updateUser } = useAuth();
 
   // States
   const [studentInfo, setStudentInfo] = useState<StudentResponse | null>(null);
@@ -192,6 +192,13 @@ export default function Profile() {
           latitude: res.result.latitude || undefined,
           longitude: res.result.longitude || undefined,
         });
+        // Sync avatar & fullName lên header từ dữ liệu thực của DB
+        if (res.result.avatar || res.result.fullName) {
+          updateUser({
+            ...(res.result.avatar ? { avatar: res.result.avatar } : {}),
+            ...(res.result.fullName ? { fullName: res.result.fullName } : {}),
+          });
+        }
         // Khôi phục vị trí bản đồ nếu có
         if (res.result.latitude && res.result.longitude) {
           setMapPosition([res.result.latitude, res.result.longitude]);
@@ -274,6 +281,10 @@ export default function Profile() {
         ...formData,
         avatar: imageUrl
       });
+
+      // Sync avatar lên header ngay lập tức
+      updateUser({ avatar: imageUrl });
+
       setMessage({ type: "success", text: "Cập nhật ảnh đại diện thành công!" });
       setTimeout(() => setMessage({ type: "", text: "" }), 3000);
     } catch (error: any) {
