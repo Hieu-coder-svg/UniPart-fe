@@ -107,6 +107,7 @@ export interface StudentResponse {
   address: string;
   latitude?: number;
   longitude?: number;
+  rating?: number;
 }
 
 export interface EmployerRegistrationRequest {

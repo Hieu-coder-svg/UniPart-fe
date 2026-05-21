@@ -27,6 +27,7 @@ export interface StudentResponse {
     skills?: string[];
     experience?: string;
     cvUrl?: string;
+    rating?: number;
 }
 
 export interface StudentUpdateRequest {

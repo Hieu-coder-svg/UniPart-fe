@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   Search,
   MapPin,
@@ -47,6 +48,14 @@ export default function Home() {
   const [locationValue, setLocationValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
+
+  const handleEmployerClick = (e: React.MouseEvent) => {
+    if (isAuthenticated && user?.role === "STUDENT") {
+      e.preventDefault();
+      alert("Bạn phải đăng nhập với vai trò là nhà tuyển dụng để sử dụng chức năng này");
+    }
+  };
 
   const handleSearch = (query?: string) => {
     const q = query ?? searchValue;
@@ -346,6 +355,7 @@ export default function Home() {
             <p className="text-slate-400 mb-4">Bạn là nhà tuyển dụng?</p>
             <Link
               to="/employer"
+              onClick={handleEmployerClick}
               className="inline-flex items-center gap-2 bg-white text-blue-700 px-7 py-3 rounded-xl font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-300"
             >
               Đăng tin tuyển dụng <Briefcase className="w-4 h-4" />
