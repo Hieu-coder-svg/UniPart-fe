@@ -20,8 +20,11 @@ import {
   MapPin,
   MessageSquare,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import { applicationService, ApplicationResponse } from "../../../services/applicationService";
 import { useApplicationRealTime } from "../../../hooks/useApplicationRealTime";
 import { userService } from "../../../services/userService";
@@ -54,6 +57,12 @@ const STATUS_CONFIG: Record<string, { label: string; className: string; icon: Re
 };
 
 export default function EmployerApplicants() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const pageParam = searchParams.get("page");
+  const currentPage = pageParam ? Math.max(0, parseInt(pageParam) - 1) : 0;
+  const itemsPerPage = 5;
+
   const [activeTab, setActiveTab] = useState<TabStatus>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [applications, setApplications] = useState<ApplicationResponse[]>([]);
@@ -206,6 +215,77 @@ export default function EmployerApplicants() {
       return matchesTab && matchesSearch;
     });
   }, [applications, activeTab, searchTerm]);
+
+  const totalPages = Math.ceil(filteredApplicants.length / itemsPerPage);
+  const paginatedApplicants = useMemo(() => {
+    return filteredApplicants.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
+  }, [filteredApplicants, currentPage, itemsPerPage]);
+
+  const handleTabChange = (tab: TabStatus) => {
+    setActiveTab(tab);
+    setSearchParams((prev) => {
+      prev.delete("page");
+      return prev;
+    }, { replace: true });
+  };
+
+  const handleSearchChange = (val: string) => {
+    setSearchTerm(val);
+    setSearchParams((prev) => {
+      prev.delete("page");
+      return prev;
+    }, { replace: true });
+  };
+
+  const handlePageChange = (pageIdx: number) => {
+    setSearchParams(
+      (prev) => {
+        if (pageIdx === 0) {
+          prev.delete("page");
+        } else {
+          prev.set("page", String(pageIdx + 1));
+        }
+        return prev;
+      },
+      { replace: true }
+    );
+  };
+
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisiblePages = 5;
+
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 0; i < totalPages; i++) pages.push(i);
+    } else {
+      pages.push(0);
+
+      let start = Math.max(1, currentPage - 1);
+      let end = Math.min(totalPages - 2, currentPage + 1);
+
+      if (currentPage <= 2) {
+        end = 3;
+      } else if (currentPage >= totalPages - 3) {
+        start = totalPages - 4;
+      }
+
+      if (start > 1) {
+        pages.push("...");
+      }
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      if (end < totalPages - 2) {
+        pages.push("...");
+      }
+
+      pages.push(totalPages - 1);
+    }
+
+    return pages;
+  };
 
   // --- Actions ---
   const handleAccept = async (id: number) => {
@@ -480,7 +560,7 @@ export default function EmployerApplicants() {
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Tìm kiếm ứng viên, vị trí, trường..."
               className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all"
             />
@@ -500,7 +580,7 @@ export default function EmployerApplicants() {
           {tabs.map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => handleTabChange(tab.key)}
               className={`px-6 py-3 -mb-0.5 border-b-4 transition-all font-medium whitespace-nowrap ${
                 activeTab === tab.key
                   ? "border-orange-600 text-orange-600"
@@ -544,7 +624,7 @@ export default function EmployerApplicants() {
             </p>
           </div>
         ) : (
-          filteredApplicants.map((applicant) => {
+          paginatedApplicants.map((applicant) => {
             const statusCfg = STATUS_CONFIG[applicant.status] || STATUS_CONFIG["PENDING"];
             const StatusIcon = statusCfg.icon;
             const isUpdating = updatingId === applicant.id;
@@ -700,14 +780,7 @@ export default function EmployerApplicants() {
 
                     {/* View Profile button */}
                     <button
-                      onClick={() => handleViewProfile(
-                        applicant.studentId,
-                        applicant.studentName,
-                        applicant.studentEmail,
-                        applicant.studentPhone,
-                        applicant.studentUniversity,
-                        applicant.studentMajor
-                      )}
+                      onClick={() => handleViewProfile(Number(applicant.studentId), applicant.studentName, applicant.studentEmail || "", applicant.studentPhone, applicant.studentUniversity, applicant.studentMajor)}
                       className="px-4 py-3 border-2 border-blue-200 text-blue-600 rounded-xl hover:bg-blue-50 hover:border-blue-400 transition-all text-sm font-medium flex items-center justify-center gap-2"
                     >
                       <Eye className="w-4 h-4" />
@@ -740,6 +813,63 @@ export default function EmployerApplicants() {
           })
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t-2 border-gray-100 bg-white p-6 rounded-2xl shadow-lg mt-6">
+          <p className="text-sm text-gray-500 font-medium">
+            Trang <span className="text-gray-900 font-semibold">{currentPage + 1}</span> trên <span className="text-gray-900 font-semibold">{totalPages}</span> (Tổng số {filteredApplicants.length} ứng viên)
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handlePageChange(Math.max(0, currentPage - 1))}
+              disabled={currentPage === 0}
+              className="p-2.5 rounded-xl border-2 border-gray-200 bg-white hover:border-orange-500 hover:text-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Trang trước"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            
+            {getPageNumbers().map((pageVal, idx) => {
+              if (pageVal === "...") {
+                return (
+                  <span
+                    key={`ellipsis-${idx}`}
+                    className="w-10 h-10 flex items-center justify-center text-gray-400 select-none text-sm font-bold"
+                  >
+                    ...
+                  </span>
+                );
+              }
+              
+              const pageIdx = pageVal as number;
+              const active = pageIdx === currentPage;
+              return (
+                <button
+                  key={pageIdx}
+                  onClick={() => handlePageChange(pageIdx)}
+                  className={`w-10 h-10 rounded-xl text-sm font-bold transition-all border-2 ${
+                    active
+                      ? "bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg shadow-orange-500/20 border-transparent"
+                      : "bg-white border-gray-200 text-gray-600 hover:border-orange-500 hover:text-orange-600"
+                  }`}
+                >
+                  {pageIdx + 1}
+                </button>
+              );
+            })}
+
+            <button
+              onClick={() => handlePageChange(Math.min(totalPages - 1, currentPage + 1))}
+              disabled={currentPage >= totalPages - 1}
+              className="p-2.5 rounded-xl border-2 border-gray-200 bg-white hover:border-orange-500 hover:text-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Trang sau"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Student Profile Modal ── */}
       {selectedStudent && (

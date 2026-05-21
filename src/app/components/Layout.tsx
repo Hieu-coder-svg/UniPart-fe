@@ -292,7 +292,7 @@ export default function Layout() {
                 /* Not logged in */
                 <div className="flex items-center gap-2">
                   <Link
-                    to="/employer/login"
+                    to="/employer"
                     className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-orange-600 border border-orange-300 rounded-xl hover:bg-orange-50 hover:border-orange-400 transition-all"
                   >
                     <Briefcase className="w-4 h-4" />

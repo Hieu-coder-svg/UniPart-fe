@@ -63,6 +63,12 @@ export default function EmployerLayout() {
       group: "main",
     },
     {
+      path: "/employer/dashboard/analytics",
+      icon: BarChart3,
+      label: "Thống kê",
+      group: "main",
+    },
+    {
       path: "/employer/dashboard/jobs",
       icon: Briefcase,
       label: "Quản lý tin tuyển dụng",
@@ -85,13 +91,6 @@ export default function EmployerLayout() {
       path: "/employer/dashboard/pricing",
       icon: Package,
       label: "Gói dịch vụ",
-      group: "business",
-    },
-
-    {
-      path: "/employer/dashboard/analytics",
-      icon: BarChart3,
-      label: "Thống kê",
       group: "business",
     },
     {

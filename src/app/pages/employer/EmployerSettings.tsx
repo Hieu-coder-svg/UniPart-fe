@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { userService, EmployerResponse, EmployerUpdateRequest } from "../../../services/userService";
 import { authService } from "../../../services/authService";
 import { uploadImageToCloudinary } from "../../../services/uploadService";
+import { useAuth } from "../../contexts/AuthContext";
 
 type Tab = "personal" | "password";
 
@@ -15,6 +16,7 @@ interface Toast {
 }
 
 export default function EmployerSettings() {
+  const { updateUser } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("personal");
   const [profile, setProfile] = useState<EmployerResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -157,6 +159,13 @@ export default function EmployerSettings() {
       const res = await userService.updateProfileEmployer(req);
       if (res.result) {
         setProfile(res.result);
+        
+        // Sync updated avatar and fullName immediately to context / header
+        updateUser({
+          avatar: res.result.avatar,
+          fullName: res.result.fullName,
+        });
+
         showToast("success", "Cập nhật hồ sơ thành công!");
       }
     } catch (e: any) {

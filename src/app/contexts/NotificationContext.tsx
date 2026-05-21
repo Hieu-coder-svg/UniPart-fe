@@ -16,7 +16,12 @@ interface NotificationContextType {
   unreadCount: number;
   isConnected: boolean;
   markAsRead: (id: number) => Promise<boolean>;
+  currentPage: number;
+  setCurrentPage: (page: number | ((prev: number) => number)) => void;
+  totalPages: number;
+  totalElements: number;
   refetch: () => Promise<void>;
+  fetchUnreadCount: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -25,29 +30,51 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const { isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState<NotificationResponse[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [currentPage, setCurrentPageState] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
+
   const stompClientRef = useRef<Client | null>(null);
   const pollingRef = useRef<number | null>(null);
 
-  const sortNotifications = (list: NotificationResponse[]) =>
-    [...list].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-  // Fetch all notifications from REST API
-  const refetch = useCallback(async () => {
+  // Fetch unread count
+  const fetchUnreadCount = useCallback(async () => {
     try {
-      const res = await notificationService.getMyNotifications();
-      if (res.result) {
-        setNotifications(sortNotifications(res.result));
+      const res = await notificationService.getUnreadCount();
+      if (res.result !== undefined) {
+        setUnreadCount(res.result);
       }
     } catch (err) {
-      console.error("Failed to fetch notifications:", err);
+      console.error("Failed to fetch unread count:", err);
     }
   }, []);
 
-  // Mark a single notification as read (optimistic + API)
+  // Fetch notifications for current page from REST API
+  const refetch = useCallback(async () => {
+    try {
+      const res = await notificationService.getMyNotifications(currentPage, 10);
+      if (res.result) {
+        setNotifications(res.result.content || []);
+        setTotalPages(res.result.totalPages || 1);
+        setTotalElements(res.result.totalElements || 0);
+      }
+      await fetchUnreadCount();
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+    }
+  }, [currentPage, fetchUnreadCount]);
+
+  const setCurrentPage = useCallback((page: number | ((prev: number) => number)) => {
+    setCurrentPageState(page);
+  }, []);
+
+  // Mark a single notification as read
   const markAsRead = useCallback(async (id: number) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
     );
+    setUnreadCount((prev) => Math.max(0, prev - 1));
     try {
       const res = await notificationService.updateNotification(id, { isRead: true });
       if (res.result) {
@@ -63,14 +90,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, isRead: false } : n))
       );
+      await fetchUnreadCount();
       return false;
     }
-  }, []);
+  }, [fetchUnreadCount]);
 
-  // Connect WebSocket when authenticated
+  // Keep a ref of refetch to allow websocket or pollers to access latest closures
+  const refetchRef = useRef(refetch);
+  useEffect(() => {
+    refetchRef.current = refetch;
+  }, [refetch]);
+
+  // Connect WebSocket when authenticated (once)
   useEffect(() => {
     if (!isAuthenticated) {
-      // Disconnect if not authenticated
       if (stompClientRef.current?.active) {
         stompClientRef.current.deactivate();
         stompClientRef.current = null;
@@ -81,13 +114,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       }
       setNotifications([]);
       setIsConnected(false);
+      setUnreadCount(0);
+      setCurrentPageState(0);
       return;
     }
 
-    // Initial fetch via REST
-    refetch();
+    // Initial fetch
+    refetchRef.current();
 
-    // Set up STOMP client
     const token = localStorage.getItem(TOKEN_KEY);
     const client = new Client({
       webSocketFactory: () => new SockJS("http://localhost:8080/ws") as any,
@@ -99,19 +133,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         setIsConnected(true);
         console.log("[WS] Connected to notification broker");
 
-        // Subscribe to personal notification queue
         client.subscribe("/user/queue/notifications", (message) => {
           try {
             const notification: NotificationResponse = JSON.parse(message.body);
-            setNotifications((prev) => {
-              const exists = prev.some((n) => n.id === notification.id);
-              if (exists) {
-                return sortNotifications(
-                  prev.map((n) => (n.id === notification.id ? notification : n))
-                );
-              }
-              return sortNotifications([notification, ...prev]);
-            });
+            console.log("[WS] Received notification:", notification);
+            // Refresh current page + unread count
+            refetchRef.current();
           } catch (err) {
             console.error("[WS] Failed to parse notification:", err);
           }
@@ -130,9 +157,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     client.activate();
     stompClientRef.current = client;
 
-    // Poll as a fallback when WebSocket delivery is not immediate
+    // Lightweight polling to ensure robust sync
     pollingRef.current = window.setInterval(() => {
-      refetch().catch((err) => console.error("[WS] Notification polling failed:", err));
+      refetchRef.current().catch((err) => console.error("[WS] Polling failed:", err));
     }, 5000);
 
     return () => {
@@ -145,13 +172,22 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         pollingRef.current = null;
       }
     };
-  }, [isAuthenticated, refetch]);
-
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  }, [isAuthenticated]);
 
   return (
     <NotificationContext.Provider
-      value={{ notifications, unreadCount, isConnected, markAsRead, refetch }}
+      value={{
+        notifications,
+        unreadCount,
+        isConnected,
+        markAsRead,
+        currentPage,
+        setCurrentPage,
+        totalPages,
+        totalElements,
+        refetch,
+        fetchUnreadCount,
+      }}
     >
       {children}
     </NotificationContext.Provider>

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router";
+import { useState, useEffect, useRef } from "react";
+import { Link, useSearchParams } from "react-router";
 import { JobResponse } from "../../../services/jobService";
 import { useSavedJobs } from "../../contexts/SavedJobsContext";
 import { jobService } from "../../../services/jobService";
@@ -15,7 +15,9 @@ import {
   Trash2,
   ExternalLink,
   Zap,
-  Loader2
+  Loader2,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 
@@ -24,6 +26,34 @@ export default function SavedJobs() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "salary_desc" | "salary_asc">("newest");
   const [isRemovingId, setIsRemovingId] = useState<number | null>(null);
+  
+  const [searchParams, setSearchParams] = useSearchParams();
+  const pageParam = searchParams.get("page");
+  const currentPage = pageParam ? Math.max(0, parseInt(pageParam) - 1) : 0;
+
+  const setCurrentPage = (pageIdx: number | ((prev: number) => number)) => {
+    setSearchParams((prev) => {
+      const nextIdx = typeof pageIdx === "function" ? pageIdx(currentPage) : pageIdx;
+      if (nextIdx === 0) {
+        prev.delete("page");
+      } else {
+        prev.set("page", String(nextIdx + 1));
+      }
+      return prev;
+    });
+  };
+
+  const ITEMS_PER_PAGE = 6;
+  const isFirstRender = useRef(true);
+
+  // Reset currentPage to 0 when searchTerm or sortBy changes
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    setCurrentPage(0);
+  }, [searchTerm, sortBy]);
 
   // Lưu chi tiết từng job (fetch theo jobId từ context)
   const [jobDetails, setJobDetails] = useState<Map<number, JobResponse>>(new Map());
@@ -102,6 +132,9 @@ export default function SavedJobs() {
     }
   });
 
+  const totalPages = Math.ceil(sortedJobs.length / ITEMS_PER_PAGE) || 1;
+  const paginatedJobs = sortedJobs.slice(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE);
+
   const showLoading = isLoading || fetchingDetails;
 
   return (
@@ -171,80 +204,127 @@ export default function SavedJobs() {
             <p className="text-sm text-gray-500">Thử thay đổi từ khóa tìm kiếm của bạn.</p>
           </div>
         ) : (
-          <div className="grid lg:grid-cols-2 gap-5">
-            {sortedJobs.map((job) => (
-              <div key={job.id} className="group bg-white rounded-2xl p-5 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col relative overflow-hidden">
-                {job.urgent && (
-                  <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg shadow-sm flex items-center gap-1 z-10">
-                    <Zap className="w-3 h-3" /> Tuyển gấp
-                  </div>
-                )}
+          <div className="space-y-8">
+            <div className="grid lg:grid-cols-2 gap-5">
+              {paginatedJobs.map((job) => (
+                <div key={job.id} className="group bg-white rounded-2xl p-5 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col relative overflow-hidden">
+                  {job.urgent && (
+                    <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg shadow-sm flex items-center gap-1 z-10">
+                      <Zap className="w-3 h-3" /> Tuyển gấp
+                    </div>
+                  )}
 
-                <div className="flex gap-4 items-start mb-4">
-                  <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-100 shadow-sm flex-shrink-0 relative group-hover:scale-105 transition-transform duration-300">
-                    <ImageWithFallback
-                      src={job.image || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=150&q=80"}
-                      alt={job.title}
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="flex gap-4 items-start mb-4">
+                    <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-100 shadow-sm flex-shrink-0 relative group-hover:scale-105 transition-transform duration-300">
+                      <ImageWithFallback
+                        src={job.image || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=150&q=80"}
+                        alt={job.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 pr-12">
+                      <Link to={`/jobs/${job.id}`}>
+                        <h3 className="font-bold text-gray-900 text-base leading-tight hover:text-blue-600 transition-colors line-clamp-2">
+                          {job.title}
+                        </h3>
+                      </Link>
+                      <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-1.5">
+                        <Briefcase className="w-3.5 h-3.5 text-gray-400" />
+                        <span className="truncate">{job.employerName}</span>
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1 pr-12">
-                    <Link to={`/jobs/${job.id}`}>
-                      <h3 className="font-bold text-gray-900 text-base leading-tight hover:text-blue-600 transition-colors line-clamp-2">
-                        {job.title}
-                      </h3>
+
+                  <div className="grid grid-cols-2 gap-3 mb-5">
+                    <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                        <DollarSign className="w-4 h-4 text-emerald-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[10px] text-gray-400 font-semibold uppercase">Mức lương</div>
+                        <div className="text-sm font-bold text-gray-800 truncate">{job.salary.toLocaleString()}đ</div>
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <MapPin className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[10px] text-gray-400 font-semibold uppercase">Khu vực</div>
+                        <div className="text-sm font-medium text-gray-800 truncate">{job.address}</div>
+                      </div>
+                    </div>
+                    <div className="col-span-2 flex items-center gap-4 text-xs text-gray-500 px-1">
+                      <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Ca {job.workingShift}</span>
+                      <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                      <span className="flex items-center gap-1">Lưu lúc: {new Date(job.savedAt).toLocaleDateString('vi-VN')}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-auto flex gap-3">
+                    <Link
+                      to={`/jobs/${job.id}`}
+                      className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white py-2.5 rounded-xl text-sm font-bold shadow-md transition-all hover:shadow-lg"
+                    >
+                      Ứng tuyển <ExternalLink className="w-4 h-4" />
                     </Link>
-                    <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-1.5">
-                      <Briefcase className="w-3.5 h-3.5 text-gray-400" />
-                      <span className="truncate">{job.employerName}</span>
-                    </p>
+                    <button
+                      onClick={() => handleUnsave(job.id)}
+                      disabled={isRemovingId === job.id}
+                      className="w-11 flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-colors border border-red-100 disabled:opacity-50 group-hover:shadow-sm"
+                      title="Bỏ lưu việc làm này"
+                    >
+                      {isRemovingId === job.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                    </button>
                   </div>
                 </div>
+              ))}
+            </div>
 
-                <div className="grid grid-cols-2 gap-3 mb-5">
-                  <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                      <DollarSign className="w-4 h-4 text-emerald-600" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[10px] text-gray-400 font-semibold uppercase">Mức lương</div>
-                      <div className="text-sm font-bold text-gray-800 truncate">{job.salary.toLocaleString()}đ</div>
-                    </div>
-                  </div>
-                  <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <MapPin className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[10px] text-gray-400 font-semibold uppercase">Khu vực</div>
-                      <div className="text-sm font-medium text-gray-800 truncate">{job.address}</div>
-                    </div>
-                  </div>
-                  <div className="col-span-2 flex items-center gap-4 text-xs text-gray-500 px-1">
-                    <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Ca {job.workingShift}</span>
-                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                    <span className="flex items-center gap-1">Lưu lúc: {new Date(job.savedAt).toLocaleDateString('vi-VN')}</span>
-                  </div>
-                </div>
-
-                <div className="mt-auto flex gap-3">
-                  <Link
-                    to={`/jobs/${job.id}`}
-                    className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white py-2.5 rounded-xl text-sm font-bold shadow-md transition-all hover:shadow-lg"
-                  >
-                    Ứng tuyển <ExternalLink className="w-4 h-4" />
-                  </Link>
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-200 mt-8">
+                <p className="text-sm text-gray-500 font-medium">
+                  Trang <span className="text-gray-900 font-semibold">{currentPage + 1}</span> trên <span className="text-gray-900 font-semibold">{totalPages}</span>
+                </p>
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={() => handleUnsave(job.id)}
-                    disabled={isRemovingId === job.id}
-                    className="w-11 flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-colors border border-red-100 disabled:opacity-50 group-hover:shadow-sm"
-                    title="Bỏ lưu việc làm này"
+                    onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                    disabled={currentPage === 0}
+                    className="p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Trang trước"
                   >
-                    {isRemovingId === job.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                    <ChevronLeft className="w-5 h-5 text-gray-600" />
+                  </button>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i).map((pageIdx) => {
+                    const active = pageIdx === currentPage;
+                    return (
+                      <button
+                        key={pageIdx}
+                        onClick={() => setCurrentPage(pageIdx)}
+                        className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${
+                          active
+                            ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                            : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+                        }`}
+                      >
+                        {pageIdx + 1}
+                      </button>
+                    );
+                  })}
+
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
+                    disabled={currentPage >= totalPages - 1}
+                    className="p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Trang sau"
+                  >
+                    <ChevronRight className="w-5 h-5 text-gray-600" />
                   </button>
                 </div>
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
