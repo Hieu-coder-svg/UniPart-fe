@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useEffect, useRef, useState } from "react";
 import {
   Briefcase,
@@ -26,6 +26,8 @@ import {
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import { EmployerChatBot } from "../../components/EmployerChatBot";
 import logoImage from "../../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
+import { useAuth } from "../../contexts/AuthContext";
+import { packageService, PackageResponse } from "../../../services/packageService";
 
 /* ── Shimmer keyframe injected once ── */
 const SHIMMER_STYLE = `
@@ -121,6 +123,71 @@ function StatsSection() {
 }
 
 export default function EmployerHome() {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user) {
+      if (user.role === "EMPLOYER") {
+        navigate("/employer/dashboard", { replace: true });
+      } else if (user.role === "ADMIN") {
+        navigate("/admin", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
+    }
+  }, [user, isAuthenticated, isLoading, navigate]);
+
+  const [packages, setPackages] = useState<PackageResponse[]>([]);
+  const [loadingPackages, setLoadingPackages] = useState(true);
+  const [errorPackages, setErrorPackages] = useState<string | null>(null);
+
+  const fetchPackages = async () => {
+    try {
+      setLoadingPackages(true);
+      setErrorPackages(null);
+      const data = await packageService.getAllPackages();
+      setPackages(data || []);
+    } catch (err: any) {
+      console.error("Failed to fetch packages:", err);
+      setErrorPackages(err.message || "Không thể tải danh sách gói dịch vụ");
+    } finally {
+      setLoadingPackages(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPackages();
+  }, []);
+
+  const monthlyPackages = packages.filter((p) => p.packageType === "MONTHLY");
+  const oneTimePackages = packages.filter((p) => p.packageType === "PAY_PER_TIN" || p.packageType === "ONE_TIME");
+
+  const gradients = [
+    "from-blue-500 to-cyan-500",
+    "from-purple-500 to-pink-500",
+    "from-orange-500 to-red-500"
+  ];
+
+  const getPackageFeatures = (pkg: PackageResponse) => {
+    const list = [];
+    if (pkg.normalTinsLimit !== undefined && pkg.normalTinsLimit !== null) {
+      list.push(`${pkg.normalTinsLimit} tin thường/tháng`);
+    }
+    if (pkg.maxNormalTinsPerDay !== undefined && pkg.maxNormalTinsPerDay !== null) {
+      list.push(`Tối đa ${pkg.maxNormalTinsPerDay} tin/ngày`);
+    }
+    if (pkg.urgentTinsLimit !== undefined && pkg.urgentTinsLimit !== null) {
+      list.push(`${pkg.urgentTinsLimit} tin tuyển gấp`);
+    }
+    if (pkg.description) {
+      list.push(pkg.description);
+    } else {
+      list.push("Hỗ trợ ưu tiên", "Hiển thị nổi bật", "Thống kê chi tiết");
+    }
+    return list;
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
@@ -176,55 +243,6 @@ export default function EmployerHome() {
     { number: "95%", label: "Tỷ lệ hài lòng" },
   ];
 
-  // Pricing packages
-  const pricingPackages = [
-    {
-      name: "Basic",
-      price: 2700000,
-      description: "Phù hợp cho doanh nghiệp nhỏ",
-      gradient: "from-blue-500 to-cyan-500",
-      features: [
-        "60 tin thường/tháng",
-        "Tối đa 2 tin/ngày",
-        "5 tin tuyển gấp",
-        "Hỗ trợ email",
-        "Thống kê cơ bản",
-      ],
-    },
-    {
-      name: "Advance",
-      price: 6000000,
-      description: "Lựa chọn phổ biến nhất",
-      gradient: "from-purple-500 to-pink-500",
-      popular: true,
-      features: [
-        "150 tin thường/tháng",
-        "Tối đa 5 tin/ngày",
-        "10 tin tuyển gấp",
-        "Hỗ trợ ưu tiên",
-        "Hiển thị nổi bật",
-        "Thống kê chi tiết",
-        "Quản lý ứng viên",
-      ],
-    },
-    {
-      name: "Premium",
-      price: 10500000,
-      description: "Cho doanh nghiệp lớn",
-      gradient: "from-orange-500 to-red-500",
-      features: [
-        "300 tin thường/tháng",
-        "Tối đa 10 tin/ngày",
-        "20 tin tuyển gấp",
-        "Hỗ trợ 24/7",
-        "Hiển thị ưu tiên cao",
-        "Phân tích chi tiết",
-        "Tư vấn chiến lược",
-        "Account manager riêng",
-      ],
-    },
-  ];
-
   // Testimonials
   const testimonials = [
     {
@@ -249,6 +267,17 @@ export default function EmployerHome() {
       rating: 5,
     },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fff9f6]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm font-semibold text-gray-500">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -460,98 +489,147 @@ export default function EmployerHome() {
           </div>
 
           {/* Pricing cards */}
-          <div className="grid md:grid-cols-3 gap-6 mb-12 items-stretch">
-            {pricingPackages.map((pkg, idx) => (
-              <div
-                key={idx}
-                className={`relative flex flex-col rounded-3xl transition-all duration-300 ${
-                  pkg.popular
-                    ? "scale-[1.04] shadow-2xl shadow-purple-200 border-2 border-purple-400 bg-white/80 backdrop-blur-xl z-10"
-                    : "bg-white/60 backdrop-blur border border-gray-200 hover:shadow-xl hover:-translate-y-1"
-                }`}
-              >
-                {/* Popular ribbon */}
-                {pkg.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20">
-                    <div className="flex items-center gap-1.5 px-5 py-1.5 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full text-xs font-bold shadow-lg">
-                      <Star className="w-3.5 h-3.5 fill-white" /> RECOMMEND
+          {loadingPackages ? (
+            <div className="grid md:grid-cols-3 gap-6 mb-12">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="bg-white/60 backdrop-blur rounded-3xl p-8 border border-gray-200 animate-pulse h-[480px] flex flex-col justify-between shadow-sm">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-gray-200"></div>
+                      <div className="space-y-2 flex-1">
+                        <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                    <div className="h-8 bg-gray-200 rounded w-1/2 mt-4"></div>
+                    <div className="space-y-2.5 mt-6">
+                      <div className="h-4 bg-gray-200 rounded w-full"></div>
+                      <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                      <div className="h-4 bg-gray-200 rounded w-4/5"></div>
                     </div>
                   </div>
-                )}
-
-                <div className="p-8 flex flex-col flex-1">
-                  {/* Icon + name */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${pkg.gradient} flex items-center justify-center shadow-lg`}>
-                      <Package className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-extrabold text-gray-900">{pkg.name}</h3>
-                      <p className="text-xs text-gray-400">{pkg.description}</p>
-                    </div>
-                  </div>
-
-                  {/* Price */}
-                  <div className="mb-6">
-                    <div className={`text-3xl font-black bg-gradient-to-r ${pkg.gradient} bg-clip-text text-transparent`}>
-                      {formatCurrency(pkg.price)}
-                    </div>
-                    <div className="text-xs text-gray-400 mt-0.5">/ tháng · VAT included</div>
-                  </div>
-
-                  {/* Features */}
-                  <ul className="space-y-2.5 mb-8 flex-1">
-                    {pkg.features.map((feature, fIdx) => (
-                      <li key={fIdx} className="flex items-start gap-2.5">
-                        <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Check className="w-3 h-3 text-emerald-600" />
-                        </div>
-                        <span className="text-sm text-gray-700">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* CTA */}
-                  <Link
-                    to="/employer/login"
-                    className={`block w-full py-3.5 rounded-2xl text-center font-bold text-sm transition-all duration-200 ${
-                      pkg.popular
-                        ? `bg-gradient-to-r ${pkg.gradient} text-white hover:shadow-xl hover:shadow-purple-200 hover:-translate-y-0.5`
-                        : "bg-gray-100 text-gray-700 hover:bg-orange-50 hover:text-orange-700 border border-gray-200"
-                    }`}
-                  >
-                    {pkg.popular ? "🚀 Bắt đầu ngay" : "Chọn gói này"}
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Pay per post */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 border border-gray-200 shadow-sm">
-            <div className="text-center mb-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-1">Hoặc mua theo số lượng tin</h3>
-              <p className="text-sm text-gray-500">Linh hoạt cho nhu cầu ngắn hạn, không cần đăng ký gói</p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-4">
-              {[
-                { qty: "1 tin", price: "50,000đ – 70,000đ", note: "Tin thường / Tin gấp", highlight: false },
-                { qty: "3 tin", price: "135,000đ – 189,000đ", note: "Tiết kiệm 10%", highlight: true },
-                { qty: "5 tin", price: "200,000đ – 224,000đ", note: "Tiết kiệm 20%", highlight: false },
-              ].map((p) => (
-                <div key={p.qty} className={`rounded-2xl p-5 text-center transition-all ${
-                  p.highlight
-                    ? "border-2 border-purple-400 bg-purple-50 shadow-md"
-                    : "border border-gray-200 bg-white hover:border-orange-300 hover:shadow-sm"
-                }`}>
-                  <div className="text-2xl font-black text-gray-900 mb-1">{p.qty}</div>
-                  <div className="text-base font-bold text-orange-600 mb-1">{p.price}</div>
-                  <div className="text-xs text-gray-400">{p.note}</div>
-                  {p.highlight && <span className="mt-2 inline-block text-[10px] bg-purple-200 text-purple-700 px-2 py-0.5 rounded-full font-bold">PHỔ BIẾN</span>}
+                  <div className="h-12 bg-gray-200 rounded-2xl w-full"></div>
                 </div>
               ))}
             </div>
-          </div>
+          ) : errorPackages ? (
+            <div className="text-center py-12 bg-white/60 backdrop-blur rounded-3xl p-8 border border-gray-200 mb-12 max-w-xl mx-auto">
+              <p className="font-semibold text-red-600 mb-4">{errorPackages}</p>
+              <button
+                onClick={fetchPackages}
+                className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl hover:shadow-lg font-bold transition-all"
+              >
+                Thử lại
+              </button>
+            </div>
+          ) : monthlyPackages.length === 0 ? (
+            <div className="text-center py-16 bg-white/60 backdrop-blur rounded-3xl border border-gray-200 mb-12 text-gray-500 max-w-xl mx-auto">
+              <Package className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              Chưa có gói dịch vụ tháng nào được cấu hình.
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-6 mb-12 items-stretch justify-center">
+              {monthlyPackages.map((pkg, idx) => {
+                const isPopular = idx === 1 || pkg.name.toLowerCase().includes("advance") || monthlyPackages.length === 1;
+                const gradient = gradients[idx % gradients.length];
+                const features = getPackageFeatures(pkg);
+
+                return (
+                  <div
+                    key={pkg.id}
+                    className={`relative flex flex-col rounded-3xl transition-all duration-300 ${
+                      isPopular
+                        ? "scale-[1.04] shadow-2xl shadow-purple-200 border-2 border-purple-400 bg-white/80 backdrop-blur-xl z-10"
+                        : "bg-white/60 backdrop-blur border border-gray-200 hover:shadow-xl hover:-translate-y-1"
+                    }`}
+                  >
+                    {/* Popular ribbon */}
+                    {isPopular && (
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20">
+                        <div className="flex items-center gap-1.5 px-5 py-1.5 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full text-xs font-bold shadow-lg">
+                          <Star className="w-3.5 h-3.5 fill-white" /> RECOMMEND
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="p-8 flex flex-col flex-1">
+                      {/* Icon + name */}
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg`}>
+                          <Package className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-extrabold text-gray-900">{pkg.name}</h3>
+                          <p className="text-xs text-gray-400">{pkg.packageType === "MONTHLY" ? "Gói đăng ký tháng" : "Mua lẻ"}</p>
+                        </div>
+                      </div>
+
+                      {/* Price */}
+                      <div className="mb-6">
+                        <div className={`text-3xl font-black bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}>
+                          {formatCurrency(pkg.price)}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-0.5">/ {pkg.durationDays || 30} ngày · Đã gồm VAT</div>
+                      </div>
+
+                      {/* Features */}
+                      <ul className="space-y-2.5 mb-8 flex-1">
+                        {features.map((feature, fIdx) => (
+                          <li key={fIdx} className="flex items-start gap-2.5">
+                            <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <Check className="w-3 h-3 text-emerald-600" />
+                            </div>
+                            <span className="text-sm text-gray-700">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      {/* CTA */}
+                      <Link
+                        to="/employer/login"
+                        className={`block w-full py-3.5 rounded-2xl text-center font-bold text-sm transition-all duration-200 ${
+                          isPopular
+                            ? `bg-gradient-to-r ${gradient} text-white hover:shadow-xl hover:shadow-purple-200 hover:-translate-y-0.5`
+                            : "bg-gray-100 text-gray-700 hover:bg-orange-50 hover:text-orange-700 border border-gray-200"
+                        }`}
+                      >
+                        {isPopular ? "🚀 Bắt đầu ngay" : "Chọn gói này"}
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Pay per post */}
+          {!loadingPackages && !errorPackages && oneTimePackages.length > 0 && (
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 border border-gray-200 shadow-sm">
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Hoặc mua theo số lượng tin</h3>
+                <p className="text-sm text-gray-500">Linh hoạt cho nhu cầu ngắn hạn, không cần đăng ký gói</p>
+              </div>
+              <div className="grid md:grid-cols-3 gap-4">
+                {oneTimePackages.map((p, idx) => {
+                  const isNormal = p.tinType === "NORMAL" || !p.tinType;
+                  const note = isNormal ? "Tin thường" : "Tin tuyển gấp";
+                  const highlight = idx === 1 || oneTimePackages.length === 1;
+                  return (
+                    <div key={p.id} className={`rounded-2xl p-5 text-center transition-all ${
+                      highlight
+                        ? "border-2 border-purple-400 bg-purple-50 shadow-md"
+                        : "border border-gray-200 bg-white hover:border-orange-300 hover:shadow-sm"
+                    }`}>
+                      <div className="text-2xl font-black text-gray-900 mb-1">{p.tinQuantity} tin</div>
+                      <div className="text-base font-bold text-orange-600 mb-1">{formatCurrency(p.price)}</div>
+                      <div className="text-xs text-gray-400">{note}</div>
+                      {highlight && <span className="mt-2 inline-block text-[10px] bg-purple-200 text-purple-700 px-2 py-0.5 rounded-full font-bold">PHỔ BIẾN</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

@@ -70,7 +70,7 @@ const LOCATIONS = [
    MAIN PAGE
 ───────────────────────────────────────── */
 export default function JobBrowse() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(() => searchParams.get("q") || "");
   const [selectedLocation, setSelectedLocation] = useState<string>(() => searchParams.get("location") || "all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -84,6 +84,23 @@ export default function JobBrowse() {
   const [jobs, setJobs] = useState<JobResponse[]>([]);
   const [recommendedJobs, setRecommendedJobs] = useState<JobRecommendationResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  const pageParam = searchParams.get("page");
+  const currentPage = pageParam ? Math.max(0, parseInt(pageParam) - 1) : 0; // 0-indexed for Backend Spring Boot Pageable
+
+  const setCurrentPage = (pageIdx: number | ((prev: number) => number)) => {
+    setSearchParams((prev) => {
+      const nextIdx = typeof pageIdx === "function" ? pageIdx(currentPage) : pageIdx;
+      if (nextIdx === 0) {
+        prev.delete("page");
+      } else {
+        prev.set("page", String(nextIdx + 1));
+      }
+      return prev;
+    });
+  };
+
+  const [totalPages, setTotalPages] = useState(1);
   const { user } = useAuth();
   const { savedJobIds, saveJob, unsaveJob, isJobSaved } = useSavedJobs();
 
@@ -116,6 +133,16 @@ export default function JobBrowse() {
       fetchStudentInfo();
     }
   }, [searchParams, user]);
+
+  // Reset currentPage to 0 when filters change
+  const isFirstFilterRender = useRef(true);
+  useEffect(() => {
+    if (isFirstFilterRender.current) {
+      isFirstFilterRender.current = false;
+      return;
+    }
+    setCurrentPage(0);
+  }, [searchTerm, selectedLocation, selectedCategory, selectedShifts, selectedSalary, filterByDistance, filterBySchedule]);
 
   const fetchStudentInfo = async () => {
     try {
@@ -173,7 +200,8 @@ export default function JobBrowse() {
         address: selectedLocation !== "all" ? selectedLocation : undefined,
         // Gửi thẳng mảng string[]
         workingShift: selectedShifts.length > 0 ? selectedShifts : undefined,
-        size: 100,
+        page: currentPage,
+        size: 9,
       };
 
       if (selectedSalary !== "all") {
@@ -190,15 +218,16 @@ export default function JobBrowse() {
       }
 
       const res = await jobService.getAllJobs(filter);
-      if (res.result && res.result.content) {
-        setJobs(res.result.content);
+      if (res.result) {
+        setJobs(res.result.content || []);
+        setTotalPages(res.result.totalPages || 1);
       }
     } catch (error) {
       console.error("Failed to fetch jobs:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [searchTerm, selectedLocation, selectedCategory, selectedShifts, selectedSalary]);
+  }, [searchTerm, selectedLocation, selectedCategory, selectedShifts, selectedSalary, currentPage]);
 
 
 
@@ -637,6 +666,63 @@ export default function JobBrowse() {
                 )}
 
                 {filteredJobs.length === 0 && <EmptyState onReset={clearAll} />}
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-gray-100 mt-10">
+                    <p className="text-sm text-gray-500 font-medium">
+                      Trang <span className="text-gray-900 font-semibold">{currentPage + 1}</span> trên <span className="text-gray-900 font-semibold">{totalPages}</span>
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                        disabled={currentPage === 0}
+                        className="p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Trang trước"
+                      >
+                        <ChevronLeft className="w-5 h-5 text-gray-600" />
+                      </button>
+                      
+                      {Array.from({ length: totalPages }, (_, i) => i).map((pageIdx) => {
+                        if (
+                          totalPages > 5 &&
+                          Math.abs(pageIdx - currentPage) > 2 &&
+                          pageIdx !== 0 &&
+                          pageIdx !== totalPages - 1
+                        ) {
+                          if (pageIdx === 1 || pageIdx === totalPages - 2) {
+                            return <span key={pageIdx} className="px-2 text-gray-400 font-bold">...</span>;
+                          }
+                          return null;
+                        }
+
+                        const active = pageIdx === currentPage;
+                        return (
+                          <button
+                            key={pageIdx}
+                            onClick={() => setCurrentPage(pageIdx)}
+                            className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${
+                              active
+                                ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                                : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            {pageIdx + 1}
+                          </button>
+                        );
+                      })}
+
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
+                        disabled={currentPage >= totalPages - 1}
+                        className="p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Trang sau"
+                      >
+                        <ChevronRight className="w-5 h-5 text-gray-600" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </main>

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { useEffect, useState, useRef } from "react";
+import { Link, useSearchParams } from "react-router";
 import { useAuth } from "../../contexts/AuthContext";
 import { jobService, JobResponse } from "../../../services/jobService";
 import { applicationService } from "../../../services/applicationService";
@@ -28,6 +28,7 @@ import {
   XCircle,
   Timer,
   ChevronRight,
+  ChevronLeft,
   Filter,
   AlertCircle,
   Banknote,
@@ -51,6 +52,34 @@ export default function StudentApplications() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
+  
+  const [searchParams, setSearchParams] = useSearchParams();
+  const pageParam = searchParams.get("page");
+  const currentPage = pageParam ? Math.max(0, parseInt(pageParam) - 1) : 0;
+
+  const setCurrentPage = (pageIdx: number | ((prev: number) => number)) => {
+    setSearchParams((prev) => {
+      const nextIdx = typeof pageIdx === "function" ? pageIdx(currentPage) : pageIdx;
+      if (nextIdx === 0) {
+        prev.delete("page");
+      } else {
+        prev.set("page", String(nextIdx + 1));
+      }
+      return prev;
+    });
+  };
+
+  const ITEMS_PER_PAGE = 5;
+  const isFirstRender = useRef(true);
+
+  // Reset currentPage to 0 when filterStatus or searchQuery changes
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    setCurrentPage(0);
+  }, [searchQuery, filterStatus]);
 
   const [reviewedMap, setReviewedMap] = useState<Record<string, ReviewResponse>>({});
   const [reviewModal, setReviewModal] = useState<any>(null);
@@ -164,6 +193,9 @@ export default function StudentApplications() {
     });
     setFilteredApplications(filtered);
   }, [searchQuery, filterStatus, applications]);
+
+  const totalPages = Math.ceil(filteredApplications.length / ITEMS_PER_PAGE) || 1;
+  const paginatedApplications = filteredApplications.slice(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE);
 
   useEffect(() => {
     if (authLoading) return;
@@ -362,30 +394,77 @@ export default function StudentApplications() {
                 <p className="text-gray-500 font-medium">Hãy thử thay đổi từ khóa tìm kiếm hoặc bộ lọc của bạn.</p>
               </motion.div>
             ) : (
-              <motion.div 
-                className="grid gap-4"
-                initial="hidden"
-                animate="visible"
-                variants={{
-                  hidden: { opacity: 0 },
-                  visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-                }}
-              >
-                <AnimatePresence mode="popLayout">
-                  {filteredApplications.map((app) => (
-                    <ApplicationCard
-                      key={app.id || app.applicationId}
-                      application={app}
-                      onDelete={() => handleDeleteClick(app)}
-                      isDeleting={isDeleting === (app.applicationId || app.id)}
-                      canDelete={canDelete(app.status)}
-                      reviewedMap={reviewedMap}
-                      onReview={handleOpenReview}
-                      onViewReview={handleViewReviewDetail}
-                    />
-                  ))}
-                </AnimatePresence>
-              </motion.div>
+              <div className="space-y-6">
+                <motion.div 
+                  className="grid gap-4"
+                  initial="hidden"
+                  animate="visible"
+                  variants={{
+                    hidden: { opacity: 0 },
+                    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+                  }}
+                >
+                  <AnimatePresence mode="popLayout">
+                    {paginatedApplications.map((app) => (
+                      <ApplicationCard
+                        key={app.id || app.applicationId}
+                        application={app}
+                        onDelete={() => handleDeleteClick(app)}
+                        isDeleting={isDeleting === (app.applicationId || app.id)}
+                        canDelete={canDelete(app.status)}
+                        reviewedMap={reviewedMap}
+                        onReview={handleOpenReview}
+                        onViewReview={handleViewReviewDetail}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-200 mt-8 bg-white p-5 rounded-2xl shadow-sm border border-gray-100/80">
+                    <p className="text-sm text-gray-500 font-medium">
+                      Trang <span className="text-gray-900 font-semibold">{currentPage + 1}</span> trên <span className="text-gray-900 font-semibold">{totalPages}</span>
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                        disabled={currentPage === 0}
+                        className="p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        title="Trang trước"
+                      >
+                        <ChevronLeft className="w-5 h-5 text-gray-600" />
+                      </button>
+                      
+                      {Array.from({ length: totalPages }, (_, i) => i).map((pageIdx) => {
+                        const active = pageIdx === currentPage;
+                        return (
+                          <button
+                            key={pageIdx}
+                            onClick={() => setCurrentPage(pageIdx)}
+                            className={`w-10 h-10 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                              active
+                                ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                                : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            {pageIdx + 1}
+                          </button>
+                        );
+                      })}
+
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
+                        disabled={currentPage >= totalPages - 1}
+                        className="p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        title="Trang sau"
+                      >
+                        <ChevronRight className="w-5 h-5 text-gray-600" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

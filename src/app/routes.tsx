@@ -28,6 +28,7 @@ import EmployerBuyPosts from "./pages/employer/EmployerBuyPosts";
 import EmployerSettings from "./pages/employer/EmployerSettings";
 import PaymentSuccess from "./pages/employer/PaymentSuccess";
 import StudentApplications from "./pages/student/StudentApplications";
+import StudentInformation from "./pages/student/StudentInformation";
 import AdminOverview from "./pages/admin/Overview";
 import AdminPackages from "./pages/admin/Packages";
 import AdminReports from "./pages/admin/Reports";
@@ -121,6 +122,7 @@ export const router = createBrowserRouter([
       { path: "community/post/:id", Component: CommunityPostDetail },
       { path: "profile", Component: Profile },
       { path: "student/applications", Component: StudentApplications },
+      { path: "student/information", Component: StudentInformation },
       { path: "notifications", Component: Notifications },
       { path: "*", Component: NotFound },
     ],

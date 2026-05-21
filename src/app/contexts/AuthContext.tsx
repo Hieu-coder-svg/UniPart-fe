@@ -8,6 +8,7 @@ import React, { createContext, useCallback, useEffect, useState } from "react";
 import { AuthContextType, AuthenticationRequest, RegisterRequest, StudentRegistrationRequest, EmployerRegistrationRequest, UserResponse, VerifyOTPRequest, SendOTPRequest, ForgotPasswordRequest } from "@/types";
 import { TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY } from "@/lib/constants";
 import { authService } from "@/services/authService";
+import { userService } from "@/services/userService";
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -95,7 +96,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const storedUser = localStorage.getItem(USER_KEY);
 
         if (token && storedUser) {
-          setUser(JSON.parse(storedUser));
+          const parsedUser = JSON.parse(storedUser) as UserResponse;
+          setUser(parsedUser);
+
+          // Fetch fresh user profile from DB to sync the latest avatar and fullName
+          try {
+            if (parsedUser.role === "STUDENT") {
+              const res = await userService.getStudentMyInfo();
+              if (res.result) {
+                const freshUser = {
+                  ...parsedUser,
+                  avatar: res.result.avatar,
+                  fullName: res.result.fullName,
+                };
+                setUser(freshUser);
+                localStorage.setItem(USER_KEY, JSON.stringify(freshUser));
+              }
+            } else if (parsedUser.role === "EMPLOYER") {
+              const res = await userService.getEmployerMyInfo();
+              if (res.result) {
+                const freshUser = {
+                  ...parsedUser,
+                  avatar: res.result.avatar,
+                  fullName: res.result.fullName,
+                };
+                setUser(freshUser);
+                localStorage.setItem(USER_KEY, JSON.stringify(freshUser));
+              }
+            }
+          } catch (apiError) {
+            console.error("Failed to fetch fresh user info during init:", apiError);
+          }
         }
       } catch (error) {
         console.error("Failed to initialize auth:", error);
@@ -126,6 +157,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       const profile = createFallbackUser(username, authResult.token);
+
+      // Fetch the actual student or employer info immediately after login to populate avatar & fullName
+      try {
+        if (profile.role === "STUDENT") {
+          const res = await userService.getStudentMyInfo();
+          if (res.result) {
+            profile.avatar = res.result.avatar;
+            profile.fullName = res.result.fullName;
+          }
+        } else if (profile.role === "EMPLOYER") {
+          const res = await userService.getEmployerMyInfo();
+          if (res.result) {
+            profile.avatar = res.result.avatar;
+            profile.fullName = res.result.fullName;
+          }
+        }
+      } catch (apiError) {
+        console.error("Failed to fetch fresh user info after login:", apiError);
+      }
+
       setUser(profile);
       localStorage.setItem(USER_KEY, JSON.stringify(profile));
       return profile;

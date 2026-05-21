@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   User,
   MapPin,
@@ -103,6 +103,15 @@ export default function Profile() {
   const [reviewsReceived, setReviewsReceived] = useState<Record<string, ReviewResponse>>({});
   const [reviewsWritten, setReviewsWritten] = useState<Record<string, ReviewResponse>>({});
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  const averageRating = useMemo(() => {
+    const reviews = Object.values(reviewsReceived);
+    if (reviews.length === 0) return 5.0;
+    const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+    return sum / reviews.length;
+  }, [reviewsReceived]);
+
+  const displayRating = (studentInfo?.rating && studentInfo.rating > 0) ? studentInfo.rating : averageRating;
 
   useEffect(() => {
     fetchStudentInfo();
@@ -217,7 +226,7 @@ export default function Profile() {
       const [historyRes, appsRes, receivedRes, writtenRes] = await Promise.all([
         jobService.getStudentJobHistory(studentId).catch(() => null),
         applicationService.getStudentApplications().catch(() => null),
-        reviewService.getStudentReviews(studentId).catch(() => null),
+        reviewService.getReviewsByStudentId(studentId).catch(() => null),
         reviewService.getReviewsWrittenByStudent(studentId).catch(() => null),
       ]);
 
@@ -258,12 +267,12 @@ export default function Profile() {
     }
   };
 
-  // Fetch history when tab changes to history
+  // Fetch history immediately when studentInfo is loaded so stats are ready on mount
   useEffect(() => {
-    if (activeTab === "history" && studentInfo?.id && completedJobs.length === 0) {
+    if (studentInfo?.id) {
       fetchHistory(studentInfo.id);
     }
-  }, [activeTab, studentInfo?.id]);
+  }, [studentInfo?.id]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -364,6 +373,13 @@ export default function Profile() {
         setStudentInfo(res.result);
         setIsEditing(false);
         setMessage({ type: "success", text: "Cập nhật thông tin thành công!" });
+        
+        // Sync updated avatar and fullName immediately to the context / header
+        updateUser({
+          avatar: res.result.avatar,
+          fullName: res.result.fullName,
+        });
+
         setTimeout(() => setMessage({ type: "", text: "" }), 3000);
       }
     } catch (error: any) {
@@ -517,13 +533,13 @@ export default function Profile() {
 
           {/* ── Stats Dashboard Bar ── */}
           <div className="px-7 pb-5 pt-2">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 gap-4 max-w-xl mx-auto">
               {/* Rating */}
               <div className="group relative bg-amber-50 hover:bg-amber-100 border border-amber-100 rounded-2xl p-4 text-center cursor-pointer transition-all hover:scale-105 hover:shadow-md duration-200">
                 <div className="w-9 h-9 bg-amber-400 rounded-xl flex items-center justify-center mx-auto mb-2 shadow-sm group-hover:scale-110 transition-transform">
                   <Star className="w-5 h-5 text-white fill-white" />
                 </div>
-                <div className="text-2xl font-extrabold text-amber-600 leading-none">4.8</div>
+                <div className="text-2xl font-extrabold text-amber-600 leading-none">{displayRating.toFixed(1)}</div>
                 <div className="text-[10px] text-amber-500 font-semibold mt-1 uppercase tracking-wide">Đánh giá</div>
               </div>
 
@@ -534,24 +550,6 @@ export default function Profile() {
                 </div>
                 <div className="text-2xl font-extrabold text-blue-600 leading-none">{completedJobs.length}</div>
                 <div className="text-[10px] text-blue-500 font-semibold mt-1 uppercase tracking-wide">Việc xong</div>
-              </div>
-
-              {/* Total hours */}
-              <div className="group relative bg-violet-50 hover:bg-violet-100 border border-violet-100 rounded-2xl p-4 text-center cursor-pointer transition-all hover:scale-105 hover:shadow-md duration-200">
-                <div className="w-9 h-9 bg-violet-500 rounded-xl flex items-center justify-center mx-auto mb-2 shadow-sm group-hover:scale-110 transition-transform">
-                  <Clock className="w-5 h-5 text-white" />
-                </div>
-                <div className="text-2xl font-extrabold text-violet-600 leading-none">156</div>
-                <div className="text-[10px] text-violet-500 font-semibold mt-1 uppercase tracking-wide">Giờ làm</div>
-              </div>
-
-              {/* Response rate */}
-              <div className="group relative bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 rounded-2xl p-4 text-center cursor-pointer transition-all hover:scale-105 hover:shadow-md duration-200">
-                <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center mx-auto mb-2 shadow-sm group-hover:scale-110 transition-transform">
-                  <Zap className="w-5 h-5 text-white fill-white" />
-                </div>
-                <div className="text-2xl font-extrabold text-emerald-600 leading-none">98%</div>
-                <div className="text-[10px] text-emerald-500 font-semibold mt-1 uppercase tracking-wide">Phản hồi</div>
               </div>
             </div>
           </div>
