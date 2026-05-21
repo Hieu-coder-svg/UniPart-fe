@@ -1,4 +1,4 @@
-import { Search, Filter, Ban, CheckCircle, UserPlus, X, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Search, Filter, Ban, CheckCircle, UserPlus, X, Eye, EyeOff, Loader2, Info } from "lucide-react";
 import { useState, useEffect } from "react";
 import { userService } from "../../../services/userService";
 
@@ -6,10 +6,15 @@ interface Account {
   id: string;
   username: string;
   email: string;
+  fullName: string;
   role: "admin" | "employer" | "student";
   status: "active" | "banned";
   createdAt: string;
   lastLogin: string;
+  avatar?: string;
+  phoneNumber?: string;
+  gender?: string;
+  dateOfBirth?: string;
 }
 
 interface CreateAccountForm {
@@ -36,6 +41,9 @@ export default function AccountManagement() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 8;
+
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [blockingId, setBlockingId] = useState<string | null>(null);
@@ -48,6 +56,10 @@ export default function AccountManagement() {
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState(false);
+
+  // Detail modal state
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   // Toast state
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -70,6 +82,7 @@ export default function AccountManagement() {
           id: user.id,
           username: user.username,
           email: user.email,
+          fullName: user.fullName || "",
           role: user.roleName?.toLowerCase() || "student",
           status: user.isBlocked ? "banned" : "active",
           createdAt: user.createdAt ? new Date(user.createdAt).toLocaleDateString("vi-VN") : "—",
@@ -82,6 +95,10 @@ export default function AccountManagement() {
                 minute: "2-digit",
               })
             : "Chưa đăng nhập",
+          avatar: user.avatar || undefined,
+          phoneNumber: user.phoneNumber || undefined,
+          gender: user.gender || undefined,
+          dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString("vi-VN") : undefined,
         }));
         setAccounts(mappedAccounts);
       }
@@ -175,6 +192,16 @@ export default function AccountManagement() {
     )
     .filter((a) => filterRole === "all" || a.role === filterRole)
     .filter((a) => filterStatus === "all" || a.status === filterStatus);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterRole, filterStatus]);
+
+  const totalPages = Math.ceil(filteredAccounts.length / ITEMS_PER_PAGE);
+  const paginatedAccounts = filteredAccounts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   return (
     <div className="p-6 md:p-8 relative">
@@ -320,15 +347,23 @@ export default function AccountManagement() {
                   </td>
                 </tr>
               ) : (
-                filteredAccounts.map((account) => (
+                paginatedAccounts.map((account) => (
                   <tr key={account.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-white text-sm font-bold shrink-0">
+                        {account.avatar ? (
+                          <img
+                            src={account.avatar}
+                            alt={account.username}
+                            className="w-9 h-9 rounded-full object-cover shrink-0 border-2 border-gray-200"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
+                          />
+                        ) : null}
+                        <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-white text-sm font-bold shrink-0 ${account.avatar ? 'hidden' : ''}`}>
                           {(account.username || "U").charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-medium text-gray-900 text-sm">{account.username || "Không có tên"}</div>
+                          <div className="font-medium text-gray-900 text-sm">{account.fullName || account.username || "Không có tên"}</div>
                           <div className="text-xs text-gray-500">{account.email || "Không có email"}</div>
                         </div>
                       </div>
@@ -351,6 +386,15 @@ export default function AccountManagement() {
                     <td className="px-6 py-4 text-sm text-gray-500">{account.createdAt}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          id={`btn-detail-${account.id}`}
+                          onClick={() => { setSelectedAccount(account); setShowDetailModal(true); }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200"
+                          title="Xem chi tiết"
+                        >
+                          <Info className="w-3.5 h-3.5" />
+                          Chi tiết
+                        </button>
                         {account.role !== "admin" && (
                           <button
                             id={`btn-block-${account.id}`}
@@ -383,11 +427,134 @@ export default function AccountManagement() {
         </div>
 
         {!loading && filteredAccounts.length > 0 && (
-          <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
-            Hiển thị {filteredAccounts.length} / {accounts.length} tài khoản
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-sm text-gray-500">
+              Hiển thị <span className="font-semibold text-gray-900">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> đến <span className="font-semibold text-gray-900">{Math.min(currentPage * ITEMS_PER_PAGE, filteredAccounts.length)}</span> trong tổng số <span className="font-semibold text-gray-900">{filteredAccounts.length}</span> tài khoản
+            </div>
+            
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                >
+                  Trước
+                </button>
+                
+                <span className="text-sm text-gray-600 px-2 font-medium">
+                  Trang <span className="text-gray-900">{currentPage}</span> / {totalPages}
+                </span>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                >
+                  Sau
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {/* Detail Account Modal */}
+      {showDetailModal && selectedAccount && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowDetailModal(false)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  {selectedAccount.avatar ? (
+                    <img
+                      src={selectedAccount.avatar}
+                      alt={selectedAccount.username}
+                      className="w-14 h-14 rounded-full object-cover border-3 border-white/30 shadow-lg"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-white text-xl font-bold shadow-lg">
+                      {(selectedAccount.username || "U").charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <h2 className="text-lg font-bold text-white">{selectedAccount.fullName || selectedAccount.username}</h2>
+                    <p className="text-blue-100 text-xs mt-0.5">@{selectedAccount.username}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-xs text-gray-500 mb-1">Email</p>
+                  <p className="text-sm font-medium text-gray-900 break-all">{selectedAccount.email || "—"}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-xs text-gray-500 mb-1">Vai trò</p>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${roleColors[selectedAccount.role] || "bg-gray-100 text-gray-600"}`}>
+                    {roleLabels[selectedAccount.role] || selectedAccount.role}
+                  </span>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-xs text-gray-500 mb-1">Trạng thái</p>
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
+                    selectedAccount.status === "active"
+                      ? "bg-green-50 text-green-700 border border-green-200"
+                      : "bg-red-50 text-red-700 border border-red-200"
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${selectedAccount.status === "active" ? "bg-green-500" : "bg-red-500"}`} />
+                    {selectedAccount.status === "active" ? "Hoạt động" : "Bị khóa"}
+                  </span>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-xs text-gray-500 mb-1">Số điện thoại</p>
+                  <p className="text-sm font-medium text-gray-900">{selectedAccount.phoneNumber || "—"}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-xs text-gray-500 mb-1">Giới tính</p>
+                  <p className="text-sm font-medium text-gray-900">{selectedAccount.gender || "—"}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-xs text-gray-500 mb-1">Ngày sinh</p>
+                  <p className="text-sm font-medium text-gray-900">{selectedAccount.dateOfBirth || "—"}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-xs text-gray-500 mb-1">Ngày tạo</p>
+                  <p className="text-sm font-medium text-gray-900">{selectedAccount.createdAt}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-xs text-gray-500 mb-1">Đăng nhập cuối</p>
+                  <p className="text-sm font-medium text-gray-900">{selectedAccount.lastLogin}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="px-5 py-2.5 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Account Modal */}
       {showCreateModal && (

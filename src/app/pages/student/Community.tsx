@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { Link as RouterLink } from "react-router";
 import {
   Heart,
   MessageCircle,
@@ -7,7 +8,6 @@ import {
   AlertTriangle,
   TrendingUp,
   Award,
-  Bookmark,
   MoreHorizontal,
   Search,
   Hash,
@@ -22,6 +22,7 @@ import {
   Upload,
   Link,
   Flag,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { reportService, ReportRequest } from "../../../services/reportService";
@@ -105,9 +106,13 @@ export default function Community() {
   const { user } = useAuth();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newPostContent, setNewPostContent] = useState("");
-  const [newPostCategory, setNewPostCategory] = useState<PostCategory>("Kinh nghiệm");
+  const [newPostCategories, setNewPostCategories] = useState<PostCategory[]>([]);
   const [newPostImage, setNewPostImage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // All posts (full page) used to compute sidebar stats
+  const [allPosts, setAllPosts] = useState<Post[]>([]);
+  // Post detail modal state
+  const [selectedPostForComment, setSelectedPostForComment] = useState<Post | null>(null);
 
   // Handle real-time new post from WebSocket
   const handleNewPostBroadcast = useCallback((msg: any) => {
@@ -123,10 +128,11 @@ export default function Community() {
         id: msg.postId,
         userId: msg.authorId,
         authorName: msg.authorName,
-        authorAvatar: undefined,
+        authorAvatar: msg.authorAvatar,
         content: msg.contentPreview,
         categoryId: 0,
         categoryName: msg.categoryName,
+        categoryNames: msg.categoryNames || [msg.categoryName],
         likesCount: 0,
         commentsCount: 0,
         sharesCount: 0,
@@ -173,9 +179,10 @@ export default function Community() {
 
   const fetchData = async () => {
     try {
-      const [categoriesRes, postsRes] = await Promise.all([
+      const [categoriesRes, postsRes, allPostsRes] = await Promise.all([
         postService.getCategories(),
         postService.getAllPosts(),
+        postService.getAllPosts({ page: 0, size: 200 }),
       ]);
 
       if (categoriesRes.result) {
@@ -184,6 +191,10 @@ export default function Community() {
 
       if (postsRes.result?.content) {
         setPosts(postsRes.result.content);
+      }
+
+      if (allPostsRes.result?.content) {
+        setAllPosts(allPostsRes.result.content);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -237,9 +248,11 @@ export default function Community() {
 
     setIsSubmitting(true);
     try {
-      const categoryId = CATEGORY_ID_MAP[newPostCategory];
+      const categoryIds = newPostCategories.length > 0
+        ? newPostCategories.map(c => CATEGORY_ID_MAP[c])
+        : [1]; // Default to "Kinh nghiệm" (id=1)
       const request: PostCreationRequest = {
-        categoryId,
+        categoryIds,
         content: newPostContent.trim(),
         imageUrl: newPostImage || undefined,
       };
@@ -248,12 +261,18 @@ export default function Community() {
       const response = await postService.createPost(request);
       
       if (response.result) {
-        setPosts((prev) => [response.result!, ...prev]);
+        // Ensure author info is displayed immediately
+        const postWithUserInfo = {
+          ...response.result,
+          authorName: response.result.authorName || user?.fullName || user?.name || "Người dùng",
+          authorAvatar: response.result.authorAvatar || user?.avatar,
+        };
+        setPosts((prev) => [postWithUserInfo, ...prev]);
       }
 
       toast.success("Đăng bài thành công!");
       setNewPostContent("");
-      setNewPostCategory("Kinh nghiệm");
+      setNewPostCategories([]);
       setNewPostImage(null);
       setIsCreateModalOpen(false);
     } catch (error: any) {
@@ -380,6 +399,49 @@ export default function Community() {
 
   const filteredPosts = posts;
 
+  // ── Computed sidebar data from real posts ──
+  const trendingTopics = useMemo(() => {
+    // Group by categoryName and count, use as "trending topics"
+    const counts: Record<string, number> = {};
+    allPosts.forEach((p) => {
+      const cat = p.categoryName || getCategoryName(p.categoryId);
+      if (cat && cat !== "Không phân loại") {
+        counts[cat] = (counts[cat] || 0) + 1;
+      }
+    });
+    const ICONS: Record<string, string> = {
+      "Kinh nghiệm": "💼", "Cảnh báo": "🚨", "Mẹo": "💡", "Hỏi đáp": "❓",
+    };
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([title, count]) => ({ title, count, icon: ICONS[title] || "📌" }));
+  }, [allPosts]);
+
+  const topMembers = useMemo(() => {
+    const map: Record<string, { name: string; avatar?: string; userId: string; postCount: number; likeCount: number }> = {};
+    allPosts.forEach((p) => {
+      if (!p.userId) return;
+      if (!map[p.userId]) {
+        map[p.userId] = { name: p.authorName, avatar: p.authorAvatar, userId: p.userId, postCount: 0, likeCount: 0 };
+      }
+      map[p.userId].postCount += 1;
+      map[p.userId].likeCount += p.likesCount || 0;
+    });
+    const BADGES = ["🥇", "🥈", "🥉"];
+    return Object.values(map)
+      .sort((a, b) => b.postCount - a.postCount || b.likeCount - a.likeCount)
+      .slice(0, 3)
+      .map((m, i) => ({ ...m, badge: BADGES[i] }));
+  }, [allPosts]);
+
+  const popularTags = useMemo(() => {
+    // Use real category names as tags
+    const cats = Array.from(new Set(allPosts.map((p) => p.categoryName || getCategoryName(p.categoryId)).filter(Boolean)));
+    return cats.map((c) => `#${c.toLowerCase().replace(/\s+/g, "")}`);
+  }, [allPosts]);
+
+
   return (
     <div className="min-h-screen bg-[#f7f8fc] pb-20 md:pb-8 font-sans">
       {/* Create Post Modal */}
@@ -403,17 +465,31 @@ export default function Community() {
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-sm text-gray-900">Bạn</p>
-                  <select
-                    value={newPostCategory}
-                    onChange={(e) => setNewPostCategory(e.target.value as PostCategory)}
-                    className="mt-1 text-xs bg-gray-100 border-0 rounded-lg px-3 py-1.5 text-gray-600 focus:ring-2 focus:ring-blue-300"
-                  >
-                    {CATEGORIES.filter((c) => c.value !== "all").map((cat) => (
-                      <option key={cat.value} value={cat.value}>
-                        {cat.icon} {cat.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {CATEGORIES.filter((c) => c.value !== "all").map((cat) => {
+                      const isSelected = newPostCategories.includes(cat.value as PostCategory) || (!newPostCategories.length && cat.value === "Kinh nghiệm");
+                      return (
+                        <button
+                          key={cat.value}
+                          type="button"
+                          onClick={() => {
+                            if (newPostCategories.includes(cat.value as PostCategory)) {
+                              setNewPostCategories(newPostCategories.filter(c => c !== cat.value));
+                            } else {
+                              setNewPostCategories([...newPostCategories, cat.value as PostCategory]);
+                            }
+                          }}
+                          className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                            isSelected
+                              ? cat.activeColor || "bg-blue-500 text-white shadow-md"
+                              : cat.idleColor || "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                          }`}
+                        >
+                          {cat.icon} {cat.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
@@ -472,6 +548,21 @@ export default function Community() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════
+          POST DETAIL MODAL (Facebook-style)
+      ═══════════════════════════════════════════════ */}
+      {selectedPostForComment && (
+        <PostDetailModal
+          post={selectedPostForComment}
+          onClose={() => setSelectedPostForComment(null)}
+          onLike={handleLikePost}
+          onShare={handleSharePost}
+          formatDate={formatDate}
+          getCategoryName={getCategoryName}
+          getAvatar={getAvatar}
+        />
       )}
 
       {/* ═══════════════════════════════════════════════
@@ -570,15 +661,10 @@ export default function Community() {
               </div>
 
               <div className="space-y-1">
-                {[
-                  { title: "Làm việc tại Highlands", count: 234, icon: "☕" },
-                  { title: "Gia sư online", count: 189, icon: "📚" },
-                  { title: "Công việc cuối tuần", count: 156, icon: "🗓️" },
-                  { title: "Cảnh báo lừa đảo", count: 142, icon: "🚨" },
-                  { title: "Tips phỏng vấn", count: 98, icon: "🎯" },
-                ].map((topic, idx) => (
+                {trendingTopics.length > 0 ? trendingTopics.map((topic, idx) => (
                   <button
                     key={idx}
+                    onClick={() => setSelectedCategory(topic.title)}
                     className="w-full group flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-blue-50 transition-all duration-200 text-left"
                   >
                     <span className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-lg bg-gray-100 group-hover:bg-blue-100 text-xs font-bold text-gray-500 group-hover:text-blue-600 transition-colors">
@@ -592,12 +678,10 @@ export default function Community() {
                       {topic.count}
                     </span>
                   </button>
-                ))}
+                )) : (
+                  <p className="text-xs text-gray-400 text-center py-3">Chưa có dữ liệu</p>
+                )}
               </div>
-
-              <button className="mt-4 w-full text-center text-xs text-blue-600 hover:text-blue-800 font-semibold py-1.5 rounded-lg hover:bg-blue-50 transition-colors">
-                Xem thêm →
-              </button>
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm p-5">
@@ -609,36 +693,39 @@ export default function Community() {
               </div>
 
               <div className="space-y-2">
-                {[
-                  { name: "Nguyễn Văn A", avatar: "👨‍💼", posts: 45, reputation: 1250, badge: "🥇" },
-                  { name: "Trần Thị B",   avatar: "👩‍🎓", posts: 38, reputation: 980,  badge: "🥈" },
-                  { name: "Lê Minh C",    avatar: "🧑‍💻", posts: 32, reputation: 870,  badge: "🥉" },
-                ].map((user, idx) => (
-                  <div
-                    key={idx}
-                    className="group flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 transition-all cursor-pointer"
+                {topMembers.length > 0 ? topMembers.map((member, idx) => (
+                  <RouterLink
+                    key={member.userId}
+                    to={`/community/user/${member.userId}`}
+                    className="group flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 transition-all"
                   >
                     <div className="relative flex-shrink-0">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-violet-500 rounded-full flex items-center justify-center text-lg ring-2 ring-white shadow-sm">
-                        {user.avatar}
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-violet-500 rounded-full flex items-center justify-center text-lg ring-2 ring-white shadow-sm overflow-hidden">
+                        {member.avatar ? (
+                          <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
+                        ) : (
+                          "👤"
+                        )}
                       </div>
-                      <span className="absolute -top-1 -right-1 text-sm leading-none">{user.badge}</span>
+                      <span className="absolute -top-1 -right-1 text-sm leading-none">{member.badge}</span>
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm text-gray-800 group-hover:text-blue-600 transition-colors truncate">
-                        {user.name}
+                        {member.name}
                       </p>
                       <p className="text-xs text-gray-400">
-                        {user.posts} bài · {user.reputation.toLocaleString()} điểm
+                        {member.postCount} bài · {member.likeCount.toLocaleString()} lượt thích
                       </p>
                     </div>
 
                     {idx === 0 && (
                       <Sparkles className="w-4 h-4 text-yellow-400 flex-shrink-0" />
                     )}
-                  </div>
-                ))}
+                  </RouterLink>
+                )) : (
+                  <p className="text-xs text-gray-400 text-center py-3">Chưa có dữ liệu</p>
+                )}
               </div>
             </div>
 
@@ -648,17 +735,21 @@ export default function Community() {
                 <h3 className="font-bold text-gray-800 text-sm">Tag phổ biến</h3>
               </div>
               <div className="flex flex-wrap gap-2">
-                {["#highlands", "#giasu", "#parttime", "#luado", "#tuyengap", "#kinhnghiem", "#remote"].map((tag) => (
+                {popularTags.length > 0 ? popularTags.map((tag) => (
                   <button
                     key={tag}
+                    onClick={() => setSelectedCategory(tag.replace("#", "").replace(/ề/g, "ề").replace(/ọ/g, "ọ"))}
                     className="text-xs text-gray-500 bg-gray-100 hover:bg-blue-100 hover:text-blue-600 px-2.5 py-1 rounded-full transition-colors font-medium"
                   >
                     {tag}
                   </button>
-                ))}
+                )) : (
+                  <p className="text-xs text-gray-400">Chưa có dữ liệu</p>
+                )}
               </div>
             </div>
           </aside>
+
 
           {/* ── MAIN FEED ── */}
           <main className="lg:col-span-2 space-y-5">
@@ -714,13 +805,14 @@ export default function Community() {
             {/* Posts */}
             {!isLoading && filteredPosts.map((post) => (
               <PostCard
+                key={post.id}
                 post={post}
                 onLike={handleLikePost}
                 onShare={handleSharePost}
                 formatDate={formatDate}
                 getCategoryName={getCategoryName}
                 getAvatar={getAvatar}
-                key={post.id}
+                onOpenComments={(p) => setSelectedPostForComment(p)}
               />
             ))}
 
@@ -763,16 +855,14 @@ export interface PostCardProps {
   formatDate: (date: string) => string;
   getCategoryName: (categoryId: number) => string;
   getAvatar: (avatar?: string) => string;
+  onOpenComments?: (post: Post) => void;
 }
 
-export function PostCard({ post, onLike, onShare, formatDate, getCategoryName, getAvatar }: PostCardProps) {
+export function PostCard({ post, onLike, onShare, formatDate, getCategoryName, getAvatar, onOpenComments }: PostCardProps) {
   const [liked, setLiked] = useState(post.isLiked ?? post.isLikedByMe ?? false);
   const [likeCount, setLikeCount] = useState(post.likesCount);
-  const [saved, setSaved] = useState(false);
   const [shared, setShared] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState<Comment[]>([]);
   const { user } = useAuth();
 
   // Sync like state when post prop changes (e.g., after refetch)
@@ -780,10 +870,6 @@ export function PostCard({ post, onLike, onShare, formatDate, getCategoryName, g
     setLiked(post.isLiked ?? post.isLikedByMe ?? false);
     setLikeCount(post.likesCount);
   }, [post.isLiked, post.isLikedByMe, post.likesCount]);
-  const [isLoadingComments, setIsLoadingComments] = useState(false);
-  const [newComment, setNewComment] = useState("");
-  const [commentImage, setCommentImage] = useState<string | null>(null);
-  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   const [showDropdown, setShowDropdown] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -833,28 +919,6 @@ export function PostCard({ post, onLike, onShare, formatDate, getCategoryName, g
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${postUrl}`, "_blank");
   };
 
-  const fetchComments = async () => {
-    setIsLoadingComments(true);
-    try {
-      const response = await commentService.getCommentsByPost(post.id);
-      if (response.result) {
-        setComments(response.result);
-      }
-    } catch (error) {
-      console.error("Error fetching comments:", error);
-      toast.error("Không thể tải bình luận");
-    } finally {
-      setIsLoadingComments(false);
-    }
-  };
-
-  const handleToggleComments = () => {
-    if (!showComments && comments.length === 0) {
-      fetchComments();
-    }
-    setShowComments(!showComments);
-  };
-
   const handleReportSubmit = async () => {
     if (!user) {
       toast.error("Vui lòng đăng nhập để báo cáo!");
@@ -884,46 +948,6 @@ export function PostCard({ post, onLike, onShare, formatDate, getCategoryName, g
     }
   };
 
-  const handleSubmitComment = async () => {
-    if (!user) {
-      toast.error("Vui lòng đăng nhập để bình luận!");
-      return;
-    }
-    if (!newComment.trim() && !commentImage) return;
-
-    setIsSubmittingComment(true);
-    try {
-      const response = await commentService.createComment({
-        postId: post.id,
-        content: newComment.trim(),
-        imageUrl: commentImage || undefined,
-      });
-
-      if (response.result) {
-        setComments((prev) => [response.result!, ...prev]);
-        setNewComment("");
-        setCommentImage(null);
-        toast.success("Đã thêm bình luận");
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Không thể thêm bình luận");
-    } finally {
-      setIsSubmittingComment(false);
-    }
-  };
-
-  const handleCommentImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const url = await uploadImageToCloudinary(file);
-      setCommentImage(url);
-    } catch {
-      toast.error("Không thể tải ảnh lên");
-    }
-  };
-
   return (
     <>
     <article className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 hover:-translate-y-0.5">
@@ -931,22 +955,39 @@ export function PostCard({ post, onLike, onShare, formatDate, getCategoryName, g
       <div className="px-5 pt-5 pb-4">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-start gap-3">
-            <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-violet-500 rounded-full flex items-center justify-center text-2xl ring-2 ring-blue-100 shadow-sm flex-shrink-0">
-              {getAvatar(post.authorAvatar)}
+            <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-violet-500 rounded-full flex items-center justify-center text-2xl ring-2 ring-blue-100 shadow-sm flex-shrink-0 overflow-hidden">
+              {post.authorAvatar ? (
+                <img src={post.authorAvatar} alt={post.authorName} className="w-full h-full object-cover" />
+              ) : (
+                <span>👤</span>
+              )}
             </div>
 
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-bold text-gray-900 text-sm">{post.authorName}</span>
+                <RouterLink
+                  to={`/community/user/${post.userId}`}
+                  className="font-bold text-gray-900 text-sm hover:text-blue-600 hover:underline transition-colors"
+                >
+                  {post.authorName}
+                </RouterLink>
                 <span className="text-gray-300 text-xs">·</span>
                 <span className="text-xs text-gray-400">{formatDate(post.createdAt)}</span>
               </div>
-              <span
-                className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold mt-1 border ${config.bg} ${config.text} ${config.border}`}
-              >
-                <span className="leading-none">{config.icon}</span>
-                {categoryName}
-              </span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {(post.categoryNames || [categoryName]).map((cat, idx) => {
+                  const catConfig = CATEGORY_CONFIG[cat] || CATEGORY_CONFIG["Kinh nghiệm"];
+                  return (
+                    <span
+                      key={idx}
+                      className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold border ${catConfig.bg} ${catConfig.text} ${catConfig.border}`}
+                    >
+                      <span className="leading-none">{catConfig.icon}</span>
+                      {cat}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -1023,7 +1064,7 @@ export function PostCard({ post, onLike, onShare, formatDate, getCategoryName, g
             <span className="ml-0.5">{likeCount.toLocaleString()}</span>
           </div>
           <div className="flex items-center gap-3 text-xs text-gray-400">
-            <button onClick={handleToggleComments} className="hover:text-blue-600 transition-colors">
+            <button onClick={() => onOpenComments?.(post)} className="hover:text-blue-600 transition-colors">
               {post.commentsCount} bình luận
             </button>
             <span>·</span>
@@ -1051,12 +1092,10 @@ export function PostCard({ post, onLike, onShare, formatDate, getCategoryName, g
         </button>
 
         <button
-          onClick={handleToggleComments}
-          className={`group flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
-            showComments ? "text-blue-600 bg-blue-50" : "text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-          }`}
+          onClick={() => onOpenComments?.(post)}
+          className="group flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
         >
-          <MessageCircle className={`w-4 h-4 group-hover:scale-110 transition-transform ${showComments ? "fill-blue-500" : ""}`} />
+          <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
           <span>Bình luận</span>
         </button>
 
@@ -1075,111 +1114,7 @@ export function PostCard({ post, onLike, onShare, formatDate, getCategoryName, g
           />
           <span className="hidden sm:inline">{shared ? "Đã chia sẻ!" : "Chia sẻ"}</span>
         </button>
-
-        <button
-          onClick={() => setSaved(!saved)}
-          className={`group flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
-            saved
-              ? "text-blue-600 bg-blue-50"
-              : "text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-          }`}
-        >
-          <Bookmark
-            className={`w-4 h-4 transition-all ${
-              saved ? "fill-blue-500 text-blue-500 scale-110" : "group-hover:scale-110"
-            }`}
-          />
-          <span className="hidden md:inline">{saved ? "Đã lưu" : "Lưu"}</span>
-        </button>
       </div>
-
-      {/* ── Comments Section ── */}
-      {showComments && (
-        <div className="border-t border-gray-100 p-4 bg-gray-50/30">
-          {/* Comment Input */}
-          <div className="flex items-start gap-3 mb-4">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-violet-500 rounded-full flex items-center justify-center text-lg flex-shrink-0">
-              👤
-            </div>
-            <div className="flex-1">
-              {commentImage && (
-                <div className="relative mb-2 inline-block">
-                  <img
-                    src={commentImage}
-                    alt="Comment"
-                    className="max-w-[200px] max-h-[200px] rounded-lg object-cover"
-                  />
-                  <button
-                    onClick={() => setCommentImage(null)}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSubmitComment()}
-                  placeholder="Viết bình luận..."
-                  className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
-                />
-                <label className="p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 cursor-pointer">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleCommentImageSelect}
-                    className="hidden"
-                  />
-                  <ImageIcon className="w-4 h-4 text-gray-600" />
-                </label>
-                <button
-                  onClick={handleSubmitComment}
-                  disabled={isSubmittingComment || (!newComment.trim() && !commentImage)}
-                  className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isSubmittingComment ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Comments List */}
-          {isLoadingComments ? (
-            <div className="text-center py-4">
-              <Loader2 className="w-5 h-5 animate-spin mx-auto text-blue-500" />
-            </div>
-          ) : comments.length > 0 ? (
-            <div className="space-y-3">
-              {/* Only render parent comments (no parentCommentId) */}
-              {comments
-                .filter((c) => !c.parentCommentId)
-                .map((comment) => (
-                  <CommentItem
-                    key={comment.id}
-                    comment={comment}
-                    comments={comments}
-                    setComments={setComments}
-                    formatDate={formatDate}
-                    getAvatar={getAvatar}
-                    isSubmitting={isSubmittingComment}
-                    setIsSubmitting={setIsSubmittingComment}
-                  />
-                ))}
-            </div>
-          ) : (
-            <p className="text-center text-sm text-gray-400 py-4">
-              Chưa có bình luận nào. Hãy là người đầu tiên bình luận!
-            </p>
-          )}
-        </div>
-      )}
     </article>
 
     {/* ── Share Modal ── */}
@@ -1403,8 +1338,12 @@ function CommentItem({
 
   return (
     <div className={`flex items-start gap-3 ${depth > 0 ? "ml-8 pl-4 border-l-2 border-gray-100" : ""}`}>
-      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-violet-500 rounded-full flex items-center justify-center text-lg flex-shrink-0">
-        {getAvatar(comment.authorAvatar)}
+      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-violet-500 rounded-full flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
+        {comment.authorAvatar ? (
+          <img src={comment.authorAvatar} alt={comment.authorName} className="w-full h-full object-cover" />
+        ) : (
+          <span>👤</span>
+        )}
       </div>
       <div className="flex-1 bg-white rounded-xl px-4 py-2 shadow-sm">
         <div className="flex items-center gap-2 mb-1">
@@ -1496,6 +1435,321 @@ function CommentItem({
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   POST DETAIL MODAL (Facebook-style)
+───────────────────────────────────────────────────────────── */
+interface PostDetailModalProps {
+  post: Post;
+  onClose: () => void;
+  onLike: (postId: number, isLiked: boolean) => void;
+  onShare: (postId: number) => void;
+  formatDate: (date: string) => string;
+  getCategoryName: (categoryId: number) => string;
+  getAvatar: (avatar?: string) => string;
+}
+
+export function PostDetailModal({ post, onClose, onLike, onShare, formatDate, getCategoryName, getAvatar }: PostDetailModalProps) {
+  const { user } = useAuth();
+  const [liked, setLiked] = useState(post.isLiked ?? post.isLikedByMe ?? false);
+  const [likeCount, setLikeCount] = useState(post.likesCount);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [commentImage, setCommentImage] = useState<string | null>(null);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
+  // Disable body scroll when modal opens
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+
+  useEffect(() => {
+    fetchComments();
+  }, [post.id]);
+
+  const fetchComments = async () => {
+    setIsLoadingComments(true);
+    try {
+      const response = await commentService.getCommentsByPost(post.id);
+      if (response.result) {
+        setComments(response.result);
+      }
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      toast.error("Không thể tải bình luận");
+    } finally {
+      setIsLoadingComments(false);
+    }
+  };
+
+  const handleLike = async () => {
+    const newLiked = !liked;
+    setLiked(newLiked);
+    setLikeCount((prev) => (newLiked ? prev + 1 : prev - 1));
+    try {
+      await postService.likePost(post.id);
+      onLike(post.id, newLiked);
+    } catch (error) {
+      setLiked(!newLiked);
+      setLikeCount((prev) => (newLiked ? prev - 1 : prev + 1));
+      toast.error("Không thể thích bài viết");
+    }
+  };
+
+  const handleSubmitComment = async () => {
+    if (!user) {
+      toast.error("Vui lòng đăng nhập để bình luận!");
+      return;
+    }
+    if (!newComment.trim() && !commentImage) return;
+
+    setIsSubmittingComment(true);
+    try {
+      const response = await commentService.createComment({
+        postId: post.id,
+        content: newComment.trim(),
+        imageUrl: commentImage || undefined,
+      });
+
+      if (response.result) {
+        // Add user info to comment if not provided by backend
+        const newCommentWithUser = {
+          ...response.result,
+          authorName: response.result.authorName || user.fullName || "Người dùng",
+          authorAvatar: response.result.authorAvatar || user.avatar,
+        };
+        setComments((prev) => [newCommentWithUser, ...prev]);
+        setNewComment("");
+        setCommentImage(null);
+        toast.success("Đã thêm bình luận");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Không thể thêm bình luận");
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
+  const handleCommentImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const url = await uploadImageToCloudinary(file);
+      setCommentImage(url);
+    } catch {
+      toast.error("Không thể tải ảnh lên");
+    }
+  };
+
+  const categoryName = getCategoryName(post.categoryId);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div 
+        className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-100">
+          <h2 className="text-lg font-bold text-gray-900">Bài viết</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Post Author & Content */}
+          <div className="p-4 border-b border-gray-100">
+            <div className="flex items-start gap-3">
+              <RouterLink
+                to={`/community/user/${post.userId}`}
+                className="w-12 h-12 bg-gradient-to-br from-blue-500 to-violet-500 rounded-full flex items-center justify-center text-xl flex-shrink-0 overflow-hidden ring-2 ring-blue-100 shadow-sm"
+              >
+                {post.authorAvatar ? (
+                  <img src={post.authorAvatar} alt={post.authorName} className="w-full h-full object-cover" />
+                ) : (
+                  <span>👤</span>
+                )}
+              </RouterLink>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <RouterLink
+                    to={`/community/user/${post.userId}`}
+                    className="font-bold text-gray-900 text-base hover:text-blue-600 hover:underline"
+                  >
+                    {post.authorName}
+                  </RouterLink>
+                  <span className="text-gray-300 text-xs">·</span>
+                  <span className="text-xs text-gray-400">{formatDate(post.createdAt)}</span>
+                </div>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {(post.categoryNames || [categoryName]).map((cat, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-600 border border-blue-100"
+                    >
+                      {cat}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Post Content */}
+            <div className="mt-4">
+              <p className="text-gray-800 text-[15px] leading-relaxed whitespace-pre-wrap">{post.content}</p>
+              {post.imageUrl && (
+                <img
+                  src={post.imageUrl}
+                  alt="Post image"
+                  className="mt-4 w-full rounded-xl object-cover max-h-[400px]"
+                />
+              )}
+            </div>
+
+            {/* Stats */}
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 text-sm text-gray-500">
+              <span>{likeCount} lượt thích</span>
+              <span>{comments.length} bình luận</span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-around py-2 border-b border-gray-100">
+            <button
+              onClick={handleLike}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                liked ? "text-red-500 bg-red-50" : "text-gray-500 hover:bg-gray-100"
+              }`}
+            >
+              <Heart className={`w-5 h-5 ${liked ? "fill-red-500" : ""}`} />
+              <span className="text-sm font-medium">{liked ? "Đã thích" : "Thích"}</span>
+            </button>
+
+            <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-all">
+              <MessageCircle className="w-5 h-5" />
+              <span className="text-sm font-medium">Bình luận</span>
+            </button>
+
+            <button
+              onClick={() => onShare(post.id)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-all"
+            >
+              <Share2 className="w-5 h-5" />
+              <span className="text-sm font-medium">Chia sẻ</span>
+            </button>
+          </div>
+
+          {/* Comments Section */}
+          <div className="p-4 bg-gray-50/30">
+            <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <MessageCircle className="w-4 h-4" />
+              Bình luận ({comments.length})
+            </h3>
+
+            {/* Comment Input */}
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-violet-500 rounded-full flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt={user.fullName} className="w-full h-full object-cover" />
+                ) : (
+                  <span>👤</span>
+                )}
+              </div>
+              <div className="flex-1">
+                {commentImage && (
+                  <div className="relative mb-2 inline-block">
+                    <img
+                      src={commentImage}
+                      alt="Comment"
+                      className="max-w-[200px] max-h-[200px] rounded-lg object-cover"
+                    />
+                    <button
+                      onClick={() => setCommentImage(null)}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSubmitComment()}
+                    placeholder="Viết bình luận..."
+                    className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+                  />
+                  <label className="p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCommentImageSelect}
+                      className="hidden"
+                    />
+                    <ImageIcon className="w-4 h-4 text-gray-600" />
+                  </label>
+                  <button
+                    onClick={handleSubmitComment}
+                    disabled={isSubmittingComment || (!newComment.trim() && !commentImage)}
+                    className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isSubmittingComment ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Comments List */}
+            {isLoadingComments ? (
+              <div className="text-center py-6">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-500" />
+              </div>
+            ) : comments.length > 0 ? (
+              <div className="space-y-4">
+                {comments
+                  .filter((c) => !c.parentCommentId)
+                  .map((comment) => (
+                    <CommentItem
+                      key={comment.id}
+                      comment={comment}
+                      comments={comments}
+                      setComments={setComments}
+                      formatDate={formatDate}
+                      getAvatar={getAvatar}
+                      depth={0}
+                      isSubmitting={isSubmittingComment}
+                      setIsSubmitting={setIsSubmittingComment}
+                    />
+                  ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-400 text-sm">
+                Chưa có bình luận nào. Hãy là người đầu tiên bình luận!
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Search,
   Filter,
@@ -72,6 +73,7 @@ export default function EmployerApplicants() {
   const [selectedStudent, setSelectedStudent] = useState<{
     id: number;
     name: string;
+    avatar?: string;
     email: string;
     phone?: string;
     university?: string;
@@ -91,6 +93,7 @@ export default function EmployerApplicants() {
     jobId: number;
     studentId: string;
     studentName: string;
+    studentAvatar?: string;
     jobTitle: string;
   } | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
@@ -340,6 +343,7 @@ export default function EmployerApplicants() {
       jobId: applicant.jobId,
       studentId: applicant.studentId,
       studentName: applicant.studentName,
+      studentAvatar: applicant.studentAvatar,
       jobTitle: applicant.jobTitle,
     });
     setReviewRating(5);
@@ -409,8 +413,74 @@ export default function EmployerApplicants() {
     }
   };
 
-  const handleViewProfile = (studentId: number) => {
-    navigate(`/student/information?id=${studentId}`);
+  const handleViewProfile = async (studentId: number, studentName: string, studentEmail: string, studentPhone?: string, studentUniversity?: string, studentMajor?: string) => {
+    setLoadingProfile(true);
+    try {
+      const [res, reviewsRes] = await Promise.all([
+        userService.getStudentById(studentId),
+        reviewService.getReviewsByStudentId(studentId.toString()).catch(() => null)
+      ]);
+
+      let averageRating = 0;
+      let employerReviews: ReviewResponse[] = [];
+      if (reviewsRes && reviewsRes.result) {
+        employerReviews = reviewsRes.result.filter(r => r.reviewType === "EMPLOYER_TO_STUDENT");
+        if (employerReviews.length > 0) {
+          averageRating = employerReviews.reduce((acc, r) => acc + r.rating, 0) / employerReviews.length;
+        }
+      }
+
+      if (res.result) {
+        // Parse skills from string to array if needed
+        let skills: string[] | undefined = res.result.skills;
+        if (typeof skills === 'string' && skills) {
+          try {
+            skills = JSON.parse(skills);
+          } catch {
+            skills = skills.split(',').map((s: string) => s.trim()).filter(Boolean);
+          }
+        }
+        
+        setSelectedStudent({
+          id: studentId,
+          name: res.result.fullName || studentName,
+          avatar: res.result.avatar,
+          email: res.result.email || studentEmail,
+          phone: res.result.phoneNumber || studentPhone,
+          university: res.result.university || studentUniversity,
+          major: res.result.major || studentMajor,
+          bio: res.result.bio,
+          skills: skills,
+          experience: res.result.experience,
+          cvUrl: res.result.cvUrl,
+          rating: averageRating,
+          reviews: employerReviews,
+        });
+      } else {
+        setSelectedStudent({
+          id: studentId,
+          name: studentName,
+          email: studentEmail,
+          phone: studentPhone,
+          university: studentUniversity,
+          major: studentMajor,
+          rating: averageRating,
+          reviews: employerReviews,
+        });
+      }
+    } catch {
+      setSelectedStudent({
+        id: studentId,
+        name: studentName,
+        email: studentEmail,
+        phone: studentPhone,
+        university: studentUniversity,
+        major: studentMajor,
+        rating: 0,
+      });
+    } finally {
+      setLoadingProfile(false);
+    }
   };
 
   const tabs: { key: TabStatus; label: string }[] = [
@@ -567,7 +637,21 @@ export default function EmployerApplicants() {
                 <div className="flex flex-col lg:flex-row gap-6">
                   {/* Avatar & Basic Info */}
                   <div className="flex gap-4">
-                    <div className="w-20 h-20 bg-gradient-to-br from-orange-600 to-red-600 rounded-2xl flex items-center justify-center text-white text-3xl font-bold flex-shrink-0 shadow-xl group-hover:scale-110 transition-transform duration-300">
+                    {applicant.studentAvatar ? (
+                      <img
+                        src={applicant.studentAvatar}
+                        alt={applicant.studentName}
+                        className="w-20 h-20 rounded-2xl object-cover shadow-xl group-hover:scale-110 transition-transform duration-300"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      className={`w-20 h-20 bg-gradient-to-br from-orange-600 to-red-600 rounded-2xl flex items-center justify-center text-white text-3xl font-bold flex-shrink-0 shadow-xl group-hover:scale-110 transition-transform duration-300 ${applicant.studentAvatar ? 'hidden' : ''}`}
+                    >
                       {applicant.studentName.charAt(0).toUpperCase()}
                     </div>
                     <div>
@@ -696,7 +780,7 @@ export default function EmployerApplicants() {
 
                     {/* View Profile button */}
                     <button
-                      onClick={() => handleViewProfile(applicant.studentId)}
+                      onClick={() => handleViewProfile(Number(applicant.studentId), applicant.studentName, applicant.studentEmail || "", applicant.studentPhone, applicant.studentUniversity, applicant.studentMajor)}
                       className="px-4 py-3 border-2 border-blue-200 text-blue-600 rounded-xl hover:bg-blue-50 hover:border-blue-400 transition-all text-sm font-medium flex items-center justify-center gap-2"
                     >
                       <Eye className="w-4 h-4" />
@@ -815,7 +899,21 @@ export default function EmployerApplicants() {
               <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
                 {/* Avatar & Name */}
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+                  {selectedStudent.avatar ? (
+                    <img
+                      src={selectedStudent.avatar}
+                      alt={selectedStudent.name}
+                      className="w-20 h-20 rounded-full object-cover shadow-lg"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        target.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  <div
+                    className={`w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg ${selectedStudent.avatar ? 'hidden' : ''}`}
+                  >
                     {selectedStudent.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
@@ -1006,8 +1104,20 @@ export default function EmployerApplicants() {
               <div className="p-6 space-y-6">
                 {/* Student info */}
                 <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-md">
-                    {reviewModal.studentName.charAt(0).toUpperCase()}
+                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-md overflow-hidden">
+                    {reviewModal.studentAvatar ? (
+                      <img
+                        src={reviewModal.studentAvatar}
+                        alt={reviewModal.studentName}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <span className={reviewModal.studentAvatar ? 'hidden' : ''}>{reviewModal.studentName.charAt(0).toUpperCase()}</span>
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-900">{reviewModal.studentName}</h4>

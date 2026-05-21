@@ -348,10 +348,18 @@ export default function EmployerJobs() {
                       <div className="text-lg font-semibold text-gray-900">{applicantsCount}</div>
                       <div className="text-xs text-gray-500">Ứng viên</div>
                     </div>
+                    <div className="text-center">
+                      <div className="text-lg font-semibold text-orange-600">{job.vacancies ?? 0}</div>
+                      <div className="text-xs text-gray-500">Còn chỗ</div>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-3 w-full sm:w-auto">
-                    {status === "active" ? (
+                    {job.isHide ? (
+                      <span className="px-3 py-1 bg-gray-100 text-gray-500 border border-gray-200 rounded-md text-xs font-medium">
+                        Đã đủ người
+                      </span>
+                    ) : status === "active" ? (
                       <span className="px-3 py-1 bg-green-50 text-green-700 border border-green-100 rounded-md text-xs font-medium">
                         Đang hoạt động
                       </span>
@@ -372,9 +380,7 @@ export default function EmployerJobs() {
                     </button>
                   </div>
                 </div>
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-gray-50 flex gap-6 text-xs text-gray-500">
+              </div>              <div className="mt-4 pt-3 border-t border-gray-50 flex gap-6 text-xs text-gray-500">
                 <div className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5" />
                   <span>Đăng ngày: <span className="font-medium text-gray-700">{new Date(job.createdAt).toLocaleDateString("vi-VN")}</span></span>

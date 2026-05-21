@@ -11,7 +11,7 @@ export interface ReportRequest {
 
 export interface ReportUpdateRequest {
   status: "PENDING" | "REVIEWING" | "RESOLVED" | "REJECTED";
-  resolution?: string;
+  adminNote?: string;
 }
 
 export interface ReportResponse {
@@ -29,6 +29,8 @@ export interface ReportResponse {
   updatedAt: string;
   resolvedAt?: string;
   resolution?: string;
+  adminNote?: string;
+  resolvedBy?: string;
   evidenceUrl?: string;
 }
 
