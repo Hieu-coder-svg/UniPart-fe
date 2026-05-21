@@ -59,6 +59,13 @@ class PostService {
     return response.data;
   }
 
+  async getPostsByUser(userId: string, page = 0, size = 50): Promise<ApiResponse<Page<Post>>> {
+    const response = await this.api.get<ApiResponse<Page<Post>>>(
+      `/posts/user/${userId}?page=${page}&size=${size}`
+    );
+    return response.data;
+  }
+
   async searchPosts(keyword: string, page = 0, size = 10): Promise<ApiResponse<Page<Post>>> {
     const response = await this.api.post<ApiResponse<Page<Post>>>("/posts/filter", {
       keyword,

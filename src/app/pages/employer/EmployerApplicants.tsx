@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Search,
   Filter,
@@ -63,6 +64,7 @@ export default function EmployerApplicants() {
   const [selectedStudent, setSelectedStudent] = useState<{
     id: number;
     name: string;
+    avatar?: string;
     email: string;
     phone?: string;
     university?: string;
@@ -82,6 +84,7 @@ export default function EmployerApplicants() {
     jobId: number;
     studentId: string;
     studentName: string;
+    studentAvatar?: string;
     jobTitle: string;
   } | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
@@ -260,6 +263,7 @@ export default function EmployerApplicants() {
       jobId: applicant.jobId,
       studentId: applicant.studentId,
       studentName: applicant.studentName,
+      studentAvatar: applicant.studentAvatar,
       jobTitle: applicant.jobTitle,
     });
     setReviewRating(5);
@@ -360,6 +364,7 @@ export default function EmployerApplicants() {
         setSelectedStudent({
           id: studentId,
           name: res.result.fullName || studentName,
+          avatar: res.result.avatar,
           email: res.result.email || studentEmail,
           phone: res.result.phoneNumber || studentPhone,
           university: res.result.university || studentUniversity,
@@ -552,7 +557,21 @@ export default function EmployerApplicants() {
                 <div className="flex flex-col lg:flex-row gap-6">
                   {/* Avatar & Basic Info */}
                   <div className="flex gap-4">
-                    <div className="w-20 h-20 bg-gradient-to-br from-orange-600 to-red-600 rounded-2xl flex items-center justify-center text-white text-3xl font-bold flex-shrink-0 shadow-xl group-hover:scale-110 transition-transform duration-300">
+                    {applicant.studentAvatar ? (
+                      <img
+                        src={applicant.studentAvatar}
+                        alt={applicant.studentName}
+                        className="w-20 h-20 rounded-2xl object-cover shadow-xl group-hover:scale-110 transition-transform duration-300"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      className={`w-20 h-20 bg-gradient-to-br from-orange-600 to-red-600 rounded-2xl flex items-center justify-center text-white text-3xl font-bold flex-shrink-0 shadow-xl group-hover:scale-110 transition-transform duration-300 ${applicant.studentAvatar ? 'hidden' : ''}`}
+                    >
                       {applicant.studentName.charAt(0).toUpperCase()}
                     </div>
                     <div>
@@ -750,7 +769,21 @@ export default function EmployerApplicants() {
               <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
                 {/* Avatar & Name */}
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+                  {selectedStudent.avatar ? (
+                    <img
+                      src={selectedStudent.avatar}
+                      alt={selectedStudent.name}
+                      className="w-20 h-20 rounded-full object-cover shadow-lg"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        target.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  <div
+                    className={`w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg ${selectedStudent.avatar ? 'hidden' : ''}`}
+                  >
                     {selectedStudent.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
@@ -941,8 +974,20 @@ export default function EmployerApplicants() {
               <div className="p-6 space-y-6">
                 {/* Student info */}
                 <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-md">
-                    {reviewModal.studentName.charAt(0).toUpperCase()}
+                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-md overflow-hidden">
+                    {reviewModal.studentAvatar ? (
+                      <img
+                        src={reviewModal.studentAvatar}
+                        alt={reviewModal.studentName}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <span className={reviewModal.studentAvatar ? 'hidden' : ''}>{reviewModal.studentName.charAt(0).toUpperCase()}</span>
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-900">{reviewModal.studentName}</h4>

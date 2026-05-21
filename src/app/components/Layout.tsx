@@ -2,7 +2,7 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import {
   Briefcase, Users, User, Home, Bookmark, LogOut, LogIn,
   PlusCircle, Bell, FileText, LayoutDashboard, ChevronDown,
-  Settings, GraduationCap,
+  Settings, GraduationCap, Flag,
 } from "lucide-react";
 import ChatBot from "./ChatBot";
 import { EmployerChatBot } from "./EmployerChatBot";
@@ -61,6 +61,11 @@ export default function Layout() {
   }
 
   navItems.push({ path: "/community", icon: Users, label: "Cộng đồng" });
+
+  // Add My Reports for non-admin users
+  if (!isAdmin && isAuthenticated) {
+    navItems.push({ path: "/my-reports", icon: Flag, label: "Báo cáo của tôi" });
+  }
 
 
   if (user?.role === "STUDENT") {

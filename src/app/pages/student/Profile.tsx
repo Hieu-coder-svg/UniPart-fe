@@ -103,6 +103,11 @@ export default function Profile() {
   const [reviewsReceived, setReviewsReceived] = useState<Record<string, ReviewResponse>>({});
   const [reviewsWritten, setReviewsWritten] = useState<Record<string, ReviewResponse>>({});
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [expandedReviews, setExpandedReviews] = useState<Record<number, boolean>>({});
+
+  const toggleReview = (jobId: number) => {
+    setExpandedReviews(prev => ({ ...prev, [jobId]: !prev[jobId] }));
+  };
 
   useEffect(() => {
     fetchStudentInfo();
@@ -217,7 +222,7 @@ export default function Profile() {
       const [historyRes, appsRes, receivedRes, writtenRes] = await Promise.all([
         jobService.getStudentJobHistory(studentId).catch(() => null),
         applicationService.getStudentApplications().catch(() => null),
-        reviewService.getStudentReviews(studentId).catch(() => null),
+        reviewService.getReviewsByStudentId(studentId).catch(() => null),
         reviewService.getReviewsWrittenByStudent(studentId).catch(() => null),
       ]);
 
@@ -783,6 +788,10 @@ export default function Profile() {
                     const revKey = `${job.employerId}_${job.id}`;
                     const received = reviewsReceived[revKey];
                     const written = reviewsWritten[revKey];
+                    const hasReceived = received && received.comment;
+                    const hasWritten = written && written.comment;
+                    const isExpanded = expandedReviews[job.id] || false;
+                    const hasAnyReview = hasReceived || hasWritten;
 
                     return (
                       <div key={job.id} className="p-5 bg-white border border-gray-100 rounded-2xl hover:border-blue-200 hover:shadow-lg transition-all">
@@ -814,29 +823,38 @@ export default function Profile() {
                               <DollarSign className="w-3.5 h-3.5" /> {job.salary.toLocaleString()}đ/giờ
                             </span>
                           )}
+                          {hasAnyReview && (
+                            <button
+                              onClick={() => toggleReview(job.id)}
+                              className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full font-medium hover:bg-blue-100 transition-colors"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              {isExpanded ? "Ẩn đánh giá" : "Xem đánh giá"}
+                            </button>
+                          )}
                         </div>
 
-                        {/* Employer feedback */}
-                        {received && received.comment && (
-                          <FeedbackBlock
-                            label="Đánh giá từ nhà tuyển dụng"
-                            name={job.employerName || "Nhà tuyển dụng"}
-                            date={new Date(received.createdAt).toLocaleDateString("vi-VN")}
-                            text={received.comment}
-                            color="blue"
-                          />
-                        )}
-
-                        {/* Student feedback */}
-                        {written && written.comment && (
-                          <div className="mt-3">
-                            <FeedbackBlock
-                              label="Đánh giá của bạn"
-                              name="Bạn"
-                              date={new Date(written.createdAt).toLocaleDateString("vi-VN")}
-                              text={written.comment}
-                              color="violet"
-                            />
+                        {/* Expandable reviews */}
+                        {hasAnyReview && isExpanded && (
+                          <div className="space-y-3 mt-2">
+                            {hasReceived && (
+                              <FeedbackBlock
+                                label="Đánh giá từ nhà tuyển dụng"
+                                name={job.employerName || "Nhà tuyển dụng"}
+                                date={new Date(received.createdAt).toLocaleDateString("vi-VN")}
+                                text={received.comment}
+                                color="blue"
+                              />
+                            )}
+                            {hasWritten && (
+                              <FeedbackBlock
+                                label="Đánh giá của bạn"
+                                name="Bạn"
+                                date={new Date(written.createdAt).toLocaleDateString("vi-VN")}
+                                text={written.comment}
+                                color="violet"
+                              />
+                            )}
                           </div>
                         )}
                       </div>

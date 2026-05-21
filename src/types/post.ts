@@ -14,7 +14,9 @@ export interface Post {
   content: string;
   imageUrl?: string;
   categoryId: number;
+  categoryIds?: number[];
   categoryName?: string;
+  categoryNames?: string[];
   relatedJobId?: number;
   likesCount: number;
   commentsCount: number;
@@ -40,10 +42,12 @@ export interface Comment {
 }
 
 export interface PostCreationRequest {
-  categoryId: number;
+  categoryIds: number[];
   content: string;
   relatedJobId?: number;
+  imageUrl?: string;
 }
+
 
 export interface CommentRequest {
   postId: number;
@@ -65,7 +69,9 @@ export interface PostFilterRequest {
   size?: number;
   sortBy?: string;
   sortDirection?: "ASC" | "DESC";
+  userId?: string;
 }
+
 
 export interface Page<T> {
   content: T[];

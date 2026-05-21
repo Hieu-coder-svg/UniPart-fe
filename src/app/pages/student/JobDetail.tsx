@@ -5,7 +5,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useSavedJobs } from "../../contexts/SavedJobsContext";
 import { applicationService } from "../../../services/applicationService";
 import { userService, EmployerResponse, StudentResponse } from "../../../services/userService";
-import { Timer, Map as MapIcon, Calendar, Info, Clock, DollarSign, Star, AlertCircle, CheckCircle, ArrowLeft, Share2, Bookmark, Loader2, MapPin, Flag, X, Building, Mail, Phone, Upload } from "lucide-react";
+import { Timer, Map as MapIcon, Calendar, Info, Clock, DollarSign, Star, AlertCircle, CheckCircle, ArrowLeft, Share2, Bookmark, Loader2, MapPin, Flag, X, Building, Mail, Phone, Upload, XCircle } from "lucide-react";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -432,7 +432,7 @@ export default function JobDetail() {
               <div className="flex flex-col items-center text-center p-3 bg-gray-50 rounded-xl border border-gray-100">
                 <AlertCircle className="w-5 h-5 text-orange-600 mb-1" />
                 <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Số lượng</div>
-                <div className="text-sm font-bold text-orange-700">{job.vacancies} người</div>
+                <div className="text-sm font-bold text-orange-700">Còn {job.vacancies} chỗ</div>
               </div>
 
               <div className="flex flex-col items-center text-center p-3 bg-gray-50 rounded-xl border border-gray-100">
@@ -481,7 +481,12 @@ export default function JobDetail() {
             </div>
 
             {/* Apply Button */}
-            {hasApplied ? (
+            {job.isHide || (job.vacancies ?? 0) <= 0 ? (
+              <div className="w-full flex items-center justify-center gap-2 bg-gray-100 border border-gray-200 text-gray-500 py-3 rounded-lg font-semibold">
+                <XCircle className="w-5 h-5" />
+                Đã đủ người — không thể ứng tuyển
+              </div>
+            ) : hasApplied ? (
               <button
                 onClick={handleCancelApplication}
                 disabled={isCancelling}

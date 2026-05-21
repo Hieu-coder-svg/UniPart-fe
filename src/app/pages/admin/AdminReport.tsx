@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, AlertTriangle, Eye, CheckCircle, XCircle, MoreVertical, Flag, UserX, FileText, Loader2, EyeOff } from "lucide-react";
+import { Search, Filter, AlertTriangle, Eye, CheckCircle, XCircle, MoreVertical, Flag, UserX, FileText, Loader2, EyeOff, User } from "lucide-react";
 import { reportService, ReportResponse } from "../../../services/reportService";
 import { userService } from "../../../services/userService";
 import { postService } from "../../../services/postService";
@@ -12,6 +12,9 @@ export default function AdminReport() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedReport, setSelectedReport] = useState<ReportResponse | null>(null);
   const [adminNote, setAdminNote] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 8;
 
   const [isProcessingTarget, setIsProcessingTarget] = useState(false);
   // Track hide status of the currently viewed target
@@ -123,9 +126,23 @@ export default function AdminReport() {
   const fetchReports = async () => {
     setIsLoading(true);
     try {
-      const res = await reportService.getAllReports();
-      if (res.result) {
-        setReports(res.result);
+      const [reportsRes, usersRes] = await Promise.all([
+        reportService.getAllReports(),
+        userService.getAllUsers().catch(() => ({ result: [] }))
+      ]);
+      
+      if (reportsRes.result) {
+        const users = usersRes.result || [];
+        const enrichedReports = reportsRes.result.map((report: any) => {
+          if (report.targetType === "USER" && (!report.targetName || !report.targetName.trim())) {
+            const user = users.find((u: any) => u.id === report.targetId);
+            if (user) {
+              return { ...report, targetName: user.fullName || user.username };
+            }
+          }
+          return report;
+        });
+        setReports(enrichedReports);
       }
     } catch (error) {
       console.error("Failed to fetch reports", error);
@@ -142,6 +159,16 @@ export default function AdminReport() {
     const matchesFilter = filterStatus === "all" || report.status === filterStatus.toUpperCase();
     return matchesSearch && matchesFilter;
   });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus]);
+
+  const totalPages = Math.ceil(filteredReports.length / ITEMS_PER_PAGE);
+  const paginatedReports = filteredReports.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   const stats = {
     total: reports.length,
@@ -175,7 +202,7 @@ export default function AdminReport() {
     try {
       await reportService.updateReport(selectedReport.id, {
         status: newStatus,
-        resolution: adminNote
+        adminNote: adminNote
       });
       fetchReports();
       setSelectedReport(null);
@@ -299,7 +326,7 @@ export default function AdminReport() {
                   </td>
                 </tr>
               ) : (
-                filteredReports.map((report) => (
+                paginatedReports.map((report) => (
                   <tr key={report.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="py-4 px-6 font-medium text-gray-900 whitespace-nowrap text-sm">RP-{report.id.toString().padStart(3, '0')}</td>
                     <td className="py-4 px-6 whitespace-nowrap">
@@ -318,7 +345,7 @@ export default function AdminReport() {
                       <button 
                         onClick={() => {
                           setSelectedReport(report);
-                          setAdminNote(report.resolution || "");
+                          setAdminNote((report as any).adminNote || report.resolution || "");
                           loadTargetStatus(report);
                         }}
                         className="text-red-600 hover:text-red-800 font-medium text-xs bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
@@ -332,6 +359,38 @@ export default function AdminReport() {
             </tbody>
           </table>
         </div>
+
+        {!isLoading && filteredReports.length > 0 && (
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-sm text-gray-500">
+              Hiển thị <span className="font-semibold text-gray-900">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> đến <span className="font-semibold text-gray-900">{Math.min(currentPage * ITEMS_PER_PAGE, filteredReports.length)}</span> trong tổng số <span className="font-semibold text-gray-900">{filteredReports.length}</span> báo cáo
+            </div>
+            
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                >
+                  Trước
+                </button>
+                
+                <span className="text-sm text-gray-600 px-2 font-medium">
+                  Trang <span className="text-gray-900">{currentPage}</span> / {totalPages}
+                </span>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                >
+                  Sau
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Action Modal */}
@@ -355,15 +414,33 @@ export default function AdminReport() {
               <div className="grid grid-cols-2 gap-6 mb-6">
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                   <div className="text-xs text-gray-500 font-medium mb-1 uppercase tracking-wider">Người tố cáo</div>
-                  <div className="font-semibold text-gray-900">{selectedReport.reporterName}</div>
+                  <button 
+                    onClick={() => handleViewUser(selectedReport.reporterId)}
+                    className="text-sm text-gray-800 bg-white hover:bg-gray-100 p-3 rounded-lg mt-2 border border-gray-200 w-full text-left flex justify-between items-center transition-colors shadow-sm group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        {(selectedReport.reporterName || "U").charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900">{selectedReport.reporterName}</div>
+                        <div className="text-xs text-gray-500">Nhấn để xem thông tin chi tiết</div>
+                      </div>
+                    </div>
+                    <Eye className="w-4 h-4 text-gray-500 group-hover:scale-110 transition-transform" />
+                  </button>
                 </div>
                 <div className="bg-red-50 p-4 rounded-xl border border-red-100">
                   <div className="text-xs text-red-500 font-medium mb-1 uppercase tracking-wider">Đối tượng vi phạm</div>
-                  <div className="font-semibold text-red-900 flex items-center gap-2">
-                    {getTargetIcon(selectedReport.targetType)}
-                    {selectedReport.targetName}
-                  </div>
-                  <div className="text-sm text-red-700 capitalize mb-2">Loại: {selectedReport.targetType}</div>
+                  {selectedReport.targetType !== "USER" && (
+                    <>
+                      <div className="font-semibold text-red-900 flex items-center gap-2">
+                        {getTargetIcon(selectedReport.targetType)}
+                        {selectedReport.targetName}
+                      </div>
+                      <div className="text-sm text-red-700 capitalize mb-2">Loại: {selectedReport.targetType}</div>
+                    </>
+                  )}
                   
                   {selectedReport.targetType === "JOB" && (
                     <div className="flex flex-wrap gap-2 mt-2">
@@ -430,10 +507,18 @@ export default function AdminReport() {
                   {selectedReport.targetType === "USER" && (
                     <button 
                       onClick={() => handleViewUser(selectedReport.targetId)}
-                      className="text-sm text-red-800 bg-red-100/60 hover:bg-red-100 p-2.5 rounded-lg mt-2 border border-red-200 w-full text-left flex justify-between items-center transition-colors shadow-sm"
+                      className="text-sm text-red-800 bg-red-100/60 hover:bg-red-100 p-3 rounded-lg mt-2 border border-red-200 w-full text-left flex justify-between items-center transition-colors shadow-sm group"
                     >
-                      <div><span className="font-medium">Mã tài khoản (ID):</span> <span className="font-mono ml-1">{selectedReport.targetId}</span></div>
-                      <Eye className="w-4 h-4 text-red-700" />
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-inner">
+                          {(selectedReport.targetName || "U").charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-semibold">{selectedReport.targetName?.trim() ? selectedReport.targetName : `ID: ${selectedReport.targetId.split('-')[0]}...`}</div>
+                          <div className="text-xs text-red-600/70">Nhấn để xem thông tin chi tiết</div>
+                        </div>
+                      </div>
+                      <Eye className="w-4 h-4 text-red-700 group-hover:scale-110 transition-transform" />
                     </button>
                   )}
                 </div>
@@ -504,11 +589,17 @@ export default function AdminReport() {
       {/* User Details Modal */}
       {viewingUserId && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
-            <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] shadow-2xl overflow-hidden flex flex-col">
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
               <h3 className="text-lg font-bold flex items-center gap-2">
-                <UserX className="w-5 h-5 text-gray-500" />
-                Thông tin người bị báo cáo
+                {selectedReport && viewingUserId === selectedReport.reporterId ? (
+                  <User className="w-5 h-5 text-gray-500" />
+                ) : (
+                  <UserX className="w-5 h-5 text-gray-500" />
+                )}
+                {selectedReport && viewingUserId === selectedReport.reporterId 
+                  ? "Thông tin người tố cáo" 
+                  : "Thông tin người bị báo cáo"}
               </h3>
               <button 
                 onClick={() => { setViewingUserId(null); setViewingUser(null); }}
@@ -518,7 +609,7 @@ export default function AdminReport() {
               </button>
             </div>
             
-            <div className="p-6">
+            <div className="p-6 overflow-y-auto flex-1">
               {loadingUser ? (
                 <div className="flex flex-col items-center justify-center py-10">
                   <Loader2 className="w-8 h-8 animate-spin text-red-500 mb-3" />
@@ -527,7 +618,15 @@ export default function AdminReport() {
               ) : viewingUser ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-white text-2xl font-bold shadow-inner">
+                    {viewingUser.avatar ? (
+                      <img 
+                        src={viewingUser.avatar} 
+                        alt={viewingUser.username} 
+                        className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 shadow-sm"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
+                      />
+                    ) : null}
+                    <div className={`w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-white text-2xl font-bold shadow-inner ${viewingUser.avatar ? 'hidden' : ''}`}>
                       {(viewingUser.fullName || viewingUser.username || "U").charAt(0).toUpperCase()}
                     </div>
                     <div>
@@ -545,45 +644,71 @@ export default function AdminReport() {
                       <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Trạng thái</div>
                       <div className="font-semibold">
                         {viewingUser.isBlocked ? (
-                          <span className="text-red-600 bg-red-50 px-2 py-0.5 rounded">Bị khóa</span>
+                          <span className="text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100">Bị khóa</span>
                         ) : (
-                          <span className="text-green-600 bg-green-50 px-2 py-0.5 rounded">Hoạt động</span>
+                          <span className="text-green-600 bg-green-50 px-2 py-0.5 rounded border border-green-100">Hoạt động</span>
                         )}
                       </div>
                     </div>
                     
-                    {viewingUser.phoneNumber && (
-                      <div>
-                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Số điện thoại</div>
-                        <div className="font-semibold text-gray-900">{viewingUser.phoneNumber}</div>
+                    <div>
+                      <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Số điện thoại</div>
+                      <div className="font-semibold text-gray-900">
+                        {viewingUser.phoneNumber || <span className="text-gray-400 italic font-normal">Chưa cập nhật</span>}
                       </div>
-                    )}
+                    </div>
                     
-                    {viewingUser.dateOfBirth && (
-                      <div>
-                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Ngày sinh</div>
-                        <div className="font-semibold text-gray-900">{new Date(viewingUser.dateOfBirth).toLocaleDateString('vi-VN')}</div>
+                    <div>
+                      <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Ngày sinh</div>
+                      <div className="font-semibold text-gray-900">
+                        {viewingUser.dateOfBirth ? new Date(viewingUser.dateOfBirth).toLocaleDateString('vi-VN') : <span className="text-gray-400 italic font-normal">Chưa cập nhật</span>}
                       </div>
-                    )}
+                    </div>
                     
-                    {viewingUser.gender && (
-                      <div>
-                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Giới tính</div>
-                        <div className="font-semibold text-gray-900">{viewingUser.gender}</div>
+                    <div>
+                      <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Giới tính</div>
+                      <div className="font-semibold text-gray-900">
+                        {viewingUser.gender || <span className="text-gray-400 italic font-normal">Chưa cập nhật</span>}
                       </div>
-                    )}
+                    </div>
+
+                    <div>
+                      <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Ngày tham gia</div>
+                      <div className="font-semibold text-gray-900">
+                        {viewingUser.createdAt ? new Date(viewingUser.createdAt).toLocaleDateString('vi-VN') : <span className="text-gray-400 italic font-normal">Chưa cập nhật</span>}
+                      </div>
+                    </div>
                     
                     {viewingUser.university && (
-                      <div className="col-span-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Trường học</div>
-                        <div className="font-semibold text-gray-900">{viewingUser.university}</div>
+                      <div className="col-span-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                        <div className="text-xs text-blue-500 uppercase tracking-wider mb-1 font-medium">Trường học</div>
+                        <div className="font-semibold text-blue-900">{viewingUser.university}</div>
+                        {viewingUser.major && (
+                          <div className="mt-1 text-sm text-blue-800">Chuyên ngành: {viewingUser.major}</div>
+                        )}
                       </div>
                     )}
                     
                     {viewingUser.companyName && (
-                      <div className="col-span-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Công ty</div>
-                        <div className="font-semibold text-gray-900">{viewingUser.companyName}</div>
+                      <div className="col-span-2 bg-purple-50/50 p-3 rounded-lg border border-purple-100">
+                        <div className="text-xs text-purple-500 uppercase tracking-wider mb-1 font-medium">Công ty</div>
+                        <div className="font-semibold text-purple-900">{viewingUser.companyName}</div>
+                      </div>
+                    )}
+
+                    <div className="col-span-2">
+                      <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Địa chỉ</div>
+                      <div className="font-semibold text-gray-900">
+                        {viewingUser.address || viewingUser.companyAddress || <span className="text-gray-400 italic font-normal">Chưa cập nhật</span>}
+                      </div>
+                    </div>
+
+                    {(viewingUser.bio || viewingUser.description) && (
+                      <div className="col-span-2">
+                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Mô tả / Giới thiệu</div>
+                        <div className="font-medium text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100 whitespace-pre-wrap">
+                          {viewingUser.bio || viewingUser.description}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -595,7 +720,7 @@ export default function AdminReport() {
               )}
             </div>
             
-            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end shrink-0">
               <button 
                 onClick={() => { setViewingUserId(null); setViewingUser(null); }}
                 className="px-5 py-2 bg-white border border-gray-300 rounded-xl hover:bg-gray-100 transition-colors text-sm font-medium shadow-sm"

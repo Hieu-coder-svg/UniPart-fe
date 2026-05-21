@@ -2,7 +2,7 @@ import { useParams, Link } from "react-router";
 import { useState, useEffect, useCallback } from "react";
 import { postService } from "../../../services/postService";
 import { Post } from "../../../types/post";
-import { PostCard } from "./Community";
+import { PostCard, PostDetailModal } from "./Community";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useCommunityWebSocket } from "../../../hooks/useCommunityWebSocket";
@@ -11,6 +11,7 @@ export default function CommunityPostDetail() {
   const { id } = useParams();
   const [post, setPost] = useState<Post | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedPostForComment, setSelectedPostForComment] = useState<Post | null>(null);
 
   // Re-use helper functions
   const formatDate = (dateString: string) => {
@@ -156,8 +157,22 @@ export default function CommunityPostDetail() {
           formatDate={formatDate}
           getCategoryName={getCategoryName}
           getAvatar={getAvatar}
+          onOpenComments={(p) => setSelectedPostForComment(p)}
         />
       </div>
+
+      {/* Post Detail Modal */}
+      {selectedPostForComment && (
+        <PostDetailModal
+          post={selectedPostForComment}
+          onClose={() => setSelectedPostForComment(null)}
+          onLike={handleLikePost}
+          onShare={handleSharePost}
+          formatDate={formatDate}
+          getCategoryName={getCategoryName}
+          getAvatar={getAvatar}
+        />
+      )}
     </div>
   );
 }

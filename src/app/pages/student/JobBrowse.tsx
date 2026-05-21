@@ -246,6 +246,7 @@ export default function JobBrowse() {
       const dist = calculateDistance(studentInfo.latitude, studentInfo.longitude, job.locationLatitude, job.locationLongitude);
       if (dist > 10) return false;
     }
+    if (job.isHide || (job.vacancies ?? 0) <= 0) return false;
     return true;
   });
   const featuredJobs = filteredJobs.filter((job) => job.urgent);
@@ -740,7 +741,7 @@ function JobCard({ job, featured = false, isSaved, onToggleSave, distance }: { j
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[11px] bg-blue-50 text-blue-600 font-semibold px-2.5 py-1 rounded-lg border border-blue-100">
-              {job.vacancies} vị trí
+              Còn {job.vacancies} chỗ
             </span>
             <span className="text-[10px] text-gray-400">
               {new Date(job.createdAt).toLocaleDateString("vi-VN")}

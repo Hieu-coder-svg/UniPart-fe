@@ -266,10 +266,18 @@ export default function EmployerJobs() {
                     <div className="text-lg font-semibold text-gray-900">{applicantsCount}</div>
                     <div className="text-xs text-gray-500">Ứng viên</div>
                   </div>
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-orange-600">{job.vacancies ?? 0}</div>
+                    <div className="text-xs text-gray-500">Còn chỗ</div>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-3 w-full sm:w-auto">
-                  {status === "active" ? (
+                  {job.isHide ? (
+                    <span className="px-3 py-1 bg-gray-100 text-gray-500 border border-gray-200 rounded-md text-xs font-medium">
+                      Đã đủ người
+                    </span>
+                  ) : status === "active" ? (
                     <span className="px-3 py-1 bg-green-50 text-green-700 border border-green-100 rounded-md text-xs font-medium">
                       Đang hoạt động
                     </span>

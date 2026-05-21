@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate, Navigate } from "react-router";
 import {
   LayoutDashboard,
@@ -18,6 +18,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { adminService } from "../services/adminService";
 import logoImage from "../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
 
 export default function AdminLayout() {
@@ -26,6 +27,13 @@ export default function AdminLayout() {
   const { user, logout, isLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [pendingReports, setPendingReports] = useState(0);
+
+  useEffect(() => {
+    adminService.getStats().then(res => {
+      if (res.result) setPendingReports(res.result.pendingReports);
+    }).catch(() => {});
+  }, []);
 
   // --- ROLE GUARD ---
   if (isLoading) {
@@ -58,26 +66,18 @@ export default function AdminLayout() {
       icon: Package,
       label: "Gói dịch vụ",
     },
-    {
-      path: "/admin/users",
-      icon: Users,
-      label: "Quản lý người dùng",
-    },
+
     {
       path: "/admin/accounts",
       icon: ShieldCheck,
       label: "Quản lý tài khoản",
     },
-    {
-      path: "/admin/analytics",
-      icon: BarChart3,
-      label: "Thống kê",
-    },
+
     {
       path: "/admin/report",
       icon: Flag,
       label: "Báo cáo",
-      badge: 12,
+      badge: pendingReports > 0 ? pendingReports : undefined,
     },
     {
       path: "/admin/backup",

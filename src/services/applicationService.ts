@@ -13,6 +13,7 @@ export interface ApplicationResponse {
   jobTitle: string;
   studentId: string;
   studentName: string;
+  studentAvatar?: string;
   studentEmail?: string;
   studentPhone?: string;
   studentUniversity?: string;
