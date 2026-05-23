@@ -160,8 +160,10 @@ class UserService {
         return response.data;
     }
 
-    async blockUser(userId: string): Promise<ApiResponse<any>> {
-        const response = await this.api.put<ApiResponse<any>>(`/users/${userId}/block`);
+    async blockUser(userId: string, reason: string): Promise<ApiResponse<any>> {
+        const response = await this.api.put<ApiResponse<any>>(`/users/${userId}/block`, null, {
+            params: { reason }
+        });
         return response.data;
     }
 

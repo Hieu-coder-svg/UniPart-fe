@@ -19,6 +19,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
+import Swal from "sweetalert2";
 
 const HANOI_DISTRICTS = [
   // 12 Quận nội thành
@@ -53,7 +54,7 @@ export default function Home() {
   const handleEmployerClick = (e: React.MouseEvent) => {
     if (isAuthenticated && user?.role === "STUDENT") {
       e.preventDefault();
-      alert("Bạn phải đăng nhập với vai trò là nhà tuyển dụng để sử dụng chức năng này");
+      Swal.fire('Thông báo', 'Bạn phải đăng nhập với vai trò là nhà tuyển dụng để sử dụng chức năng này', 'info');
     }
   };
 

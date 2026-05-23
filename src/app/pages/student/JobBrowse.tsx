@@ -5,6 +5,7 @@ import { userService, StudentScheduleResponse, StudentResponse } from "../../../
 import { useAuth } from "../../contexts/AuthContext";
 import { calculateDistance, formatDistance } from "../../../utils/location";
 import { useSavedJobs } from "../../contexts/SavedJobsContext";
+import Swal from "sweetalert2";
 import {
   Search,
   MapPin,
@@ -288,11 +289,11 @@ export default function JobBrowse() {
 
   const toggleSaveJob = async (jobId: number) => {
     if (!user) {
-      alert("Vui lòng đăng nhập để lưu việc làm!");
+      Swal.fire('Thông báo', 'Vui lòng đăng nhập để lưu việc làm!', 'info');
       return;
     }
     if (user.role === "EMPLOYER") {
-      alert("Đăng nhập với tài khoản học sinh để thực hiện chức năng này");
+      Swal.fire('Thông báo', 'Đăng nhập với tài khoản học sinh để thực hiện chức năng này', 'info');
       return;
     }
     try {

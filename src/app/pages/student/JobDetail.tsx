@@ -1,4 +1,5 @@
 import { useParams, Link } from "react-router";
+import Swal from "sweetalert2";
 import { useState, useEffect } from "react";
 import { jobService, JobResponse } from "../../../services/jobService";
 import { useAuth } from "../../contexts/AuthContext";
@@ -40,6 +41,7 @@ export default function JobDetail() {
   const [studentInfo, setStudentInfo] = useState<StudentResponse | null>(null);
 
   const [reportTarget, setReportTarget] = useState<{ type: "JOB" | "USER", targetId: string, title: string } | null>(null);
+  const [reportCategory, setReportCategory] = useState("");
   const [reportReason, setReportReason] = useState("");
   const [reportEvidence, setReportEvidence] = useState<string | null>(null);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
@@ -167,11 +169,11 @@ export default function JobDetail() {
 
   const handleToggleSave = async () => {
     if (!user) {
-      alert("Vui lòng đăng nhập để lưu việc làm!");
+      Swal.fire('Thông báo', "Vui lòng đăng nhập để lưu việc làm!", 'info');
       return;
     }
     if (user.role === "EMPLOYER") {
-      alert("Đăng nhập với tài khoản học sinh để thực hiện chức năng này");
+      Swal.fire('Thông báo', "Đăng nhập với tài khoản học sinh để thực hiện chức năng này", 'info');
       return;
     }
     if (!job) return;
@@ -192,17 +194,17 @@ export default function JobDetail() {
 
   const handleApply = async () => {
     if (!user) {
-      alert("Vui lòng đăng nhập để ứng tuyển!");
+      Swal.fire('Thông báo', "Vui lòng đăng nhập để ứng tuyển!", 'info');
       return;
     }
     if (user.role === "EMPLOYER") {
-      alert("Đăng nhập với tài khoản học sinh để thực hiện chức năng này");
+      Swal.fire('Thông báo', "Đăng nhập với tài khoản học sinh để thực hiện chức năng này", 'info');
       return;
     }
     if (!job) return;
 
     if (cooldownRemaining > 0) {
-      alert("Bạn phải chờ hết thời gian đếm ngược mới được ứng tuyển lại!");
+      Swal.fire('Thông báo', "Bạn phải chờ hết thời gian đếm ngược mới được ứng tuyển lại!", 'info');
       return;
     }
 
@@ -216,9 +218,9 @@ export default function JobDetail() {
         localStorage.removeItem(`cooldown_job_${job.id}`);
         setCooldownRemaining(0);
       }
-      alert("Ứng tuyển thành công! Nhà tuyển dụng sẽ sớm liên hệ với bạn.");
+      Swal.fire('Thông báo', "Ứng tuyển thành công! Nhà tuyển dụng sẽ sớm liên hệ với bạn.", 'info');
     } catch (error: any) {
-      alert(error.message || "Đã xảy ra lỗi khi ứng tuyển. Vui lòng thử lại sau.");
+      Swal.fire('Thông báo', error.message || "Đã xảy ra lỗi khi ứng tuyển. Vui lòng thử lại sau.", 'info');
     } finally {
       setIsApplying(false);
     }
@@ -226,7 +228,7 @@ export default function JobDetail() {
 
   const handleCancelApplication = async () => {
     if (!applicationId) {
-      alert("Không có thông tin ứng tuyển để hủy.");
+      Swal.fire('Thông báo', "Không có thông tin ứng tuyển để hủy.", 'info');
       return;
     }
 
@@ -243,9 +245,9 @@ export default function JobDetail() {
         setCooldownRemaining(5 * 60);
       }
 
-      alert("Bạn đã hủy ứng tuyển thành công. Vui lòng đợi 5 phút để có thể ứng tuyển lại công việc này.");
+      Swal.fire('Thông báo', "Bạn đã hủy ứng tuyển thành công. Vui lòng đợi 5 phút để có thể ứng tuyển lại công việc này.", 'info');
     } catch (error: any) {
-      alert(error.message || "Hủy ứng tuyển thất bại. Vui lòng thử lại sau.");
+      Swal.fire('Thông báo', error.message || "Hủy ứng tuyển thất bại. Vui lòng thử lại sau.", 'info');
     } finally {
       setIsCancelling(false);
     }
@@ -285,30 +287,41 @@ export default function JobDetail() {
 
   const handleReport = async () => {
     if (!user) {
-      alert("Vui lòng đăng nhập để báo cáo!");
+      Swal.fire('Thông báo', "Vui lòng đăng nhập để báo cáo!", 'info');
       return;
     }
-    if (!reportReason.trim()) {
-      alert("Vui lòng nhập lý do báo cáo!");
+    if (!reportCategory) {
+      Swal.fire('Thông báo', "Vui lòng chọn lý do báo cáo!", 'info');
+      return;
+    }
+    if (reportCategory === "Khác" && !reportReason.trim()) {
+      Swal.fire('Thông báo', "Vui lòng nhập chi tiết lý do báo cáo!", 'info');
+      return;
+    }
+    const isEvidenceRequired = reportCategory.toLowerCase().includes("lừa đảo") || reportCategory.toLowerCase().includes("đóng phí");
+    if (isEvidenceRequired && !reportEvidence) {
+      Swal.fire('Thông báo', "Vui lòng tải lên ảnh minh chứng (tin nhắn, ảnh chụp màn hình) cho lý do này!", 'warning');
       return;
     }
     if (!reportTarget) return;
 
     setIsSubmittingReport(true);
     try {
+      const finalReason = reportCategory === "Khác" ? `Khác: ${reportReason.trim()}` : (reportReason.trim() ? `${reportCategory} - ${reportReason.trim()}` : reportCategory);
       const request: ReportRequest = {
         targetType: reportTarget.type,
         targetId: reportTarget.targetId,
-        reason: reportReason.trim(),
+        reason: finalReason,
         evidenceUrl: reportEvidence || undefined,
       };
       await reportService.createReport(request);
-      alert("Báo cáo thành công! Cảm ơn bạn đã phản hồi.");
+      Swal.fire('Thành công', "Cảm ơn bạn! Chúng tôi đã tiếp nhận báo cáo và sẽ xử lý trong vòng 24-48 giờ.", 'success');
       setReportTarget(null);
+      setReportCategory("");
       setReportReason("");
       setReportEvidence(null);
     } catch (error: any) {
-      alert(error.message || "Báo cáo thất bại. Vui lòng thử lại.");
+      Swal.fire('Thông báo', error.message || "Báo cáo thất bại. Vui lòng thử lại.", 'info');
     } finally {
       setIsSubmittingReport(false);
     }
@@ -597,19 +610,52 @@ export default function JobDetail() {
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold">{reportTarget.title}</h3>
-                <button onClick={() => setReportTarget(null)} className="text-gray-400 hover:text-gray-600">
+                <button onClick={() => {
+                  setReportTarget(null);
+                  setReportCategory("");
+                  setReportReason("");
+                }} className="text-gray-400 hover:text-gray-600">
                   <X className="w-5 h-5" />
                 </button>
               </div>
               <p className="text-sm text-gray-600 mb-4">
-                Vui lòng cho biết lý do bạn muốn báo cáo. Quản trị viên sẽ xem xét và xử lý.
+                Vui lòng chọn lý do bạn muốn báo cáo. Quản trị viên sẽ xem xét và xử lý.
               </p>
-              <textarea
-                value={reportReason}
-                onChange={(e) => setReportReason(e.target.value)}
-                placeholder="Nhập lý do báo cáo..."
-                className="w-full border border-gray-300 rounded-lg p-3 h-32 focus:outline-none focus:ring-2 focus:ring-red-500 mb-4"
-              />
+
+              <div className="mb-4 space-y-2">
+                {(reportTarget.type === "JOB" ? [
+                  "Yêu cầu đóng phí / đặt cọc trước",
+                  "Việc làm lừa đảo / đa cấp",
+                  "Thông tin công việc không đúng sự thật",
+                  "Khác"
+                ] : [
+                  "Tài khoản giả mạo",
+                  "Hành vi lừa đảo",
+                  "Tên / Avatar không phù hợp",
+                  "Khác"
+                ]).map((category) => (
+                  <label key={category} className="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded-lg border border-transparent hover:border-gray-200 transition-colors">
+                    <input
+                      type="radio"
+                      name="reportCategory"
+                      value={category}
+                      checked={reportCategory === category}
+                      onChange={(e) => setReportCategory(e.target.value)}
+                      className="text-red-600 focus:ring-red-500 w-4 h-4"
+                    />
+                    <span className="text-sm text-gray-700 font-medium">{category}</span>
+                  </label>
+                ))}
+              </div>
+
+              {reportCategory === "Khác" && (
+                <textarea
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  placeholder="Nhập chi tiết lý do báo cáo..."
+                  className="w-full border border-gray-300 rounded-lg p-3 h-24 focus:outline-none focus:ring-2 focus:ring-red-500 mb-4"
+                />
+              )}
 
               {reportEvidence && (
                 <div className="relative mb-4">
@@ -626,7 +672,7 @@ export default function JobDetail() {
               <div className="flex justify-between items-center mb-4">
                 <label className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors text-sm font-medium border border-gray-200">
                   <Upload className="w-4 h-4" />
-                  Tải ảnh minh chứng
+                  Tải ảnh minh chứng {(reportCategory.toLowerCase().includes("lừa đảo") || reportCategory.toLowerCase().includes("đóng phí")) && <span className="text-red-500">*</span>}
                   <input
                     type="file"
                     accept="image/*"
@@ -638,23 +684,34 @@ export default function JobDetail() {
                         const url = await uploadImageToCloudinary(file);
                         setReportEvidence(url);
                       } catch (error) {
-                        alert("Lỗi tải ảnh lên. Vui lòng thử lại.");
+                        Swal.fire('Thông báo', "Lỗi tải ảnh lên. Vui lòng thử lại.", 'info');
                       }
                     }}
                   />
                 </label>
               </div>
 
-              <div className="flex justify-end gap-3">
+              <div className="mt-4 mb-4 p-3 bg-red-50 border border-red-100 rounded-lg flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-red-700 leading-relaxed">
+                  <span className="font-semibold">Lưu ý:</span> Hành vi cố tình báo cáo sai sự thật nhiều lần có thể dẫn đến việc tài khoản của bạn bị hạn chế.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-4">
                 <button
-                  onClick={() => setReportTarget(null)}
+                  onClick={() => {
+                    setReportTarget(null);
+                    setReportCategory("");
+                    setReportReason("");
+                  }}
                   className="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50"
                 >
                   Hủy
                 </button>
                 <button
                   onClick={handleReport}
-                  disabled={isSubmittingReport || !reportReason.trim()}
+                  disabled={isSubmittingReport || !reportCategory || (reportCategory === "Khác" && !reportReason.trim()) || ((reportCategory.toLowerCase().includes("lừa đảo") || reportCategory.toLowerCase().includes("đóng phí")) && !reportEvidence)}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
                 >
                   {isSubmittingReport && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -788,11 +845,15 @@ export default function JobDetail() {
                     <div key={review.id} className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700 rounded-full flex items-center justify-center font-bold shadow-sm">
-                            SV
-                          </div>
+                          {review.studentAvatar ? (
+                            <img src={review.studentAvatar} alt={review.studentName || "Sinh viên"} className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-100" />
+                          ) : (
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700 rounded-full flex items-center justify-center font-bold shadow-sm">
+                              {review.studentName ? review.studentName.charAt(0).toUpperCase() : "SV"}
+                            </div>
+                          )}
                           <div>
-                            <div className="font-semibold text-gray-900">Sinh viên</div>
+                            <div className="font-semibold text-gray-900">{review.studentName || "Sinh viên"}</div>
                             <div className="text-xs text-gray-500">
                               {new Date(review.createdAt).toLocaleDateString("vi-VN")}
                             </div>

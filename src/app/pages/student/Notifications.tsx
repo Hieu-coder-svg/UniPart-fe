@@ -13,6 +13,7 @@ export default function Notifications() {
     currentPage,
     setCurrentPage,
     totalPages,
+    totalElements,
     refetch
   } = useNotifications();
 
@@ -21,35 +22,29 @@ export default function Notifications() {
   const pageParam = searchParams.get("page");
   const parsedPage = pageParam ? Math.max(0, parseInt(pageParam) - 1) : 0;
 
-  const isFirstRender = useRef(true);
-
-  // Sync URL parameter to Context page state on load/change
+  // 1. One-way sync: URL -> Context State
   useEffect(() => {
     if (parsedPage !== currentPage) {
       setCurrentPage(parsedPage);
     }
   }, [parsedPage, currentPage, setCurrentPage]);
 
-  // Sync Context page state to URL parameter (preventing deletion on first render)
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+  // 2. Function to handle page changes by updating the URL (Source of Truth)
+  const handlePageChange = (newPage: number) => {
     setSearchParams(
       (prev) => {
-        if (currentPage === 0) {
+        if (newPage <= 0) {
           prev.delete("page");
         } else {
-          prev.set("page", String(currentPage + 1));
+          prev.set("page", String(newPage + 1));
         }
         return prev;
       },
       { replace: true }
     );
-  }, [currentPage, setSearchParams]);
+  };
 
-  // Refetch notifications when page changes
+  // 3. Refetch notifications when page changes
   useEffect(() => {
     refetch();
   }, [currentPage, refetch]);
@@ -174,14 +169,16 @@ export default function Notifications() {
               </div>
 
               {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-100">
-                  <p className="text-sm text-gray-500 font-medium">
-                    Trang <span className="text-gray-900 font-semibold">{currentPage + 1}</span> trên <span className="text-gray-900 font-semibold">{totalPages}</span>
-                  </p>
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-100 mt-6">
+                <p className="text-sm text-gray-500 font-medium">
+                  Trang <span className="text-gray-900 font-semibold">{totalPages > 0 ? currentPage + 1 : 0}</span> trên <span className="text-gray-900 font-semibold">{totalPages}</span>
+                  {totalElements !== undefined && (
+                    <span className="ml-1">(Tổng số {totalElements} thông báo)</span>
+                  )}
+                </p>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                      onClick={() => handlePageChange(Math.max(0, currentPage - 1))}
                       disabled={currentPage === 0}
                       className={`p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
                       title="Trang trước"
@@ -206,7 +203,7 @@ export default function Notifications() {
                       return (
                         <button
                           key={pageIdx}
-                          onClick={() => setCurrentPage(pageIdx)}
+                          onClick={() => handlePageChange(pageIdx)}
                           className={`w-10 h-10 rounded-xl text-sm font-bold transition-all border ${
                             active
                               ? colors.activeButton
@@ -219,7 +216,7 @@ export default function Notifications() {
                     })}
 
                     <button
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
+                      onClick={() => handlePageChange(Math.min(totalPages - 1, currentPage + 1))}
                       disabled={currentPage >= totalPages - 1}
                       className={`p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
                       title="Trang sau"
@@ -228,7 +225,7 @@ export default function Notifications() {
                     </button>
                   </div>
                 </div>
-              )}
+
             </>
           )}
         </div>

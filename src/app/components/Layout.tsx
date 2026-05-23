@@ -51,6 +51,11 @@ export default function Layout() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
   const navItems = [
     { path: "/", icon: Home, label: "Trang chủ" },
     { path: "/jobs", icon: Briefcase, label: "Việc làm" },
@@ -126,6 +131,17 @@ export default function Layout() {
                   >
                     <Users className="w-4 h-4 flex-shrink-0" />
                     <span>Ứng viên</span>
+                  </Link>
+                  <Link
+                    to="/community"
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                      location.pathname.startsWith("/community")
+                        ? "bg-gradient-to-r from-orange-100 to-red-100 text-orange-700"
+                        : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
+                    }`}
+                  >
+                    <Users className="w-4 h-4 flex-shrink-0" />
+                    <span>Cộng đồng</span>
                   </Link>
                   <Link
                     to="/employer/dashboard/jobs"

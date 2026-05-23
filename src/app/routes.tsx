@@ -41,6 +41,8 @@ import SystemBackup from "./pages/admin/SystemBackup";
 import SystemLogs from "./pages/admin/SystemLogs";
 import AdminSettings from "./pages/admin/Settings";
 import AdminReport from "./pages/admin/AdminReport";
+import AdminNotifications from "./pages/admin/AdminNotifications";
+import AdminCategories from "./pages/admin/AdminCategories";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 
@@ -86,6 +88,9 @@ export const router = createBrowserRouter([
       { path: "report", Component: AdminReport },
       { path: "backup", Component: SystemBackup },
       { path: "logs", Component: SystemLogs },
+      { path: "community", Component: AdminDashboard },
+      { path: "categories", Component: AdminCategories },
+      { path: "notifications", Component: AdminNotifications },
       { path: "settings", Component: AdminSettings },
       { path: "system", Component: AdminDashboard },
       { path: "overview", Component: AdminOverview },

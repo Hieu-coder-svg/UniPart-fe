@@ -265,7 +265,7 @@ export default function UserProfile() {
 
           {/* Avatar + Info */}
           <div className="px-5 pb-5">
-            <div className="flex items-end justify-between -mt-8 mb-4">
+            <div className="flex items-end justify-between -mt-8 mb-4 relative z-10">
               <div className="w-20 h-20 rounded-2xl border-4 border-white shadow-lg overflow-hidden bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-4xl flex-shrink-0">
                 {isLoadingProfile && !displayAvatar ? (
                   <div className="w-full h-full bg-gray-200 animate-pulse" />

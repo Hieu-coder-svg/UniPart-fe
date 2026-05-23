@@ -10,6 +10,8 @@ export default function MyReports() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedReport, setSelectedReport] = useState<ReportResponse | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   useEffect(() => {
     fetchMyReports();
@@ -36,6 +38,16 @@ export default function MyReports() {
     const matchesFilter = filterStatus === "all" || report.status === filterStatus.toUpperCase();
     return matchesSearch && matchesFilter;
   });
+
+  const totalPages = Math.ceil(filteredReports.length / ITEMS_PER_PAGE);
+  const paginatedReports = filteredReports.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus]);
 
   const stats = {
     total: reports.length,
@@ -192,7 +204,7 @@ export default function MyReports() {
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {filteredReports.map((report) => (
+              {paginatedReports.map((report) => (
                 <div
                   key={report.id}
                   className="p-5 hover:bg-gray-50 transition-colors cursor-pointer"
@@ -244,6 +256,38 @@ export default function MyReports() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          
+          {!isLoading && filteredReports.length > 0 && (
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-sm text-gray-500">
+                Hiển thị <span className="font-semibold text-gray-900">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> đến <span className="font-semibold text-gray-900">{Math.min(currentPage * ITEMS_PER_PAGE, filteredReports.length)}</span> trong tổng số <span className="font-semibold text-gray-900">{filteredReports.length}</span> báo cáo
+              </div>
+              
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                  >
+                    Trước
+                  </button>
+                  
+                  <span className="text-sm text-gray-600 px-2 font-medium">
+                    Trang <span className="text-gray-900">{currentPage}</span> / {totalPages}
+                  </span>
+
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                  >
+                    Sau
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
