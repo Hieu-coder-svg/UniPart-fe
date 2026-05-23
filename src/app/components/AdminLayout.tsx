@@ -16,6 +16,8 @@ import {
   Flag,
   Package,
   BarChart3,
+  Bell,
+  Folder,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { adminService } from "../services/adminService";
@@ -34,6 +36,11 @@ export default function AdminLayout() {
       if (res.result) setPendingReports(res.result.pendingReports);
     }).catch(() => {});
   }, []);
+
+  // Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   // --- ROLE GUARD ---
   if (isLoading) {
@@ -80,6 +87,11 @@ export default function AdminLayout() {
       badge: pendingReports > 0 ? pendingReports : undefined,
     },
     {
+      path: "/admin/categories",
+      icon: Folder,
+      label: "Chuyên mục",
+    },
+    {
       path: "/admin/backup",
       icon: Database,
       label: "Sao lưu dữ liệu",
@@ -88,6 +100,11 @@ export default function AdminLayout() {
       path: "/admin/logs",
       icon: FileText,
       label: "Nhật ký hệ thống",
+    },
+    {
+      path: "/admin/notifications",
+      icon: Bell,
+      label: "Thông báo",
     },
     {
       path: "/admin/settings",

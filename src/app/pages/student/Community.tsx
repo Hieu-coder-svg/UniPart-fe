@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Link as RouterLink } from "react-router";
+import { Link as RouterLink, useSearchParams, Navigate } from "react-router";
 import {
   Heart,
   MessageCircle,
@@ -40,79 +40,72 @@ import {
 } from "../../../types/post";
 
 /* ─────────────────────────────────────────────────────────────
-   CONSTANTS
-───────────────────────────────────────────────────────────── */
-const CATEGORIES = [
-  {
-    value: "all",
-    label: "Tất cả",
-    icon: "🌐",
-    activeColor: "bg-blue-600 text-white shadow-md shadow-blue-200",
-    idleColor: "bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 hover:shadow-md",
-  },
-  {
-    value: "Kinh nghiệm",
-    label: "Kinh nghiệm",
-    icon: "💼",
-    activeColor: "bg-blue-600 text-white shadow-md shadow-blue-200",
-    idleColor: "bg-blue-50 text-blue-700 hover:bg-blue-100 hover:shadow-md",
-  },
-  {
-    value: "Cảnh báo",
-    label: "Cảnh báo",
-    icon: "⚠️",
-    activeColor: "bg-red-500 text-white shadow-md shadow-red-200",
-    idleColor: "bg-red-50 text-red-700 hover:bg-red-100 hover:shadow-md",
-  },
-  {
-    value: "Mẹo",
-    label: "Mẹo hay",
-    icon: "💡",
-    activeColor: "bg-amber-500 text-white shadow-md shadow-amber-200",
-    idleColor: "bg-amber-50 text-amber-700 hover:bg-amber-100 hover:shadow-md",
-  },
-  {
-    value: "Hỏi đáp",
-    label: "Hỏi đáp",
-    icon: "❓",
-    activeColor: "bg-violet-600 text-white shadow-md shadow-violet-200",
-    idleColor: "bg-violet-50 text-violet-700 hover:bg-violet-100 hover:shadow-md",
-  },
-];
-
-const CATEGORY_CONFIG: Record<string, { bg: string; text: string; border: string; icon: string; dot: string }> = {
-  "Kinh nghiệm": { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", icon: "💼", dot: "bg-blue-500" },
-  "Cảnh báo":    { bg: "bg-red-50",  text: "text-red-700",  border: "border-red-200",  icon: "⚠️", dot: "bg-red-500" },
-  "Mẹo":        { bg: "bg-amber-50", text: "text-amber-700",border: "border-amber-200",icon: "💡", dot: "bg-amber-500" },
-  "Hỏi đáp":    { bg: "bg-violet-50",text: "text-violet-700",border:"border-violet-200",icon: "❓",dot: "bg-violet-500" },
-};
-
-const CATEGORY_ID_MAP: Record<PostCategory, number> = {
-  "Kinh nghiệm": 1,
-  "Cảnh báo": 2,
-  "Mẹo": 3,
-  "Hỏi đáp": 4,
-};
-
-/* ─────────────────────────────────────────────────────────────
    MAIN PAGE
 ───────────────────────────────────────────────────────────── */
+export const getCategoryColorConfig = (index: number | string) => {
+  const configs = [
+    { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", icon: "💼", dot: "bg-blue-500", activeColor: "bg-blue-600 text-white shadow-md shadow-blue-200", idleColor: "bg-blue-50 text-blue-700 hover:bg-blue-100 hover:shadow-md" },
+    { bg: "bg-red-50",  text: "text-red-700",  border: "border-red-200",  icon: "⚠️", dot: "bg-red-500", activeColor: "bg-red-500 text-white shadow-md shadow-red-200", idleColor: "bg-red-50 text-red-700 hover:bg-red-100 hover:shadow-md" },
+    { bg: "bg-amber-50", text: "text-amber-700",border: "border-amber-200",icon: "💡", dot: "bg-amber-500", activeColor: "bg-amber-500 text-white shadow-md shadow-amber-200", idleColor: "bg-amber-50 text-amber-700 hover:bg-amber-100 hover:shadow-md" },
+    { bg: "bg-violet-50",text: "text-violet-700",border:"border-violet-200",icon: "❓",dot: "bg-violet-500", activeColor: "bg-violet-600 text-white shadow-md shadow-violet-200", idleColor: "bg-violet-50 text-violet-700 hover:bg-violet-100 hover:shadow-md" },
+    { bg: "bg-green-50", text: "text-green-700", border: "border-green-200", icon: "🌱", dot: "bg-green-500", activeColor: "bg-green-600 text-white shadow-md shadow-green-200", idleColor: "bg-green-50 text-green-700 hover:bg-green-100 hover:shadow-md" },
+    { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200", icon: "✨", dot: "bg-pink-500", activeColor: "bg-pink-600 text-white shadow-md shadow-pink-200", idleColor: "bg-pink-50 text-pink-700 hover:bg-pink-100 hover:shadow-md" },
+  ];
+  let numIndex = 0;
+  if (typeof index === 'string') {
+    let hash = 0;
+    for (let i = 0; i < index.length; i++) {
+      hash = index.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    numIndex = Math.abs(hash);
+  } else {
+    numIndex = index;
+  }
+  return configs[numIndex % configs.length];
+};
+
 export default function Community() {
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<number | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"newest" | "trending">("newest");
   const [posts, setPosts] = useState<Post[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newPostContent, setNewPostContent] = useState("");
-  const [newPostCategories, setNewPostCategories] = useState<PostCategory[]>([]);
+  const [newPostCategories, setNewPostCategories] = useState<number[]>([]);
   const [newPostImage, setNewPostImage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // All posts (full page) used to compute sidebar stats
   const [allPosts, setAllPosts] = useState<Post[]>([]);
   // Post detail modal state
   const [selectedPostForComment, setSelectedPostForComment] = useState<Post | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Note: Employers can view but not post or comment. 
+  // We handle UI restrictions below based on user.role === "EMPLOYER"
+  
+  useEffect(() => {
+    const postIdStr = searchParams.get("postId");
+    if (postIdStr) {
+      const pId = parseInt(postIdStr, 10);
+      if (!isNaN(pId)) {
+        postService.getPostById(pId)
+          .then(res => {
+            if (res?.result) {
+              // Populate category names similar to socket broadcast
+              const postData = {
+                ...res.result,
+                categoryNames: res.result.categoryNames || [res.result.categoryName || "Không phân loại"]
+              };
+              setSelectedPostForComment(postData);
+            }
+          })
+          .catch(err => console.error("Error loading shared post:", err));
+      }
+    }
+  }, [searchParams.get("postId")]);
 
   // Handle real-time new post from WebSocket
   const handleNewPostBroadcast = useCallback((msg: any) => {
@@ -181,8 +174,8 @@ export default function Community() {
     try {
       const [categoriesRes, postsRes, allPostsRes] = await Promise.all([
         postService.getCategories(),
-        postService.getAllPosts(),
-        postService.getAllPosts({ page: 0, size: 200 }),
+        postService.getAllPosts({ page: 0, size: 1000 }),
+        postService.getAllPosts({ page: 0, size: 1000 }),
       ]);
 
       if (categoriesRes.result) {
@@ -209,14 +202,11 @@ export default function Community() {
     try {
       const request: any = {
         page: 0,
-        size: 20,
+        size: 1000,
       };
 
       if (selectedCategory !== "all") {
-        const categoryId = CATEGORY_ID_MAP[selectedCategory as PostCategory];
-        if (categoryId) {
-          request.categoryId = categoryId;
-        }
+        request.categoryId = selectedCategory;
       }
 
       if (searchQuery.trim()) {
@@ -245,12 +235,23 @@ export default function Community() {
       toast.error("Vui lòng nhập nội dung bài viết");
       return;
     }
+    
+    const contentText = newPostContent.trim();
+    if (contentText.length < 20) {
+      toast.error("Nội dung bài viết quá ngắn. Vui lòng nhập ít nhất 20 ký tự để chia sẻ chi tiết hơn nhé!");
+      return;
+    }
+    
+    if (/^(.)\1{10,}$/.test(contentText.replace(/\s/g, ''))) {
+      toast.error("Nội dung có vẻ là spam (chứa nhiều ký tự lặp lại vô nghĩa). Vui lòng nhập nội dung có ý nghĩa hơn.");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       const categoryIds = newPostCategories.length > 0
-        ? newPostCategories.map(c => CATEGORY_ID_MAP[c])
-        : [1]; // Default to "Kinh nghiệm" (id=1)
+        ? newPostCategories
+        : categories.length > 0 ? [categories[0].id] : [1];
       const request: PostCreationRequest = {
         categoryIds,
         content: newPostContent.trim(),
@@ -384,20 +385,29 @@ export default function Community() {
   };
 
   const getCategoryName = (categoryId: number) => {
-    const categoryNames: Record<number, string> = {
-      1: "Kinh nghiệm",
-      2: "Cảnh báo",
-      3: "Mẹo",
-      4: "Hỏi đáp",
-    };
-    return categoryNames[categoryId] || "Không phân loại";
+    const cat = categories.find((c) => c.id === categoryId);
+    return cat ? cat.categoryName : "Không phân loại";
   };
 
   const getAvatar = (avatar?: string) => {
     return avatar || "👤";
   };
 
-  const filteredPosts = posts;
+  const filteredPosts = useMemo(() => {
+    let result = [...posts];
+    if (sortBy === "trending") {
+      result.sort((a, b) => {
+        const scoreA = (a.likesCount || 0) + (a.commentsCount || 0) * 2;
+        const scoreB = (b.likesCount || 0) + (b.commentsCount || 0) * 2;
+        if (scoreA !== scoreB) return scoreB - scoreA;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    } else {
+      // Default to newest
+      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+    return result;
+  }, [posts, sortBy]);
 
   // ── Computed sidebar data from real posts ──
   const trendingTopics = useMemo(() => {
@@ -460,32 +470,37 @@ export default function Community() {
 
             <div className="p-4">
               <div className="flex items-start gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-violet-500 rounded-full flex items-center justify-center text-xl ring-2 ring-blue-100 flex-shrink-0">
-                  👤
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-violet-500 rounded-full flex items-center justify-center text-xl ring-2 ring-blue-100 flex-shrink-0 overflow-hidden">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    "👤"
+                  )}
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold text-sm text-gray-900">Bạn</p>
+                  <p className="font-semibold text-sm text-gray-900">{user?.fullName || user?.name || "Bạn"}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {CATEGORIES.filter((c) => c.value !== "all").map((cat) => {
-                      const isSelected = newPostCategories.includes(cat.value as PostCategory) || (!newPostCategories.length && cat.value === "Kinh nghiệm");
+                    {categories.map((cat, index) => {
+                      const config = getCategoryColorConfig(index);
+                      const isSelected = newPostCategories.includes(cat.id) || (!newPostCategories.length && index === 0);
                       return (
                         <button
-                          key={cat.value}
+                          key={cat.id}
                           type="button"
                           onClick={() => {
-                            if (newPostCategories.includes(cat.value as PostCategory)) {
-                              setNewPostCategories(newPostCategories.filter(c => c !== cat.value));
+                            if (newPostCategories.includes(cat.id)) {
+                              setNewPostCategories(newPostCategories.filter(id => id !== cat.id));
                             } else {
-                              setNewPostCategories([...newPostCategories, cat.value as PostCategory]);
+                              setNewPostCategories([...newPostCategories, cat.id]);
                             }
                           }}
                           className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
                             isSelected
-                              ? cat.activeColor || "bg-blue-500 text-white shadow-md"
-                              : cat.idleColor || "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              ? config.activeColor
+                              : config.idleColor
                           }`}
                         >
-                          {cat.icon} {cat.label}
+                          {config.icon} {cat.categoryName}
                         </button>
                       );
                     })}
@@ -556,9 +571,22 @@ export default function Community() {
       {selectedPostForComment && (
         <PostDetailModal
           post={selectedPostForComment}
-          onClose={() => setSelectedPostForComment(null)}
+          onClose={() => {
+            setSelectedPostForComment(null);
+            if (searchParams.has("postId")) {
+              searchParams.delete("postId");
+              setSearchParams(searchParams);
+            }
+          }}
           onLike={handleLikePost}
           onShare={handleSharePost}
+          onCommentAdd={(postId) => {
+            setPosts((prev) =>
+              prev.map((p) =>
+                p.id === postId ? { ...p, commentsCount: p.commentsCount + 1 } : p
+              )
+            );
+          }}
           formatDate={formatDate}
           getCategoryName={getCategoryName}
           getAvatar={getAvatar}
@@ -607,36 +635,59 @@ export default function Community() {
                 />
               </div>
 
-              <button
-                onClick={() => {
-                  if (!user) {
-                    toast.error("Vui lòng đăng nhập để đăng bài!");
-                    return;
-                  }
-                  setIsCreateModalOpen(true);
-                }}
-                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-violet-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:opacity-90 transition-all shadow-lg shadow-blue-200 hover:shadow-xl hover:-translate-y-0.5"
-              >
-                <Plus className="w-4 h-4" />
-                Đăng bài mới
-              </button>
+              <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as "newest" | "trending")}
+                  className="bg-transparent text-sm text-gray-700 font-medium outline-none cursor-pointer"
+                >
+                  <option value="newest">Mới nhất</option>
+                  <option value="trending">Thịnh hành</option>
+                </select>
+              </div>
+
+              {user?.role !== "EMPLOYER" && (
+                <button
+                  onClick={() => {
+                    if (!user) {
+                      toast.error("Vui lòng đăng nhập để đăng bài!");
+                      return;
+                    }
+                    setIsCreateModalOpen(true);
+                  }}
+                  className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-violet-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:opacity-90 transition-all shadow-lg shadow-blue-200 hover:shadow-xl hover:-translate-y-0.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  Đăng bài mới
+                </button>
+              )}
             </div>
           </div>
 
           {/* Category Chips */}
           <div className="flex items-center gap-2.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-            {CATEGORIES.map((cat) => {
-              const isActive = selectedCategory === cat.value;
+            <button
+              onClick={() => setSelectedCategory("all")}
+              className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200 border border-transparent ${
+                selectedCategory === "all" ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 hover:shadow-md"
+              }`}
+            >
+              <span className="text-base leading-none">🌐</span>
+              Tất cả
+            </button>
+            {categories.map((cat, index) => {
+              const isActive = selectedCategory === cat.id;
+              const config = getCategoryColorConfig(index);
               return (
                 <button
-                  key={cat.value}
-                  onClick={() => setSelectedCategory(cat.value)}
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
                   className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200 border border-transparent ${
-                    isActive ? cat.activeColor : cat.idleColor
+                    isActive ? config.activeColor : config.idleColor
                   }`}
                 >
-                  <span className="text-base leading-none">{cat.icon}</span>
-                  {cat.label}
+                  <span className="text-base leading-none">{config.icon}</span>
+                  {cat.categoryName}
                 </button>
               );
             })}
@@ -711,16 +762,23 @@ export default function Community() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm text-gray-800 group-hover:text-blue-600 transition-colors truncate">
-                        {member.name}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {member.postCount} bài · {member.likeCount.toLocaleString()} lượt thích
+                      <div className="flex items-center gap-1">
+                        <p className="font-semibold text-sm text-gray-800 group-hover:text-blue-600 transition-colors truncate">
+                          {member.name}
+                        </p>
+                        {idx === 0 && (
+                          <span className="bg-yellow-100 text-yellow-700 text-[10px] px-1.5 py-0.5 rounded font-bold">Top 1</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        <span className="font-medium text-blue-600">{member.likeCount * 5 + member.postCount * 10} điểm uy tín</span> · {member.postCount} bài viết
                       </p>
                     </div>
 
                     {idx === 0 && (
-                      <Sparkles className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                      <div className="w-8 h-8 rounded-full bg-yellow-50 border border-yellow-200 flex items-center justify-center flex-shrink-0">
+                        <Award className="w-4 h-4 text-yellow-500" />
+                      </div>
                     )}
                   </RouterLink>
                 )) : (
@@ -753,38 +811,44 @@ export default function Community() {
 
           {/* ── MAIN FEED ── */}
           <main className="lg:col-span-2 space-y-5">
-            {/* Create Post prompt */}
-            <div className="bg-white rounded-2xl shadow-sm p-4 border border-gray-100">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-violet-500 rounded-full flex items-center justify-center text-xl ring-2 ring-blue-100 flex-shrink-0">
-                  👤
+            {/* Create Post prompt - hidden for Employer */}
+            {user?.role !== "EMPLOYER" && (
+              <div className="bg-white rounded-2xl shadow-sm p-4 border border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-violet-500 rounded-full flex items-center justify-center text-xl ring-2 ring-blue-100 flex-shrink-0 overflow-hidden">
+                    {user?.avatar ? (
+                      <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      "👤"
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (!user) {
+                        toast.error("Vui lòng đăng nhập để đăng bài!");
+                        return;
+                      }
+                      setIsCreateModalOpen(true);
+                    }}
+                    className="flex-1 text-left px-4 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-xl text-gray-400 text-sm transition-colors border border-gray-200 hover:border-blue-200"
+                  >
+                    Bạn đang nghĩ gì? Chia sẻ với cộng đồng...
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!user) {
+                        toast.error("Vui lòng đăng nhập để đăng bài!");
+                        return;
+                      }
+                      setIsCreateModalOpen(true);
+                    }}
+                    className="lg:hidden flex-shrink-0 p-2.5 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-xl hover:opacity-90 transition-all shadow-md"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => {
-                    if (!user) {
-                      toast.error("Vui lòng đăng nhập để đăng bài!");
-                      return;
-                    }
-                    setIsCreateModalOpen(true);
-                  }}
-                  className="flex-1 text-left px-4 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-xl text-gray-400 text-sm transition-colors border border-gray-200 hover:border-blue-200"
-                >
-                  Bạn đang nghĩ gì? Chia sẻ với cộng đồng...
-                </button>
-                <button
-                  onClick={() => {
-                    if (!user) {
-                      toast.error("Vui lòng đăng nhập để đăng bài!");
-                      return;
-                    }
-                    setIsCreateModalOpen(true);
-                  }}
-                  className="lg:hidden flex-shrink-0 p-2.5 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-xl hover:opacity-90 transition-all shadow-md"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
               </div>
-            </div>
+            )}
 
             {/* Result count */}
             {!isLoading && (
@@ -873,12 +937,13 @@ export function PostCard({ post, onLike, onShare, formatDate, getCategoryName, g
 
   const [showDropdown, setShowDropdown] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [reportCategory, setReportCategory] = useState("");
   const [reportReason, setReportReason] = useState("");
   const [reportEvidence, setReportEvidence] = useState<string | null>(null);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
 
   const categoryName = getCategoryName(post.categoryId);
-  const config = CATEGORY_CONFIG[categoryName] || CATEGORY_CONFIG["Kinh nghiệm"];
+  const config = getCategoryColorConfig(categoryName);
 
   const handleLike = () => {
     if (!user) {
@@ -909,7 +974,7 @@ export function PostCard({ post, onLike, onShare, formatDate, getCategoryName, g
   };
 
   const handleCopyLink = () => {
-    const postUrl = `${window.location.origin}/community/post/${post.id}`;
+    const postUrl = `${window.location.origin}/community?postId=${post.id}`;
     navigator.clipboard.writeText(postUrl);
     toast.success("Đã copy link!");
   };
@@ -924,21 +989,32 @@ export function PostCard({ post, onLike, onShare, formatDate, getCategoryName, g
       toast.error("Vui lòng đăng nhập để báo cáo!");
       return;
     }
-    if (!reportReason.trim()) {
-      toast.error("Vui lòng nhập lý do báo cáo!");
+    if (!reportCategory) {
+      toast.error("Vui lòng chọn lý do báo cáo!");
+      return;
+    }
+    if (reportCategory === "Khác" && !reportReason.trim()) {
+      toast.error("Vui lòng nhập chi tiết lý do báo cáo!");
+      return;
+    }
+    const isEvidenceRequired = reportCategory.toLowerCase().includes("lừa đảo") || reportCategory.toLowerCase().includes("đóng phí");
+    if (isEvidenceRequired && !reportEvidence) {
+      toast.error("Vui lòng tải lên ảnh minh chứng (tin nhắn, ảnh chụp màn hình) cho lý do này!");
       return;
     }
     setIsSubmittingReport(true);
     try {
+      const finalReason = reportCategory === "Khác" ? `Khác: ${reportReason.trim()}` : (reportReason.trim() ? `${reportCategory} - ${reportReason.trim()}` : reportCategory);
       const request: ReportRequest = {
         targetType: "POST",
         targetId: post.id.toString(),
-        reason: reportReason.trim(),
+        reason: finalReason,
         evidenceUrl: reportEvidence || undefined,
       };
       await reportService.createReport(request);
-      toast.success("Báo cáo thành công! Quản trị viên sẽ xem xét.");
+      toast.success("Cảm ơn bạn! Chúng tôi đã tiếp nhận báo cáo và sẽ xử lý trong vòng 24-48 giờ.");
       setShowReportModal(false);
+      setReportCategory("");
       setReportReason("");
       setReportEvidence(null);
     } catch (error: any) {
@@ -971,12 +1047,15 @@ export function PostCard({ post, onLike, onShare, formatDate, getCategoryName, g
                 >
                   {post.authorName}
                 </RouterLink>
-                <span className="text-gray-300 text-xs">·</span>
+                <span className="ml-1 bg-blue-50 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border border-blue-100">
+                  <Award className="w-3 h-3" /> Sinh viên
+                </span>
+                <span className="text-gray-300 text-xs ml-1">·</span>
                 <span className="text-xs text-gray-400">{formatDate(post.createdAt)}</span>
               </div>
               <div className="flex flex-wrap gap-1 mt-1">
                 {(post.categoryNames || [categoryName]).map((cat, idx) => {
-                  const catConfig = CATEGORY_CONFIG[cat] || CATEGORY_CONFIG["Kinh nghiệm"];
+                  const catConfig = getCategoryColorConfig(cat);
                   return (
                     <span
                       key={idx}
@@ -1084,20 +1163,22 @@ export function PostCard({ post, onLike, onShare, formatDate, getCategoryName, g
           }`}
         >
           <Heart
-            className={`w-4 h-4 transition-all ${
-              liked ? "fill-red-500 text-red-500 scale-110" : "group-hover:scale-110"
+            className={`w-4 h-4 transition-all duration-300 ${
+              liked ? "fill-red-500 text-red-500 scale-110 animate-[pulse_0.5s_ease-in-out]" : "group-hover:scale-110"
             }`}
           />
           <span>{liked ? "Đã thích" : "Thích"}</span>
         </button>
 
-        <button
-          onClick={() => onOpenComments?.(post)}
-          className="group flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-        >
-          <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
-          <span>Bình luận</span>
-        </button>
+        {user?.role !== "EMPLOYER" && (
+          <button
+            onClick={() => onOpenComments?.(post)}
+            className="group flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+          >
+            <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            <span>Bình luận</span>
+          </button>
+        )}
 
         <button
           onClick={handleShare}
@@ -1190,19 +1271,47 @@ export function PostCard({ post, onLike, onShare, formatDate, getCategoryName, g
           <div className="p-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold text-gray-900">Báo cáo bài viết</h3>
-              <button onClick={() => setShowReportModal(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => {
+                setShowReportModal(false);
+                setReportCategory("");
+                setReportReason("");
+              }} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <p className="text-sm text-gray-600 mb-4">
-              Vui lòng cho biết lý do bạn muốn báo cáo bài viết này. Quản trị viên sẽ xem xét và xử lý.
+              Vui lòng chọn lý do bạn muốn báo cáo bài viết này. Quản trị viên sẽ xem xét và xử lý.
             </p>
-            <textarea
-              value={reportReason}
-              onChange={(e) => setReportReason(e.target.value)}
-              placeholder="Nhập lý do báo cáo..."
-              className="w-full border border-gray-300 rounded-lg p-3 h-32 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 mb-4 resize-none"
-            />
+
+            <div className="mb-4 space-y-2">
+              {[
+                "Nội dung phản cảm / độc hại",
+                "Ngôn từ kích động / quấy rối",
+                "Spam / Quảng cáo rác",
+                "Khác"
+              ].map((category) => (
+                <label key={category} className="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded-lg border border-transparent hover:border-gray-200 transition-colors">
+                  <input
+                    type="radio"
+                    name={`reportCategory-${post.id}`}
+                    value={category}
+                    checked={reportCategory === category}
+                    onChange={(e) => setReportCategory(e.target.value)}
+                    className="text-red-600 focus:ring-red-500 w-4 h-4"
+                  />
+                  <span className="text-sm text-gray-700 font-medium">{category}</span>
+                </label>
+              ))}
+            </div>
+
+            {reportCategory === "Khác" && (
+              <textarea
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                placeholder="Nhập chi tiết lý do báo cáo..."
+                className="w-full border border-gray-300 rounded-lg p-3 h-24 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 mb-4 resize-none"
+              />
+            )}
             
             {reportEvidence && (
               <div className="relative mb-4">
@@ -1219,7 +1328,7 @@ export function PostCard({ post, onLike, onShare, formatDate, getCategoryName, g
             <div className="flex justify-between items-center mb-4">
               <label className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors text-sm font-medium border border-gray-200">
                 <Upload className="w-4 h-4" />
-                Tải ảnh minh chứng
+                Tải ảnh minh chứng {(reportCategory.toLowerCase().includes("lừa đảo") || reportCategory.toLowerCase().includes("đóng phí")) && <span className="text-red-500">*</span>}
                 <input
                   type="file"
                   accept="image/*"
@@ -1238,16 +1347,27 @@ export function PostCard({ post, onLike, onShare, formatDate, getCategoryName, g
               </label>
             </div>
 
-            <div className="flex justify-end gap-3">
+            <div className="mt-4 mb-4 p-3 bg-red-50 border border-red-100 rounded-lg flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-red-700 leading-relaxed">
+                <span className="font-semibold">Lưu ý:</span> Hành vi cố tình báo cáo sai sự thật nhiều lần có thể dẫn đến việc tài khoản của bạn bị hạn chế.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-4">
               <button
-                onClick={() => setShowReportModal(false)}
+                onClick={() => {
+                  setShowReportModal(false);
+                  setReportCategory("");
+                  setReportReason("");
+                }}
                 className="px-4 py-2 border border-gray-300 rounded-lg font-medium text-sm text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Hủy
               </button>
               <button
                 onClick={handleReportSubmit}
-                disabled={isSubmittingReport || !reportReason.trim()}
+                disabled={isSubmittingReport || !reportCategory || (reportCategory === "Khác" && !reportReason.trim()) || ((reportCategory.toLowerCase().includes("lừa đảo") || reportCategory.toLowerCase().includes("đóng phí")) && !reportEvidence)}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium text-sm hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 {isSubmittingReport && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -1274,6 +1394,7 @@ interface CommentItemProps {
   depth?: number;
   isSubmitting: boolean;
   setIsSubmitting: React.Dispatch<React.SetStateAction<boolean>>;
+  onCommentAdd?: () => void;
 }
 
 function CommentItem({
@@ -1285,12 +1406,14 @@ function CommentItem({
   depth = 0,
   isSubmitting,
   setIsSubmitting,
+  onCommentAdd,
 }: CommentItemProps) {
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [replyImage, setReplyImage] = useState<string | null>(null);
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
   const maxDepth = 2; // Limit nesting depth
+  const { user } = useAuth();
 
   // Get replies for this comment
   const replies = useMemo(
@@ -1315,6 +1438,7 @@ function CommentItem({
         setReplyContent("");
         setReplyImage(null);
         setShowReplyInput(false);
+        if (onCommentAdd) onCommentAdd();
         toast.success("Đã trả lời bình luận");
       }
     } catch (error: any) {
@@ -1361,12 +1485,14 @@ function CommentItem({
         )}
 
         {/* Reply button */}
-        <button
-          onClick={() => setShowReplyInput(!showReplyInput)}
-          className="text-xs text-blue-500 hover:text-blue-600 mt-2 font-medium"
-        >
-          {showReplyInput ? "Hủy" : "Trả lời"}
-        </button>
+        {user?.role !== "EMPLOYER" && (
+          <button
+            onClick={() => setShowReplyInput(!showReplyInput)}
+            className="text-xs text-blue-500 hover:text-blue-600 mt-2 font-medium"
+          >
+            {showReplyInput ? "Hủy" : "Trả lời"}
+          </button>
+        )}
 
         {/* Reply input */}
         {showReplyInput && (
@@ -1431,6 +1557,7 @@ function CommentItem({
                 depth={depth + 1}
                 isSubmitting={isSubmitting}
                 setIsSubmitting={setIsSubmitting}
+                onCommentAdd={onCommentAdd}
               />
             ))}
           </div>
@@ -1448,12 +1575,13 @@ interface PostDetailModalProps {
   onClose: () => void;
   onLike: (postId: number, isLiked: boolean) => void;
   onShare: (postId: number) => void;
+  onCommentAdd?: (postId: number) => void;
   formatDate: (date: string) => string;
   getCategoryName: (categoryId: number) => string;
   getAvatar: (avatar?: string) => string;
 }
 
-export function PostDetailModal({ post, onClose, onLike, onShare, formatDate, getCategoryName, getAvatar }: PostDetailModalProps) {
+export function PostDetailModal({ post, onClose, onLike, onShare, onCommentAdd, formatDate, getCategoryName, getAvatar }: PostDetailModalProps) {
   const { user } = useAuth();
   const [liked, setLiked] = useState(post.isLiked ?? post.isLikedByMe ?? false);
   const [likeCount, setLikeCount] = useState(post.likesCount);
@@ -1462,6 +1590,7 @@ export function PostDetailModal({ post, onClose, onLike, onShare, formatDate, ge
   const [commentImage, setCommentImage] = useState<string | null>(null);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [sortOrder, setSortOrder] = useState<"newest" | "all">("all");
 
   // Disable body scroll when modal opens
   useEffect(() => {
@@ -1491,18 +1620,15 @@ export function PostDetailModal({ post, onClose, onLike, onShare, formatDate, ge
     }
   };
 
-  const handleLike = async () => {
+  const handleLike = () => {
+    if (!user) {
+      toast.error("Vui lòng đăng nhập để thích bài viết!");
+      return;
+    }
     const newLiked = !liked;
     setLiked(newLiked);
     setLikeCount((prev) => (newLiked ? prev + 1 : prev - 1));
-    try {
-      await postService.likePost(post.id);
-      onLike(post.id, newLiked);
-    } catch (error) {
-      setLiked(!newLiked);
-      setLikeCount((prev) => (newLiked ? prev - 1 : prev + 1));
-      toast.error("Không thể thích bài viết");
-    }
+    onLike(post.id, liked);
   };
 
   const handleSubmitComment = async () => {
@@ -1530,6 +1656,7 @@ export function PostDetailModal({ post, onClose, onLike, onShare, formatDate, ge
         setComments((prev) => [newCommentWithUser, ...prev]);
         setNewComment("");
         setCommentImage(null);
+        if (onCommentAdd) onCommentAdd(post.id);
         toast.success("Đã thêm bình luận");
       }
     } catch (error: any) {
@@ -1657,68 +1784,86 @@ export function PostDetailModal({ post, onClose, onLike, onShare, formatDate, ge
 
           {/* Comments Section */}
           <div className="p-4 bg-gray-50/30">
-            <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <MessageCircle className="w-4 h-4" />
-              Bình luận ({comments.length})
-            </h3>
-
-            {/* Comment Input */}
-            <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-violet-500 rounded-full flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
-                {user?.avatar ? (
-                  <img src={user.avatar} alt={user.fullName} className="w-full h-full object-cover" />
-                ) : (
-                  <span>👤</span>
-                )}
-              </div>
-              <div className="flex-1">
-                {commentImage && (
-                  <div className="relative mb-2 inline-block">
-                    <img
-                      src={commentImage}
-                      alt="Comment"
-                      className="max-w-[200px] max-h-[200px] rounded-lg object-cover"
-                    />
-                    <button
-                      onClick={() => setCommentImage(null)}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSubmitComment()}
-                    placeholder="Viết bình luận..."
-                    className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
-                  />
-                  <label className="p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 cursor-pointer">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleCommentImageSelect}
-                      className="hidden"
-                    />
-                    <ImageIcon className="w-4 h-4 text-gray-600" />
-                  </label>
-                  <button
-                    onClick={handleSubmitComment}
-                    disabled={isSubmittingComment || (!newComment.trim() && !commentImage)}
-                    className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {isSubmittingComment ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
-                  </button>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                <MessageCircle className="w-4 h-4" />
+                Bình luận ({comments.length})
+              </h3>
+              
+              <div className="relative group">
+                <select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as "newest" | "all")}
+                  className="appearance-none bg-transparent text-sm font-semibold text-gray-600 group-hover:text-gray-900 cursor-pointer pr-4 focus:outline-none transition-colors"
+                >
+                  <option value="all">Tất cả bình luận</option>
+                  <option value="newest">Mới nhất</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center">
+                  <svg className="w-3.5 h-3.5 text-gray-500 group-hover:text-gray-900 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
                 </div>
               </div>
             </div>
+
+            {/* Comment Input */}
+            {user?.role !== "EMPLOYER" && (
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-violet-500 rounded-full flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt={user.fullName} className="w-full h-full object-cover" />
+                  ) : (
+                    <span>👤</span>
+                  )}
+                </div>
+                <div className="flex-1">
+                  {commentImage && (
+                    <div className="relative mb-2 inline-block">
+                      <img
+                        src={commentImage}
+                        alt="Comment"
+                        className="max-w-[200px] max-h-[200px] rounded-lg object-cover"
+                      />
+                      <button
+                        onClick={() => setCommentImage(null)}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSubmitComment()}
+                      placeholder="Viết bình luận..."
+                      className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+                    />
+                    <label className="p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleCommentImageSelect}
+                        className="hidden"
+                      />
+                      <ImageIcon className="w-4 h-4 text-gray-600" />
+                    </label>
+                    <button
+                      onClick={handleSubmitComment}
+                      disabled={isSubmittingComment || (!newComment.trim() && !commentImage)}
+                      className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isSubmittingComment ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Comments List */}
             {isLoadingComments ? (
@@ -1729,6 +1874,11 @@ export function PostDetailModal({ post, onClose, onLike, onShare, formatDate, ge
               <div className="space-y-4">
                 {comments
                   .filter((c) => !c.parentCommentId)
+                  .sort((a, b) => {
+                    const timeA = new Date(a.createdAt).getTime();
+                    const timeB = new Date(b.createdAt).getTime();
+                    return sortOrder === "newest" ? timeB - timeA : timeA - timeB;
+                  })
                   .map((comment) => (
                     <CommentItem
                       key={comment.id}
@@ -1740,6 +1890,7 @@ export function PostDetailModal({ post, onClose, onLike, onShare, formatDate, ge
                       depth={0}
                       isSubmitting={isSubmittingComment}
                       setIsSubmitting={setIsSubmittingComment}
+                      onCommentAdd={() => onCommentAdd?.(post.id)}
                     />
                   ))}
               </div>

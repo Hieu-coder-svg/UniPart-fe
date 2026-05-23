@@ -1,6 +1,7 @@
 import { Search, Filter, Clock, Eye, CheckCircle, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { reportService, ReportResponse } from "../../../services/reportService";
+import Swal from "sweetalert2";
 
 export default function AdminReports() {
   const [reports, setReports] = useState<ReportResponse[]>([]);
@@ -26,12 +27,26 @@ export default function AdminReports() {
   };
 
   const handleResolve = async (id: number) => {
+    const result = await Swal.fire({
+      title: 'Xác nhận xử lý',
+      text: "Bạn có chắc chắn muốn đánh dấu báo cáo này là Đã xử lý không?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy bỏ'
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       await reportService.updateReport(id, { status: "RESOLVED", resolution: "Đã xử lý vi phạm" });
       fetchReports();
+      Swal.fire('Thành công!', 'Báo cáo đã được xử lý.', 'success');
     } catch (error) {
       console.error("Failed to resolve report", error);
-      alert("Cập nhật thất bại. Vui lòng thử lại.");
+      Swal.fire('Lỗi', "Cập nhật thất bại. Vui lòng thử lại.", 'error');
     }
   };
 

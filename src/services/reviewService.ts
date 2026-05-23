@@ -15,6 +15,10 @@ export interface ReviewResponse {
   jobId: number;
   studentId: string;
   employerId: string;
+  studentName?: string;
+  studentAvatar?: string;
+  employerName?: string;
+  employerAvatar?: string;
   reviewType: "STUDENT_TO_EMPLOYER" | "EMPLOYER_TO_STUDENT";
   rating: number;
   comment: string;

@@ -88,6 +88,7 @@ function StatCard({
 export default function AdminOverview() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [chart, setChart] = useState<AdminChartData | null>(null);
+  const [period, setPeriod] = useState<"week" | "10weeks" | "month" | "year">("month");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -97,7 +98,7 @@ export default function AdminOverview() {
     try {
       const [statsRes, chartRes] = await Promise.all([
         adminService.getStats(),
-        adminService.getChartData(),
+        adminService.getChartData(period),
       ]);
       if (statsRes.result) setStats(statsRes.result);
       if (chartRes.result) setChart(chartRes.result);
@@ -110,7 +111,7 @@ export default function AdminOverview() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [period]);
 
   if (loading) {
     return (
@@ -269,6 +270,21 @@ export default function AdminOverview() {
           </div>
         </div>
 
+        {/* Charts Filter */}
+        <div className="flex items-center justify-between mt-8 mb-4">
+          <h2 className="text-xl font-bold text-gray-900">Biểu đồ thống kê</h2>
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value as "week" | "10weeks" | "month" | "year")}
+            className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 font-medium shadow-sm outline-none focus:border-blue-500 transition-colors cursor-pointer hover:bg-gray-50"
+          >
+            <option value="week">7 ngày qua</option>
+            <option value="10weeks">10 tuần qua</option>
+            <option value="month">6 tháng qua</option>
+            <option value="year">5 năm qua</option>
+          </select>
+        </div>
+
         {/* Charts */}
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Revenue Chart */}
@@ -276,7 +292,7 @@ export default function AdminOverview() {
             <div className="flex items-center justify-between mb-6">
               <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
                 <TrendingUp className="w-5 h-5 text-purple-600" />
-                Doanh thu 6 tháng
+                Doanh thu ({period === 'week' ? '7 ngày' : period === '10weeks' ? '10 tuần' : period === 'year' ? '5 năm' : '6 tháng'})
               </h3>
               <span className="text-xs text-gray-400">VNĐ</span>
             </div>
@@ -313,7 +329,7 @@ export default function AdminOverview() {
             <div className="flex items-center justify-between mb-6">
               <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
                 <BarChart3 className="w-5 h-5 text-blue-600" />
-                Người dùng mới (6 tháng)
+                Người dùng mới ({period === 'week' ? '7 ngày' : period === '10weeks' ? '10 tuần' : period === 'year' ? '5 năm' : '6 tháng'})
               </h3>
             </div>
             <ResponsiveContainer width="100%" height={250}>

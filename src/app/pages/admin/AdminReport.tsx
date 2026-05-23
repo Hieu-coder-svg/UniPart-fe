@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Search, Filter, AlertTriangle, Eye, CheckCircle, XCircle, MoreVertical, Flag, UserX, FileText, Loader2, EyeOff, User } from "lucide-react";
 import { reportService, ReportResponse } from "../../../services/reportService";
+import Swal from "sweetalert2";
 import { userService } from "../../../services/userService";
 import { postService } from "../../../services/postService";
 import { jobService } from "../../../services/jobService";
@@ -43,18 +44,24 @@ export default function AdminReport() {
 
   const handleToggleJob = async (jobId: string) => {
     const hide = !targetIsHidden;
-    if (!window.confirm(hide
-      ? "Bạn có chắc muốn ẩn công việc này?"
-      : "Bạn có chắc muốn bỏ ẩn công việc này?")) return;
+    const result = await Swal.fire({
+      title: 'Xác nhận',
+      text: hide ? "Bạn có chắc muốn ẩn công việc này?" : "Bạn có chắc muốn bỏ ẩn công việc này?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy'
+    });
+    if (!result.isConfirmed) return;
     setIsProcessingTarget(true);
     try {
       if (hide) await jobService.hideJob(Number(jobId));
       else await jobService.unhideJob(Number(jobId));
       setTargetIsHidden(hide);
-      alert(hide ? "Đã ẩn công việc thành công!" : "Đã bỏ ẩn công việc thành công!");
+      Swal.fire('Thành công!', hide ? "Đã ẩn công việc thành công!" : "Đã bỏ ẩn công việc thành công!", 'success');
     } catch (error) {
       console.error(error);
-      alert("Đã xảy ra lỗi.");
+      Swal.fire('Lỗi', "Đã xảy ra lỗi.", 'error');
     } finally {
       setIsProcessingTarget(false);
     }
@@ -62,18 +69,24 @@ export default function AdminReport() {
 
   const handleTogglePost = async (postId: string) => {
     const hide = !targetIsHidden;
-    if (!window.confirm(hide
-      ? "Bạn có chắc muốn ẩn bài viết này?"
-      : "Bạn có chắc muốn bỏ ẩn bài viết này?")) return;
+    const result = await Swal.fire({
+      title: 'Xác nhận',
+      text: hide ? "Bạn có chắc muốn ẩn bài viết này?" : "Bạn có chắc muốn bỏ ẩn bài viết này?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy'
+    });
+    if (!result.isConfirmed) return;
     setIsProcessingTarget(true);
     try {
       if (hide) await postService.hidePost(Number(postId));
       else await postService.unhidePost(Number(postId));
       setTargetIsHidden(hide);
-      alert(hide ? "Đã ẩn bài viết thành công!" : "Đã bỏ ẩn bài viết thành công!");
+      Swal.fire('Thành công!', hide ? "Đã ẩn bài viết thành công!" : "Đã bỏ ẩn bài viết thành công!", 'success');
     } catch (error) {
       console.error(error);
-      alert("Đã xảy ra lỗi.");
+      Swal.fire('Lỗi', "Đã xảy ra lỗi.", 'error');
     } finally {
       setIsProcessingTarget(false);
     }
@@ -91,7 +104,7 @@ export default function AdminReport() {
       const basicUser = usersRes.result?.find((u: any) => u.id === userId);
       
       if (!basicUser) {
-        alert("Không tìm thấy thông tin cơ bản của người dùng này.");
+        Swal.fire('Lỗi', "Không tìm thấy thông tin cơ bản của người dùng này.", 'error');
         setLoadingUser(false);
         return;
       }
@@ -112,7 +125,7 @@ export default function AdminReport() {
       setViewingUser(detailedUser);
     } catch (error) {
       console.error(error);
-      alert("Đã xảy ra lỗi khi tải thông tin người dùng.");
+      Swal.fire('Lỗi', "Đã xảy ra lỗi khi tải thông tin người dùng.", 'error');
       setViewingUserId(null);
     } finally {
       setLoadingUser(false);
@@ -199,6 +212,41 @@ export default function AdminReport() {
   const handleUpdateStatus = async (newStatus: "PENDING" | "REVIEWING" | "RESOLVED" | "REJECTED") => {
     if (!selectedReport) return;
     
+    let statusText = "";
+    switch(newStatus) {
+      case "REVIEWING": statusText = "Đang xem xét"; break;
+      case "RESOLVED": statusText = "Đã giải quyết"; break;
+      case "REJECTED": statusText = "Từ chối (Bỏ qua)"; break;
+      default: statusText = "Chờ xử lý";
+    }
+
+    if ((newStatus === "RESOLVED" || newStatus === "REJECTED") && !adminNote.trim()) {
+      Swal.fire('Thiếu thông tin', "Vui lòng nhập ghi chú xử lý để lưu vết hệ thống trước khi từ chối/giải quyết báo cáo này!", 'warning');
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: 'Xác nhận chuyển trạng thái',
+      text: `Bạn có chắc chắn muốn chuyển báo cáo này sang trạng thái "${statusText}" không?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy bỏ'
+    });
+
+    if (!result.isConfirmed) return;
+
+    Swal.fire({
+      title: 'Đang xử lý...',
+      text: 'Vui lòng chờ trong giây lát',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
     try {
       await reportService.updateReport(selectedReport.id, {
         status: newStatus,
@@ -206,9 +254,10 @@ export default function AdminReport() {
       });
       fetchReports();
       setSelectedReport(null);
+      Swal.fire('Thành công!', 'Cập nhật trạng thái thành công.', 'success');
     } catch (error) {
       console.error("Failed to update report status", error);
-      alert("Cập nhật thất bại. Vui lòng thử lại.");
+      Swal.fire('Lỗi', "Cập nhật thất bại. Vui lòng thử lại.", 'error');
     }
   };
 
@@ -475,7 +524,7 @@ export default function AdminReport() {
                   )}
                   {selectedReport.targetType === "POST" && (
                     <div className="flex flex-wrap gap-2 mt-2">
-                      <a href={`/community/post/${selectedReport.targetId}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 hover:underline bg-white/60 px-3 py-1.5 rounded-md border border-blue-100">
+                      <a href={`/community?postId=${selectedReport.targetId}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 hover:underline bg-white/60 px-3 py-1.5 rounded-md border border-blue-100">
                         <Eye className="w-3 h-3" /> Xem chi tiết
                       </a>
                       {loadingTargetStatus ? (
@@ -505,21 +554,91 @@ export default function AdminReport() {
                     </div>
                   )}
                   {selectedReport.targetType === "USER" && (
-                    <button 
-                      onClick={() => handleViewUser(selectedReport.targetId)}
-                      className="text-sm text-red-800 bg-red-100/60 hover:bg-red-100 p-3 rounded-lg mt-2 border border-red-200 w-full text-left flex justify-between items-center transition-colors shadow-sm group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-inner">
-                          {(selectedReport.targetName || "U").charAt(0).toUpperCase()}
+                    <div className="flex flex-col gap-2 mt-2">
+                      <button 
+                        onClick={() => handleViewUser(selectedReport.targetId)}
+                        className="text-sm text-red-800 bg-red-100/60 hover:bg-red-100 p-3 rounded-lg border border-red-200 w-full text-left flex justify-between items-center transition-colors shadow-sm group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-inner">
+                            {(selectedReport.targetName || "U").charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-semibold">{selectedReport.targetName?.trim() ? selectedReport.targetName : `ID: ${selectedReport.targetId.split('-')[0]}...`}</div>
+                            <div className="text-xs text-red-600/70">Nhấn để xem thông tin chi tiết</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-semibold">{selectedReport.targetName?.trim() ? selectedReport.targetName : `ID: ${selectedReport.targetId.split('-')[0]}...`}</div>
-                          <div className="text-xs text-red-600/70">Nhấn để xem thông tin chi tiết</div>
-                        </div>
-                      </div>
-                      <Eye className="w-4 h-4 text-red-700 group-hover:scale-110 transition-transform" />
-                    </button>
+                        <Eye className="w-4 h-4 text-red-700 group-hover:scale-110 transition-transform" />
+                      </button>
+                      <button
+                        onClick={async () => {
+                          const { value: reason } = await Swal.fire({
+                            title: 'Khóa tài khoản này?',
+                            html: `<p class="text-sm text-gray-500 mb-4">Người dùng sẽ bị đăng xuất, không thể đăng nhập lại và sẽ nhận được email thông báo.</p>`,
+                            input: 'textarea',
+                            inputLabel: 'Vui lòng nhập lý do khóa (Bắt buộc)',
+                            inputPlaceholder: 'Ví dụ: Vi phạm quy định hệ thống...',
+                            icon: 'warning',
+                            iconColor: '#ef4444',
+                            showCancelButton: true,
+                            confirmButtonText: 'Đồng ý khóa',
+                            cancelButtonText: 'Hủy bỏ',
+                            customClass: {
+                              popup: 'rounded-3xl shadow-2xl pb-6',
+                              title: 'text-xl font-bold text-gray-900 pt-4',
+                              input: 'w-full h-32 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none text-sm mx-auto',
+                              inputLabel: 'text-sm font-semibold text-gray-700 text-left w-full block mb-2',
+                              confirmButton: 'bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-6 rounded-xl shadow-sm transition-colors',
+                              cancelButton: 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-medium py-2.5 px-6 rounded-xl shadow-sm transition-colors mr-3',
+                              actions: 'flex gap-3 mt-6 w-full justify-center'
+                            },
+                            buttonsStyling: false,
+                            inputValidator: (value) => {
+                              if (!value || !value.trim()) {
+                                return 'Bạn cần nhập lý do khóa tài khoản!'
+                              }
+                            }
+                          });
+                          
+                          if (reason) {
+                            const confirmResult = await Swal.fire({
+                              title: 'Xác nhận khóa?',
+                              html: `<p class="text-sm text-gray-500 mb-4">Bạn có chắc chắn muốn khóa tài khoản này với lý do sau đây không?</p>
+                                     <div class="bg-gray-50 p-3 rounded-lg text-sm text-left border border-gray-200 text-gray-700 italic">"${reason}"</div>`,
+                              icon: 'warning',
+                              iconColor: '#ef4444',
+                              showCancelButton: true,
+                              confirmButtonText: 'Đồng ý khóa',
+                              cancelButtonText: 'Hủy bỏ',
+                              customClass: {
+                                popup: 'rounded-3xl shadow-2xl pb-6',
+                                title: 'text-xl font-bold text-gray-900 pt-4',
+                                confirmButton: 'bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-6 rounded-xl shadow-sm transition-colors',
+                                cancelButton: 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-medium py-2.5 px-6 rounded-xl shadow-sm transition-colors mr-3',
+                                actions: 'flex gap-3 mt-6 w-full justify-center'
+                              },
+                              buttonsStyling: false
+                            });
+
+                            if (!confirmResult.isConfirmed) return;
+                            try {
+                              setIsProcessingTarget(true);
+                              await userService.blockUser(selectedReport.targetId, reason);
+                              Swal.fire('Đã khóa', 'Tài khoản đã bị khóa thành công.', 'success');
+                            } catch (error) {
+                              Swal.fire('Lỗi', 'Không thể khóa tài khoản này.', 'error');
+                            } finally {
+                              setIsProcessingTarget(false);
+                            }
+                          }
+                        }}
+                        disabled={isProcessingTarget}
+                        className="inline-flex items-center justify-center gap-2 text-sm text-white bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors font-medium w-full disabled:opacity-50"
+                      >
+                        {isProcessingTarget ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserX className="w-4 h-4" />}
+                        Khóa tài khoản vi phạm
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -551,7 +670,8 @@ export default function AdminReport() {
                   value={adminNote}
                   onChange={(e) => setAdminNote(e.target.value)}
                   placeholder="Nhập ghi chú xử lý (sẽ được lưu lại trên hệ thống)..."
-                  className="w-full h-28 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 resize-none transition-all"
+                  className="w-full h-28 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 resize-none transition-all disabled:bg-gray-100 disabled:text-gray-500"
+                  disabled={selectedReport.status === "RESOLVED" || selectedReport.status === "REJECTED"}
                 />
               </div>
             </div>
@@ -561,26 +681,30 @@ export default function AdminReport() {
                   onClick={() => setSelectedReport(null)}
                   className="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-xl font-medium transition-colors shadow-sm"
                 >
-                  Hủy bỏ
+                  { (selectedReport.status === "RESOLVED" || selectedReport.status === "REJECTED") ? "Đóng" : "Hủy bỏ" }
                 </button>
-                <button 
-                  onClick={() => handleUpdateStatus("REJECTED")}
-                  className="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-xl font-medium transition-colors shadow-sm"
-                >
-                  Từ chối (Bỏ qua)
-                </button>
-                <button 
-                  onClick={() => handleUpdateStatus("REVIEWING")}
-                  className="px-5 py-2.5 text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-xl font-medium transition-colors"
-                >
-                  Chuyển sang Đang xem xét
-                </button>
-                <button 
-                  onClick={() => handleUpdateStatus("RESOLVED")}
-                  className="px-5 py-2.5 text-white bg-red-600 hover:bg-red-700 rounded-xl font-medium shadow-sm transition-colors"
-                >
-                  Đánh dấu Đã giải quyết
-                </button>
+                {!(selectedReport.status === "RESOLVED" || selectedReport.status === "REJECTED") && (
+                  <>
+                    <button 
+                      onClick={() => handleUpdateStatus("REJECTED")}
+                      className="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-xl font-medium transition-colors shadow-sm"
+                    >
+                      Từ chối (Bỏ qua)
+                    </button>
+                    <button 
+                      onClick={() => handleUpdateStatus("REVIEWING")}
+                      className="px-5 py-2.5 text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-xl font-medium transition-colors"
+                    >
+                      Chuyển sang Đang xem xét
+                    </button>
+                    <button 
+                      onClick={() => handleUpdateStatus("RESOLVED")}
+                      className="px-5 py-2.5 text-white bg-red-600 hover:bg-red-700 rounded-xl font-medium shadow-sm transition-colors"
+                    >
+                      Đánh dấu Đã giải quyết
+                    </button>
+                  </>
+                )}
             </div>
           </div>
         </div>

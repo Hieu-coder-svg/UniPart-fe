@@ -53,7 +53,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   // Fetch notifications for current page from REST API
   const refetch = useCallback(async () => {
     try {
-      const res = await notificationService.getMyNotifications(currentPage, 10);
+      const res = await notificationService.getMyNotifications(currentPage, 8);
       if (res.result) {
         setNotifications(res.result.content || []);
         setTotalPages(res.result.totalPages || 1);

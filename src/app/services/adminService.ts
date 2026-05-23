@@ -44,8 +44,8 @@ class AdminService {
     return response.data;
   }
 
-  async getChartData(): Promise<ApiResponse<AdminChartData>> {
-    const response = await apiClient.get<ApiResponse<AdminChartData>>("/admin/stats/chart");
+  async getChartData(period: string = "month"): Promise<ApiResponse<AdminChartData>> {
+    const response = await apiClient.get<ApiResponse<AdminChartData>>(`/admin/stats/chart?period=${period}`);
     return response.data;
   }
 }

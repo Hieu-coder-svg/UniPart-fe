@@ -1,5 +1,5 @@
-import { Check, Zap, Package, ShoppingCart, CreditCard, ArrowRight, Sparkles, TrendingUp, Loader2, AlertCircle } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Check, Zap, Package, ShoppingCart, CreditCard, ArrowRight, Sparkles, TrendingUp, Loader2, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import { purchaseService, PurchasePackageResponse } from "../../../services/purchaseService";
 import { PackageResponse } from "../../../services/packageService";
 
@@ -12,6 +12,38 @@ export default function EmployerBuyPosts() {
   const [showHistory, setShowHistory] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+
+  // Pagination & Filter for Purchase History
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  
+  const [filterStatus, setFilterStatus] = useState<string>("ALL");
+  const [filterType, setFilterType] = useState<string>("ALL");
+
+  const processedPurchases = useMemo(() => {
+    let result = [...purchases];
+    
+    // Sort by newest first
+    result.sort((a, b) => new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime());
+    
+    // Filter
+    if (filterStatus !== "ALL") {
+      result = result.filter(p => p.paymentStatus === filterStatus);
+    }
+    if (filterType !== "ALL") {
+      // Assuming PAY_PER_TIN covers ONE_TIME as well
+      result = result.filter(p => p.packageType === filterType || (filterType === "PAY_PER_TIN" && p.packageType === "ONE_TIME"));
+    }
+    
+    return result;
+  }, [purchases, filterStatus, filterType]);
+
+  const totalPages = Math.max(1, Math.ceil(processedPurchases.length / itemsPerPage));
+  const paginatedPurchases = processedPurchases.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [showHistory, filterStatus, filterType]);
 
   useEffect(() => {
     fetchData();
@@ -158,15 +190,39 @@ export default function EmployerBuyPosts() {
       ) : showHistory ? (
         /* Purchase History */
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="p-6 border-b border-gray-200">
+          <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h2 className="text-xl font-semibold">Lịch sử mua hàng</h2>
+            
+            <div className="flex items-center gap-3">
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-sm"
+              >
+                <option value="ALL">Tất cả gói</option>
+                <option value="MONTHLY">Gói theo tháng</option>
+                <option value="PAY_PER_TIN">Gói mua lẻ</option>
+              </select>
+              
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-sm"
+              >
+                <option value="ALL">Mọi trạng thái</option>
+                <option value="SUCCESS">Thành công</option>
+                <option value="PENDING">Đang chờ</option>
+                <option value="FAILED">Thất bại</option>
+              </select>
+            </div>
           </div>
-          {purchases.length === 0 ? (
+          {processedPurchases.length === 0 ? (
             <div className="p-12 text-center text-gray-500">
               <Package className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p>Chưa có gói dịch vụ nào được mua</p>
+              <p>Không tìm thấy giao dịch nào phù hợp</p>
             </div>
           ) : (
+            <>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
@@ -179,7 +235,7 @@ export default function EmployerBuyPosts() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {purchases.map((purchase) => (
+                  {paginatedPurchases.map((purchase) => (
                     <tr key={purchase.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="font-medium text-gray-900">{purchase.packageName}</div>
@@ -215,6 +271,35 @@ export default function EmployerBuyPosts() {
                 </tbody>
               </table>
             </div>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+                <span className="text-sm text-gray-500 font-medium">
+                  Hiển thị {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, processedPurchases.length)} trong số {processedPurchases.length} giao dịch
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded-lg border border-gray-300 text-gray-600 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <div className="flex items-center px-4 font-medium text-sm text-gray-700">
+                    Trang {currentPage} / {totalPages}
+                  </div>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-1.5 rounded-lg border border-gray-300 text-gray-600 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            )}
+            </>
           )}
         </div>
       ) : (

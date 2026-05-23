@@ -9,7 +9,7 @@ import { useNotifications } from "../../contexts/NotificationContext";
 import { Link, useSearchParams } from "react-router";
 
 export default function EmployerJobs() {
-  const [activeTab, setActiveTab] = useState<"all" | "active" | "expired">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "active" | "full" | "expired">("all");
   const [jobs, setJobs] = useState<JobResponse[]>([]);
   const [applications, setApplications] = useState<ApplicationResponse[]>([]);
   const [packageInfo, setPackageInfo] = useState<{ currentPackage: string; remainingPosts: number; remainingUrgentPosts: number; remainingMonthlyPosts: number; remainingMonthlyUrgentPosts: number; monthlyMaxPostsPerDay: number | null } | null>(null);
@@ -72,10 +72,12 @@ export default function EmployerJobs() {
 
   const getJobStatus = (job: JobResponse) => {
     if (new Date(job.expiredAt) < new Date()) return 'expired';
+    if (job.isHide) return 'full';
     return 'active';
   };
 
   const activeJobsCount = jobs.filter(j => getJobStatus(j) === 'active').length;
+  const fullJobsCount = jobs.filter(j => getJobStatus(j) === 'full').length;
   const expiredJobsCount = jobs.filter(j => getJobStatus(j) === 'expired').length;
   const totalApplicantsCount = new Set(applications.map(a => a.studentId)).size;
 
@@ -97,7 +99,7 @@ export default function EmployerJobs() {
   const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
   const paginatedJobs = filteredJobs.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
-  const handleTabChange = (tab: "all" | "active" | "expired") => {
+  const handleTabChange = (tab: "all" | "active" | "full" | "expired") => {
     setActiveTab(tab);
     setSearchParams((prev) => {
       prev.delete("page");
@@ -272,6 +274,16 @@ export default function EmployerJobs() {
             }`}
           >
             Đang hoạt động ({activeJobsCount})
+          </button>
+          <button
+            onClick={() => handleTabChange("full")}
+            className={`py-3 -mb-px border-b-2 transition-all font-medium whitespace-nowrap text-sm ${
+              activeTab === "full"
+                ? "border-orange-600 text-orange-600"
+                : "border-transparent text-gray-500 hover:text-gray-900"
+            }`}
+          >
+            Đã đủ người ({fullJobsCount})
           </button>
           <button
             onClick={() => handleTabChange("expired")}
