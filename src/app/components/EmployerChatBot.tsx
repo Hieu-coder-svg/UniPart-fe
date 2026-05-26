@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { chatService } from "../../services/chatService";
 import { ChatRequest } from "../../types/chat";
-import unibotAvatar from "../../assets/unibot-avatar.png";
+import unibotAvatar from "../../assets/linhvat.png";
 
 // Lightweight markdown → HTML converter
 const renderMarkdown = (text: string): string => {
@@ -201,11 +201,11 @@ export function EmployerChatBot() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-full shadow-2xl hover:scale-110 transition-all duration-300 flex items-center justify-center group"
+        className="fixed bottom-6 right-6 z-50 w-28 h-28 transition-transform duration-300 flex items-center justify-center group drop-shadow-2xl hover:drop-shadow-[0_20px_20px_rgba(0,0,0,0.25)] hover:scale-110"
         title="Tư vấn với AI"
       >
-        <MessageCircle className="w-7 h-7" />
-        <span className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+        <img src={unibotAvatar} alt="Tư vấn với AI" className="w-full h-full object-contain" />
+        <span className="absolute top-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center z-10 shadow-md">
           <Sparkles className="w-3 h-3 text-white" />
         </span>
         <div className="absolute bottom-full right-0 mb-3 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
@@ -262,7 +262,17 @@ export function EmployerChatBot() {
         {!isMinimized && (
           <>
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 min-h-0">
+            <div 
+              className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 relative"
+              style={{
+                backgroundColor: '#f9fafb',
+                backgroundImage: `linear-gradient(rgba(249, 250, 251, 0.92), rgba(249, 250, 251, 0.92)), url(${unibotAvatar})`,
+                backgroundSize: 'contain',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'local'
+              }}
+            >
               {messages.map((message) => (
                 <div
                   key={message.id}
