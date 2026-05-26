@@ -50,9 +50,35 @@ class AuthService {
     this.api.interceptors.response.use(
       (response) => response,
       (error) => {
+        // Log full error response for debugging
+        if (error.response) {
+          console.error('❌ [API ERROR]', {
+            status: error.response.status,
+            url: error.config?.url,
+            requestData: error.config?.data,
+            responseData: error.response.data,
+          });
+        }
         // Extract backend error message if available
-        if (error.response && error.response.data && error.response.data.message) {
-          return Promise.reject(new Error(error.response.data.message));
+        if (error.response && error.response.data) {
+          const data = error.response.data;
+          let errorMessage = data.message;
+          
+          // Handle Spring Boot validation errors format
+          if (data.errors && Array.isArray(data.errors)) {
+             const validationErrors = data.errors.map((e: any) => `${e.field}: ${e.defaultMessage}`).join(', ');
+             errorMessage = `Lỗi: ${validationErrors}`;
+          } else if (data.result && typeof data.result === 'object') {
+             // Handle custom validation errors in result object
+             const validationErrors = Object.entries(data.result).map(([field, msg]) => `${field}: ${msg}`).join(', ');
+             if (validationErrors) {
+               errorMessage = `Lỗi: ${validationErrors}`;
+             }
+          }
+          
+          if (errorMessage) {
+            return Promise.reject(new Error(errorMessage));
+          }
         }
         return Promise.reject(error);
       }
