@@ -9,7 +9,7 @@ import {
   Clock,
   MapPin,
 } from "lucide-react";
-import unibotAvatar from "../../assets/unibot-avatar.png";
+import unibotAvatar from "../../assets/linhvat.png";
 import { Link } from "react-router";
 import { type Job } from "../data/mockData";
 import { chatService } from "../../services/chatService";
@@ -220,12 +220,12 @@ export default function ChatBot() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-50 hover:scale-110 group"
+        className="fixed bottom-6 right-6 w-28 h-28 transition-transform duration-300 flex items-center justify-center z-50 hover:scale-110 group drop-shadow-2xl hover:drop-shadow-[0_20px_20px_rgba(0,0,0,0.25)]"
         title="Trò chuyện với AI"
       >
-        <MessageCircle className="w-7 h-7" />
-        <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-          <Sparkles className="w-3 h-3" />
+        <img src={unibotAvatar} alt="ChatBot Mascot" className="w-full h-full object-contain" />
+        <div className="absolute top-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center z-10 shadow-md">
+          <Sparkles className="w-3 h-3 text-white" />
         </div>
       </button>
     );
@@ -275,7 +275,17 @@ export default function ChatBot() {
         {/* Chat Content */}
         {!isMinimized && (
           <>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 min-h-0">
+            <div 
+              className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0 relative"
+              style={{
+                backgroundColor: '#f9fafb',
+                backgroundImage: `linear-gradient(rgba(249, 250, 251, 0.92), rgba(249, 250, 251, 0.92)), url(${unibotAvatar})`,
+                backgroundSize: 'contain',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'local'
+              }}
+            >
               {messages.map((msg, idx) => (
                 <div key={idx}>
                   <div
