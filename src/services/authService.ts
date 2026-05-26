@@ -77,6 +77,9 @@ class AuthService {
           }
           
           if (errorMessage) {
+            if (errorMessage === 'Uncategorized exception') {
+                errorMessage = 'Dữ liệu không hợp lệ hoặc đã tồn tại. Vui lòng kiểm tra lại thông tin đã nhập.';
+            }
             return Promise.reject(new Error(errorMessage));
           }
         }

@@ -11,7 +11,10 @@ import type { StudentRegistrationRequest } from '../../../types/auth';
 
 const studentRegisterSchema = z
   .object({
-    username: z.string().nonempty('Tên đăng nhập không được bỏ trống').min(3, 'Tên đăng nhập phải có ít nhất 3 ký tự'),
+    username: z.string()
+      .nonempty('Tên đăng nhập không được bỏ trống')
+      .min(3, 'Tên đăng nhập phải có ít nhất 3 ký tự')
+      .regex(/^[a-zA-Z0-9_]+$/, 'Tên đăng nhập chỉ được chứa chữ cái không dấu, số và dấu gạch dưới'),
     email: z.string().nonempty('Email không được bỏ trống').email('Email không hợp lệ'),
     password: z.string().nonempty('Mật khẩu là bắt buộc').min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
     confirmPassword: z.string().nonempty('Xác nhận mật khẩu là bắt buộc').min(6, 'Xác nhận mật khẩu phải có ít nhất 6 ký tự'),
@@ -26,7 +29,9 @@ const studentRegisterSchema = z
       }
       return age >= 16;
     }, { message: 'Bạn phải từ 16 tuổi trở lên để đăng ký' }),
-    phoneNumber: z.string().nonempty('Số điện thoại là bắt buộc').min(6, 'Số điện thoại không hợp lệ'),
+    phoneNumber: z.string()
+      .nonempty('Số điện thoại là bắt buộc')
+      .regex(/^(0|\+84)(3|5|7|8|9)[0-9]{8}$/, 'Số điện thoại không hợp lệ (phải là số điện thoại Việt Nam hợp lệ)'),
     gender: z.string().nonempty('Giới tính là bắt buộc'),
     university: z.string().nonempty('Tên trường không được bỏ trống').min(2, 'Tên trường phải có ít nhất 2 ký tự'),
     major: z.string().nonempty('Ngành học không được bỏ trống').min(2, 'Ngành học phải có ít nhất 2 ký tự'),
