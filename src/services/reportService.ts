@@ -34,7 +34,7 @@ export interface ReportResponse {
   evidenceUrl?: string;
 }
 
-const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 const TOKEN_KEY = "access_token";
 
 class ReportService {

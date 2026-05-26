@@ -3,7 +3,8 @@ import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig({
+const VITE_API_URL = process.env.VITE_API_URL || 'http://localhost:8080';
+export default defineConfig({ 
   plugins: [
     react({
       jsxImportSource: undefined,
@@ -22,8 +23,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/auth': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,    
+        target: VITE_API_URL,
+        changeOrigin: true,
         secure: false,
       },
     }
