@@ -109,11 +109,10 @@ export default function Layout() {
                 <>
                   <Link
                     to="/jobs"
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                      location.pathname.startsWith("/jobs")
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${location.pathname.startsWith("/jobs")
                         ? "bg-gradient-to-r from-orange-100 to-red-100 text-orange-700"
                         : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
-                    }`}
+                      }`}
                   >
                     <Briefcase className="w-4 h-4 flex-shrink-0" />
                     <span>Việc làm</span>
@@ -134,11 +133,10 @@ export default function Layout() {
                   </Link>
                   <Link
                     to="/community"
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                      location.pathname.startsWith("/community")
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${location.pathname.startsWith("/community")
                         ? "bg-gradient-to-r from-orange-100 to-red-100 text-orange-700"
                         : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
-                    }`}
+                      }`}
                   >
                     <Users className="w-4 h-4 flex-shrink-0" />
                     <span>Cộng đồng</span>
@@ -158,11 +156,10 @@ export default function Layout() {
                     <Link
                       key={item.path}
                       to={item.path}
-                      className={`relative flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                        isActive(item.path)
+                      className={`relative flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${isActive(item.path)
                           ? "text-blue-600 bg-blue-50"
                           : "text-gray-600 hover:text-blue-600 hover:bg-blue-50/60"
-                      }`}
+                        }`}
                     >
                       <item.icon className="w-4 h-4 flex-shrink-0" />
                       <span className="whitespace-nowrap">{item.label}</span>
@@ -202,34 +199,31 @@ export default function Layout() {
                   <div className="relative" ref={dropdownRef}>
                     <button
                       onClick={() => setDropdownOpen(!dropdownOpen)}
-                      className={`flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl border transition-all hover:shadow-md ${
-                        isEmployer
+                      className={`flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl border transition-all hover:shadow-md ${isEmployer
                           ? "bg-gradient-to-r from-orange-50 to-red-50 border-orange-200 hover:border-orange-300"
                           : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100 hover:border-blue-300"
-                      }`}
+                        }`}
                     >
                       {/* Avatar */}
                       {user?.avatar ? (
-                        <img 
-                          src={user.avatar} 
-                          alt="Avatar" 
-                          className="w-7 h-7 rounded-full object-cover shadow-sm border border-gray-200" 
+                        <img
+                          src={user.avatar}
+                          alt="Avatar"
+                          className="w-7 h-7 rounded-full object-cover shadow-sm border border-gray-200"
                         />
                       ) : (
                         <div
-                          className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm ${
-                            isEmployer
+                          className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm ${isEmployer
                               ? "bg-gradient-to-br from-orange-500 to-red-600"
                               : "bg-gradient-to-br from-blue-500 to-indigo-600"
-                          }`}
+                            }`}
                         >
                           {(user?.fullName || user?.username || "U").charAt(0).toUpperCase()}
                         </div>
                       )}
                       <div className="text-left">
-                        <div className={`text-xs font-semibold max-w-[110px] truncate leading-tight ${
-                          isEmployer ? "text-orange-700" : isAdmin ? "text-red-700" : "text-blue-700"
-                        }`}>
+                        <div className={`text-xs font-semibold max-w-[110px] truncate leading-tight ${isEmployer ? "text-orange-700" : isAdmin ? "text-red-700" : "text-blue-700"
+                          }`}>
                           {user?.fullName || user?.username}
                         </div>
                         <div className="text-[10px] text-gray-400 leading-tight">
@@ -248,17 +242,16 @@ export default function Layout() {
                         <div className="px-4 py-3 border-b border-gray-100">
                           <div className="flex items-center gap-3">
                             {user?.avatar ? (
-                              <img 
-                                src={user.avatar} 
-                                alt="Avatar" 
-                                className="w-9 h-9 rounded-full object-cover shadow border border-gray-200" 
+                              <img
+                                src={user.avatar}
+                                alt="Avatar"
+                                className="w-9 h-9 rounded-full object-cover shadow border border-gray-200"
                               />
                             ) : (
-                              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shadow ${
-                                isEmployer
+                              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shadow ${isEmployer
                                   ? "bg-gradient-to-br from-orange-500 to-red-600"
                                   : "bg-gradient-to-br from-blue-500 to-indigo-600"
-                              }`}>
+                                }`}>
                                 {(user?.fullName || user?.username || "U").charAt(0).toUpperCase()}
                               </div>
                             )}
@@ -321,7 +314,7 @@ export default function Layout() {
                     Đăng nhập
                   </Link>
                   <Link
-                    to="/register"
+                    to="/login?tab=register"
                     className="px-4 py-2 text-sm font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:shadow-lg hover:scale-105 transition-all"
                   >
                     Đăng ký
@@ -348,11 +341,10 @@ export default function Layout() {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center gap-0.5 px-1 py-2 rounded-xl mx-0.5 transition-all ${
-                isActive(item.path)
+              className={`flex flex-col items-center gap-0.5 px-1 py-2 rounded-xl mx-0.5 transition-all ${isActive(item.path)
                   ? "text-blue-600 bg-blue-50"
                   : "text-gray-500 hover:text-blue-500"
-              }`}
+                }`}
             >
               <item.icon className="w-5 h-5" />
               <span className="text-[10px] font-medium">{item.label}</span>

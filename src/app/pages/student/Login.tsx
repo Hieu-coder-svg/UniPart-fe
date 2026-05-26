@@ -1,5 +1,5 @@
 import { useState, FormEvent } from "react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate, Link, useLocation } from "react-router";
 import { User, Lock, Eye, EyeOff, LogIn, UserPlus, AlertCircle } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { RegisterStudentForm } from "../../components/auth/RegisterStudentForm";
@@ -9,12 +9,16 @@ import { authService } from "../../../services/authService";
 const logoImage = "/src/assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
 
 export default function Login() {
-  const [isLogin, setIsLogin] = useState(true);
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const isRegisterTab = searchParams.get("tab") === "register";
+  
+  const [isLogin, setIsLogin] = useState(!isRegisterTab);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isOtpError, setIsOtpError] = useState(false);
-  
+
   const navigate = useNavigate();
   const { login, registerStudent } = useAuth();
 
@@ -24,7 +28,7 @@ export default function Login() {
 
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     const formData = new FormData(e.currentTarget);
     const username = formData.get("username") as string || loginUsername;
     const password = formData.get("password") as string || loginPassword;
@@ -120,7 +124,7 @@ export default function Login() {
           {/* Logo on desktop */}
           <div className="hidden md:block mb-8">
             <Link to="/">
-              <img src={logoImage} alt="UniPart" className="h-22 mx-auto" />
+              <img src={logoImage} alt="UniPart" className="h-24 w-auto mx-auto object-contain" />
             </Link>
           </div>
 
@@ -132,11 +136,10 @@ export default function Login() {
                   setIsLogin(true);
                   setError("");
                 }}
-                className={`flex-1 py-3 rounded-lg transition-all font-medium ${
-                  isLogin
+                className={`flex-1 py-3 rounded-lg transition-all font-medium ${isLogin
                     ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg"
                     : "text-gray-600 hover:text-gray-900"
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-center gap-2">
                   <LogIn className="w-5 h-5" />
@@ -148,11 +151,10 @@ export default function Login() {
                   setIsLogin(false);
                   setError("");
                 }}
-                className={`flex-1 py-3 rounded-lg transition-all font-medium ${
-                  !isLogin
+                className={`flex-1 py-3 rounded-lg transition-all font-medium ${!isLogin
                     ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg"
                     : "text-gray-600 hover:text-gray-900"
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-center gap-2">
                   <UserPlus className="w-5 h-5" />
@@ -264,7 +266,7 @@ export default function Login() {
           {/* Mobile branding */}
           <div className="md:hidden mt-8 text-center">
             <Link to="/">
-              <img src={logoImage} alt="UniPart" className="h-24 mx-auto" />
+              <img src={logoImage} alt="UniPart" className="h-24 w-auto mx-auto object-contain" />
             </Link>
           </div>
         </div>

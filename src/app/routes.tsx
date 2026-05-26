@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import Layout from "./components/Layout";
 import EmployerLayout from "./components/EmployerLayout";
 import AdminLayout from "./components/AdminLayout";
@@ -13,8 +13,6 @@ import SavedJobs from "./pages/student/SavedJobs";
 import Notifications from "./pages/student/Notifications";
 import MyReports from "./pages/student/MyReports";
 import Login from "./pages/student/Login";
-import Register from "./pages/auth/Register";
-import RegisterStudent from "./pages/auth/RegisterStudent";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import VerifyOtp from "./pages/VerifyOtp";
 import EmployerLogin from "./pages/employer/EmployerLogin";
@@ -57,11 +55,11 @@ export const router = createBrowserRouter([
   },
   {
     path: "/register",
-    Component: Register,
+    element: <Navigate to="/login?tab=register" replace />,
   },
   {
     path: "/register/student",
-    Component: RegisterStudent,
+    element: <Navigate to="/login?tab=register" replace />,
   },
   {
     path: "/forgot-password",
