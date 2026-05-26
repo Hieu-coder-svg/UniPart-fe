@@ -14,7 +14,7 @@ export default function AdBanner({ position = "middle" }: AdBannerProps) {
       title: "Khóa học Excel miễn phí cho sinh viên",
       company: "Coursera",
       image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=200&fit=crop",
-      cta: "Đăng ký ngay",
+      cta: "Đăng ký ngay ",
       color: "from-green-500 to-emerald-600",
       bgColor: "from-green-50 to-emerald-50",
     },

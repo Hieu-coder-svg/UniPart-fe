@@ -124,7 +124,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     const token = localStorage.getItem(TOKEN_KEY);
     const client = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:8080/ws") as any,
+      webSocketFactory: () => new SockJS(`${import.meta.env.VITE_API_URL || "http://localhost:8080"}/ws`) as any,
       connectHeaders: {
         Authorization: `Bearer ${token}`,
       },
