@@ -29,7 +29,7 @@ interface LoginFormProps {
 export function LoginForm({ onSubmit, isLoading = false }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const {
-    register,
+    register ,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormData>({
