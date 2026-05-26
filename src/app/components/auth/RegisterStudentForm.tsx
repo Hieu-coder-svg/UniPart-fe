@@ -58,9 +58,10 @@ export function RegisterStudentForm({ onSubmit, isLoading = false }: RegisterStu
 
   const handleFormSubmit = async (data: RegisterStudentFormData) => {
     try {
-      await onSubmit({
-        ...data,
-      });
+      // Loại bỏ confirmPassword - backend không nhận field này
+      const { confirmPassword: _, ...registrationData } = data;
+      console.log('📤 [DEBUG] Payload gửi lên server:', JSON.stringify(registrationData, null, 2));
+      await onSubmit(registrationData);
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || 'Đăng ký thất bại';
       toast.error(errorMessage);

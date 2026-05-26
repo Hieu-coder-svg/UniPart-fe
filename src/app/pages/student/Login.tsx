@@ -83,7 +83,7 @@ export default function Login() {
       await registerStudent(data);
       navigate("/verify-otp");
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại.");
+      setError(err?.response?.data?.message || err?.message || "Đã có lỗi xảy ra. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
