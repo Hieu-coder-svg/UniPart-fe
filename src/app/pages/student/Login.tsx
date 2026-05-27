@@ -6,7 +6,7 @@ import { RegisterStudentForm } from "../../components/auth/RegisterStudentForm";
 import type { StudentRegistrationRequest } from "../../../types/auth";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import { authService } from "../../../services/authService";
-const logoImage = "../../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
+import logoImage from "../../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
 
 export default function Login() {
   const location = useLocation();
