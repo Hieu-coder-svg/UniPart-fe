@@ -6,13 +6,13 @@ import { RegisterStudentForm } from "../../components/auth/RegisterStudentForm";
 import type { StudentRegistrationRequest } from "../../../types/auth";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import { authService } from "../../../services/authService";
-const logoImage = "/src/assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
+const logoImage = "../../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
 
 export default function Login() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const isRegisterTab = searchParams.get("tab") === "register";
-  
+
   const [isLogin, setIsLogin] = useState(!isRegisterTab);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -137,8 +137,8 @@ export default function Login() {
                   setError("");
                 }}
                 className={`flex-1 py-3 rounded-lg transition-all font-medium ${isLogin
-                    ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg"
-                    : "text-gray-600 hover:text-gray-900"
+                  ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg"
+                  : "text-gray-600 hover:text-gray-900"
                   }`}
               >
                 <div className="flex items-center justify-center gap-2">
@@ -152,8 +152,8 @@ export default function Login() {
                   setError("");
                 }}
                 className={`flex-1 py-3 rounded-lg transition-all font-medium ${!isLogin
-                    ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg"
-                    : "text-gray-600 hover:text-gray-900"
+                  ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg"
+                  : "text-gray-600 hover:text-gray-900"
                   }`}
               >
                 <div className="flex items-center justify-center gap-2">

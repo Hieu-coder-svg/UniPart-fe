@@ -25,7 +25,7 @@ import {
 } from "../types/auth";
 
 // Placeholder for constants, replace with your actual constants file
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080"; // Replace with your backend API base URL
+const API_BASE_URL = import.meta.env.VITE_API_URL as string; // Replace with your backend API base URL
 const TOKEN_KEY = "access_token"; // Replace with your actual token key
 
 class AuthService {
