@@ -423,6 +423,10 @@ export default function Profile() {
       setMessage({ type: "error", text: "Mật khẩu mới phải khác mật khẩu hiện tại!" });
       return;
     }
+    if (passwordForm.newPassword.includes(' ')) {
+      setMessage({ type: "error", text: "Mật khẩu không được chứa khoảng trắng!" });
+      return;
+    }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       setMessage({ type: "error", text: "Mật khẩu xác nhận không khớp!" });
       return;

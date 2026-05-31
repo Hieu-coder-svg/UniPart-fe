@@ -98,7 +98,7 @@ export default function Layout() {
 
             {/* Logo */}
             <Link to="/" className="flex items-center flex-shrink-0">
-              <img src={logoImage} alt="UniPart" className="h-24" />
+              <img src={logoImage} alt="UniPart" className="h-14 md:h-24 w-auto object-contain" />
             </Link>
 
             {/* ── Desktop Nav ── */}
@@ -327,7 +327,7 @@ export default function Layout() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1">
+      <main className="flex-1 pb-16 md:pb-0">
         <Outlet />
       </main>
 

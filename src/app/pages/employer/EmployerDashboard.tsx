@@ -155,11 +155,11 @@ export default function EmployerDashboard() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
       {/* Welcome Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-orange-600 via-red-600 to-pink-600 rounded-2xl p-8 text-white shadow-2xl">
+      <div className="relative overflow-hidden bg-gradient-to-br from-orange-600 via-red-600 to-pink-600 rounded-2xl p-5 md:p-8 text-white shadow-2xl">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
         <div className="relative z-10">
-          <h1 className="text-3xl mb-2">
+          <h1 className="text-2xl md:text-3xl mb-2 font-bold">
             Chào mừng trở lại, {user?.fullName || user?.username || "Nhà tuyển dụng"}! 👋
           </h1>
           <p className="text-orange-100 text-lg mb-6">

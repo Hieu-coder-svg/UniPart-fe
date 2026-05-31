@@ -446,7 +446,7 @@ export default function EmployerBuyPosts() {
                 <h2 className="text-3xl font-semibold text-gray-900 mb-2">Gói đăng ký theo tháng</h2>
                 <p className="text-gray-600">Phù hợp cho doanh nghiệp có nhu cầu tuyển dụng thường xuyên</p>
               </div>
-              <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto pt-8">
                 {monthlyPackages.map((pkg, index) => (
                   <div
                     key={pkg.id}
@@ -457,8 +457,8 @@ export default function EmployerBuyPosts() {
                     }`}
                   >
                     {index === 1 && (
-                      <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                        <span className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white font-medium rounded-full shadow-lg">
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                        <span className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white font-medium rounded-full shadow-lg whitespace-nowrap">
                           Được yêu thích nhất
                         </span>
                       </div>

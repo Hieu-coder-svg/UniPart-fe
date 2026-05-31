@@ -123,7 +123,7 @@ export default function EmployerLayout() {
             <img 
               src={logoImage} 
               alt="UniPart Employer" 
-              className={sidebarCollapsed ? "h-14" : "h-22"} 
+              className={sidebarCollapsed ? "h-10 w-auto object-contain" : "h-16 w-auto object-contain"} 
             />
           </Link>
           <button
@@ -172,13 +172,7 @@ export default function EmployerLayout() {
               </Link>
             ))}
 
-            {/* Divider */}
-            {!sidebarCollapsed && (
-              <div className="my-4">
-                <div className="border-t border-gray-200"></div>
-              </div>
-            )}
-            {sidebarCollapsed && <div className="my-2 mx-4 border-t border-gray-200"></div>}
+
 
             {/* Business group */}
             {menuItems.filter(item => item.group === "business").map((item) => (
@@ -199,13 +193,7 @@ export default function EmployerLayout() {
               </Link>
             ))}
 
-            {/* Divider */}
-            {!sidebarCollapsed && (
-              <div className="my-4">
-                <div className="border-t border-gray-200"></div>
-              </div>
-            )}
-            {sidebarCollapsed && <div className="my-2 mx-4 border-t border-gray-200"></div>}
+
 
             {/* System group */}
             {menuItems.filter(item => item.group === "system").map((item) => (
@@ -228,39 +216,7 @@ export default function EmployerLayout() {
           </div>
         </nav>
 
-        {/* User section */}
-        <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center gap-3 mb-3 p-3 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl">
-            {user?.avatar ? (
-              <img 
-                src={user.avatar} 
-                alt="Avatar" 
-                className="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-gray-200" 
-              />
-            ) : (
-              <div className="w-10 h-10 bg-gradient-to-br from-orange-600 to-red-600 rounded-full flex items-center justify-center text-white flex-shrink-0">
-                {user?.fullName?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || "E"}
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium truncate">{user?.fullName || user?.username || "Nhà tuyển dụng"}</div>
-              <div className="text-xs text-gray-500 truncate flex items-center gap-1">
-                <Building2 className="w-3 h-3" />
-                Nhà tuyển dụng
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              logout();
-              navigate("/employer/login");
-            }}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-red-600 hover:bg-red-50 rounded-xl transition-colors text-sm"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Đăng xuất</span>
-          </button>
-        </div>
+
       </aside>
 
       {/* Mobile Sidebar */}
@@ -281,7 +237,7 @@ export default function EmployerLayout() {
                 className="block"
                 onClick={() => setSidebarOpen(false)}
               >
-                <img src={logoImage} alt="UniPart Employer" className="h-22" />
+                <img src={logoImage} alt="UniPart Employer" className="h-14 w-auto object-contain" />
               </Link>
               <button
                 onClick={() => setSidebarOpen(false)}
@@ -325,31 +281,7 @@ export default function EmployerLayout() {
               </div>
             </nav>
 
-            {/* User section */}
-            <div className="p-4 border-t border-gray-200">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-orange-600 to-red-600 rounded-full flex items-center justify-center text-white">
-                  {user?.fullName?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || "E"}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{user?.fullName || user?.username || "Nhà tuyển dụng"}</div>
-                  <div className="text-xs text-gray-500 truncate flex items-center gap-1">
-                    <Building2 className="w-3 h-3" />
-                    Nhà tuyển dụng
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  logout();
-                  navigate("/employer/login");
-                }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Đăng xuất</span>
-              </button>
-            </div>
+
           </aside>
         </div>
       )}
@@ -418,15 +350,6 @@ export default function EmployerLayout() {
                   {/* Dropdown */}
                   {userMenuOpen && (
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2">
-                      <Link
-                        to="/employer/dashboard/settings"
-                        className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        <UserCircle2 className="w-4 h-4" />
-                        <span className="text-sm">Hồ sơ</span>
-                      </Link>
-                      <div className="border-t border-gray-100 my-1"></div>
                       <button
                         onClick={() => {
                           logout();
@@ -458,7 +381,7 @@ export default function EmployerLayout() {
               {/* About Section */}
               <div>
                 <div className="mb-4">
-                  <img src={logoImage} alt="UniPart Employer" className="h-22" />
+                  <img src={logoImage} alt="UniPart Employer" className="h-16 w-auto object-contain" />
                 </div>
                 <p className="text-sm text-gray-400 mb-4">
                   Nền tảng tuyển dụng sinh viên hàng đầu Việt Nam. 

@@ -245,9 +245,9 @@ export default function EmployerLogin() {
                     <input type="checkbox" className="rounded border-gray-300 text-orange-600 focus:ring-orange-500" />
                     <span className="text-gray-600">Ghi nhớ đăng nhập</span>
                   </label>
-                  <button type="button" className="text-orange-600 hover:text-orange-700 font-medium">
+                  <Link to="/forgot-password" className="text-orange-600 hover:text-orange-700 font-medium">
                     Quên mật khẩu?
-                  </button>
+                  </Link>
                 </div>
 
                 <button
