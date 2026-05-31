@@ -628,19 +628,24 @@ export default function JobBrowse() {
                       <h3 className="font-bold text-gray-800 text-base">Gợi ý cho bạn</h3>
                     </div>
                     <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-                      {recommendedJobs.map((rec) => (
-                        <div key={`rec-${rec.job.id}`} className="relative group">
-                          <JobCard
-                            job={rec.job}
-                            isSaved={savedJobIds.has(rec.job.id)}
-                            onToggleSave={toggleSaveJob}
-                            distance={null}
-                          />
-                          <div className="absolute top-3 right-3 bg-blue-50 text-blue-600 text-[11px] font-bold px-2 py-1 rounded-full border border-blue-200 shadow-sm z-10 flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
-                            <Star className="w-3 h-3 fill-blue-500 text-blue-500" /> Phù hợp {Math.round(rec.matchScore)}%
+                      {recommendedJobs.map((rec) => {
+                        const distance = studentInfo?.latitude != null && studentInfo?.longitude != null && rec.job.locationLatitude != null && rec.job.locationLongitude != null
+                          ? calculateDistance(studentInfo.latitude, studentInfo.longitude, rec.job.locationLatitude, rec.job.locationLongitude)
+                          : null;
+                        return (
+                          <div key={`rec-${rec.job.id}`} className="relative group">
+                            <JobCard
+                              job={rec.job}
+                              isSaved={savedJobIds.has(rec.job.id)}
+                              onToggleSave={toggleSaveJob}
+                              distance={distance}
+                            />
+                            <div className="absolute top-3 right-3 bg-blue-50 text-blue-600 text-[11px] font-bold px-2 py-1 rounded-full border border-blue-200 shadow-sm z-10 flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
+                              <Star className="w-3 h-3 fill-blue-500 text-blue-500" /> Phù hợp {Math.round(rec.matchScore)}%
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </section>
                 )}
