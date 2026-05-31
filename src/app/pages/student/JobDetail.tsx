@@ -37,6 +37,7 @@ export default function JobDetail() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
   const [applicationId, setApplicationId] = useState<number | null>(null);
+  const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
   const [studentInfo, setStudentInfo] = useState<StudentResponse | null>(null);
 
@@ -100,9 +101,11 @@ export default function JobDetail() {
         if (applicationJob && applicationJob.applicationId) {
           setHasApplied(true);
           setApplicationId(applicationJob.applicationId);
+          setApplicationStatus(applicationJob.status || "PENDING");
         } else {
           setHasApplied(false);
           setApplicationId(null);
+          setApplicationStatus(null);
         }
       }
     } catch (e) {
@@ -500,19 +503,26 @@ export default function JobDetail() {
                 Đã đủ người — không thể ứng tuyển
               </div>
             ) : hasApplied ? (
-              <button
-                onClick={handleCancelApplication}
-                disabled={isCancelling}
-                className="w-full flex items-center justify-center bg-white border border-red-400 text-red-600 py-3 rounded-lg font-semibold hover:bg-red-50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isCancelling ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Đang hủy...
-                  </>
-                ) : (
-                  "Hủy ứng tuyển"
-                )}
-              </button>
+              applicationStatus === "ACCEPTED" || applicationStatus === "APPROVED" || applicationStatus === "COMPLETED" ? (
+                <div className="w-full flex items-center justify-center gap-2 bg-gray-100 border border-gray-200 text-gray-700 py-3 rounded-lg font-semibold cursor-not-allowed">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  {applicationStatus === "COMPLETED" ? "Đã hoàn thành" : "Đã được nhận"}
+                </div>
+              ) : (
+                <button
+                  onClick={handleCancelApplication}
+                  disabled={isCancelling}
+                  className="w-full flex items-center justify-center bg-white border border-red-400 text-red-600 py-3 rounded-lg font-semibold hover:bg-red-50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isCancelling ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Đang hủy...
+                    </>
+                  ) : (
+                    "Hủy ứng tuyển"
+                  )}
+                </button>
+              )
             ) : cooldownRemaining > 0 ? (
               <button
                 disabled
