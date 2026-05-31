@@ -588,7 +588,7 @@ export default function EmployerApplicants() {
         )}
 
         {/* Filters */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-6">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-4 md:p-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -666,7 +666,7 @@ export default function EmployerApplicants() {
               return (
                 <div
                   key={applicant.id}
-                  className="bg-white rounded-2xl border border-gray-100 p-6 shadow-lg hover:shadow-2xl hover:border-orange-300 transition-all duration-300 group"
+                  className="bg-white rounded-2xl border border-gray-100 p-4 md:p-6 shadow-lg hover:shadow-2xl hover:border-orange-300 transition-all duration-300 group"
                 >
                   <div className="flex flex-col lg:flex-row gap-6">
                     {/* Avatar & Basic Info */}

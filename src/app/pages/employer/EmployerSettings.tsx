@@ -184,6 +184,10 @@ export default function EmployerSettings() {
       showToast("error", "Mật khẩu mới phải có ít nhất 6 ký tự.");
       return;
     }
+    if (newPass.includes(' ')) {
+      showToast("error", "Mật khẩu không được chứa khoảng trắng.");
+      return;
+    }
     if (currentPass === newPass) {
       showToast("error", "Mật khẩu mới phải khác mật khẩu hiện tại.");
       return;

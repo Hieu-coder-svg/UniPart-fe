@@ -323,7 +323,7 @@ export default function JobBrowse() {
       <div className="bg-white border-b border-gray-100 shadow-sm sticky top-16 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
           {/* Search block */}
-          <div className="flex items-center bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all shadow-sm">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all shadow-sm">
             {/* Keyword */}
             <div className="flex items-center gap-2 flex-1 px-4 py-3">
               <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -342,10 +342,10 @@ export default function JobBrowse() {
             </div>
 
             {/* Divider */}
-            <div className="w-px h-6 bg-gray-200" />
+            <div className="h-px w-full md:w-px md:h-6 bg-gray-200" />
 
             {/* Location */}
-            <div className="flex items-center gap-2 px-4 py-2 w-48">
+            <div className="flex items-center gap-2 px-4 py-3 md:py-2 md:w-56">
               <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
               <input
                 type="text"
@@ -363,7 +363,7 @@ export default function JobBrowse() {
             </div>
 
             {/* Search CTA */}
-            <button onClick={fetchJobs} className="m-1.5 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity flex items-center gap-1.5">
+            <button onClick={fetchJobs} className="m-2 md:m-1.5 px-5 py-3 md:py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity flex justify-center items-center gap-1.5">
               <Search className="w-4 h-4" />
               Tìm
             </button>

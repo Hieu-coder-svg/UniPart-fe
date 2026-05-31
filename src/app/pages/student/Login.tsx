@@ -128,7 +128,7 @@ export default function Login() {
             </Link>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-10">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-10 border border-gray-100 md:border-none">
             {/* Tabs */}
             <div className="flex gap-4 mb-8 p-1 bg-gray-100 rounded-xl">
               <button
@@ -266,7 +266,7 @@ export default function Login() {
           {/* Mobile branding */}
           <div className="md:hidden mt-8 text-center">
             <Link to="/">
-              <img src={logoImage} alt="UniPart" className="h-24 w-auto mx-auto object-contain" />
+              <img src={logoImage} alt="UniPart" className="h-16 w-auto mx-auto object-contain" />
             </Link>
           </div>
         </div>
