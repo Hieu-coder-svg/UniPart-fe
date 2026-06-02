@@ -262,11 +262,10 @@ export default function AdminPackages() {
                       <tr key={pkg.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 font-medium text-gray-900">{pkg.name}</td>
                         <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            pkg.tinType === "URGENT"
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${pkg.tinType === "URGENT"
                               ? "bg-orange-100 text-orange-700"
                               : "bg-blue-100 text-blue-700"
-                          }`}>
+                            }`}>
                             {pkg.tinType === "URGENT" ? "Tin gấp" : "Tin thường"}
                           </span>
                         </td>

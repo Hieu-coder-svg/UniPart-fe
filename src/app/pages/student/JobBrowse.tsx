@@ -753,12 +753,12 @@ function JobCard({ job, featured = false, isSaved, onToggleSave, distance }: { j
         <div className="h-1 w-full bg-gradient-to-r from-orange-400 via-rose-400 to-pink-400" />
       )}
 
-      <div className="flex flex-col flex-1 p-5 gap-4">
+      <div className="flex flex-col flex-1 p-3 md:p-5 gap-3 md:gap-4">
 
         {/* ── Row 1: Image + Title + Employer + Bookmark ── */}
-        <div className="flex gap-4 items-start">
+        <div className="flex gap-3 md:gap-4 items-start">
           {/* Logo */}
-          <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-100 shadow-sm flex-shrink-0 bg-gray-50 group-hover:scale-105 transition-transform duration-300">
+          <div className="w-12 h-12 md:w-16 md:h-16 rounded-lg overflow-hidden border border-gray-100 shadow-sm flex-shrink-0 bg-gray-50 group-hover:scale-105 transition-transform duration-300">
             <ImageWithFallback
               src={job.image || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=150&q=80"}
               alt={job.title}

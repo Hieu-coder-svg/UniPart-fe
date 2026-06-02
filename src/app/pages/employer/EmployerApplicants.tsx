@@ -528,7 +528,7 @@ export default function EmployerApplicants() {
 
   return (
     <>
-      <div className="p-4 sm:p-6 lg:p-8 space-y-8">
+      <div className="w-full max-w-full overflow-x-hidden p-4 sm:p-6 lg:p-8 space-y-8 box-border">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -550,30 +550,30 @@ export default function EmployerApplicants() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           {loading
             ? Array.from({ length: 4 }).map((_, idx) => (
               <div
                 key={idx}
-                className="bg-white rounded-2xl p-6 border border-gray-100 shadow-lg animate-pulse"
+                className="bg-white rounded-2xl p-3 md:p-6 border border-gray-100 shadow-lg animate-pulse"
               >
-                <div className="h-10 bg-gray-200 rounded mb-2 w-16" />
-                <div className="h-4 bg-gray-100 rounded w-24" />
+                <div className="h-8 bg-gray-200 rounded mb-2 w-12" />
+                <div className="h-3 bg-gray-100 rounded w-20" />
               </div>
             ))
             : stats.map((stat, idx) => (
               <div
                 key={idx}
-                className="bg-white rounded-2xl p-6 border border-gray-100 shadow-lg hover:shadow-2xl transition-all duration-300 group cursor-pointer"
+                className="bg-white rounded-2xl p-3 md:p-6 border border-gray-100 shadow-lg hover:shadow-2xl transition-all duration-300 group cursor-pointer"
               >
                 <div
-                  className={`text-4xl font-bold mb-1 bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}
+                  className={`text-2xl md:text-4xl font-bold mb-1 bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}
                 >
                   {stat.value}
                 </div>
-                <div className="text-sm text-gray-600 font-medium">{stat.label}</div>
+                <div className="text-xs md:text-sm text-gray-600 font-medium leading-tight">{stat.label}</div>
                 {stat.sub && (
-                  <div className="text-xs text-gray-400 mt-1">({stat.sub})</div>
+                  <div className="text-[10px] md:text-xs text-gray-400 mt-0.5">({stat.sub})</div>
                 )}
               </div>
             ))}
@@ -635,9 +635,9 @@ export default function EmployerApplicants() {
                 key={idx}
                 className="bg-white rounded-2xl border border-gray-100 p-6 shadow-lg animate-pulse"
               >
-                <div className="flex gap-4">
-                  <div className="w-20 h-20 bg-gray-200 rounded-2xl flex-shrink-0" />
-                  <div className="flex-1 space-y-3">
+                <div className="flex gap-3 md:gap-4">
+                  <div className="w-14 h-14 md:w-20 md:h-20 bg-gray-200 rounded-2xl flex-shrink-0" />
+                  <div className="flex-1 space-y-2 md:space-y-3">
                     <div className="h-5 bg-gray-200 rounded w-40" />
                     <div className="h-4 bg-gray-100 rounded w-64" />
                     <div className="h-4 bg-gray-100 rounded w-48" />
@@ -668,14 +668,14 @@ export default function EmployerApplicants() {
                   key={applicant.id}
                   className="bg-white rounded-2xl border border-gray-100 p-4 md:p-6 shadow-lg hover:shadow-2xl hover:border-orange-300 transition-all duration-300 group"
                 >
-                  <div className="flex flex-col lg:flex-row gap-6">
+                  <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
                     {/* Avatar & Basic Info */}
-                    <div className="flex gap-4">
+                    <div className="flex gap-3 md:gap-4">
                       {applicant.studentAvatar ? (
                         <img
                           src={applicant.studentAvatar}
                           alt={applicant.studentName}
-                          className="w-20 h-20 rounded-2xl object-cover shadow-xl group-hover:scale-110 transition-transform duration-300"
+                          className="w-14 h-14 md:w-20 md:h-20 rounded-2xl object-cover shadow-xl group-hover:scale-110 transition-transform duration-300"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
@@ -684,12 +684,12 @@ export default function EmployerApplicants() {
                         />
                       ) : null}
                       <div
-                        className={`w-20 h-20 bg-gradient-to-br from-orange-600 to-red-600 rounded-2xl flex items-center justify-center text-white text-3xl font-bold flex-shrink-0 shadow-xl group-hover:scale-110 transition-transform duration-300 ${applicant.studentAvatar ? 'hidden' : ''}`}
+                        className={`w-14 h-14 md:w-20 md:h-20 bg-gradient-to-br from-orange-600 to-red-600 rounded-2xl flex items-center justify-center text-white text-2xl md:text-3xl font-bold flex-shrink-0 shadow-xl group-hover:scale-110 transition-transform duration-300 ${applicant.studentAvatar ? 'hidden' : ''}`}
                       >
                         {applicant.studentName.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold mb-2 text-gray-900 group-hover:text-orange-600 transition-colors">
+                        <h3 className="text-lg md:text-xl font-bold mb-1 md:mb-2 text-gray-900 group-hover:text-orange-600 transition-colors">
                           {applicant.studentName}
                         </h3>
                         <div className="space-y-1.5 text-sm text-gray-600">
@@ -710,26 +710,26 @@ export default function EmployerApplicants() {
                     </div>
 
                     {/* Details */}
-                    <div className="flex-1 grid sm:grid-cols-2 gap-4">
+                    <div className="flex-1 grid sm:grid-cols-2 gap-3 md:gap-4">
                       {applicant.studentUniversity && (
-                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl">
-                          <div className="text-sm text-blue-600 mb-1 font-medium">Trường học</div>
-                          <div className="text-gray-900 font-semibold">{applicant.studentUniversity}</div>
+                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 md:p-4 rounded-xl">
+                          <div className="text-xs md:text-sm text-blue-600 mb-0.5 md:mb-1 font-medium">Trường học</div>
+                          <div className="text-sm md:text-base text-gray-900 font-semibold">{applicant.studentUniversity}</div>
                         </div>
                       )}
                       {applicant.studentMajor && (
-                        <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl">
-                          <div className="text-sm text-purple-600 mb-1 font-medium">Chuyên ngành</div>
-                          <div className="text-gray-900 font-semibold">{applicant.studentMajor}</div>
+                        <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-3 md:p-4 rounded-xl">
+                          <div className="text-xs md:text-sm text-purple-600 mb-0.5 md:mb-1 font-medium">Chuyên ngành</div>
+                          <div className="text-sm md:text-base text-gray-900 font-semibold">{applicant.studentMajor}</div>
                         </div>
                       )}
-                      <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl">
-                        <div className="text-sm text-green-600 mb-1 font-medium">Vị trí ứng tuyển</div>
-                        <div className="text-gray-900 font-semibold">{applicant.jobTitle}</div>
+                      <div className="bg-gradient-to-br from-green-50 to-green-100 p-3 md:p-4 rounded-xl">
+                        <div className="text-xs md:text-sm text-green-600 mb-0.5 md:mb-1 font-medium">Vị trí ứng tuyển</div>
+                        <div className="text-sm md:text-base text-gray-900 font-semibold">{applicant.jobTitle}</div>
                       </div>
-                      <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-xl">
-                        <div className="text-sm text-orange-600 mb-1 font-medium">Ngày ứng tuyển</div>
-                        <div className="text-gray-900 font-semibold">
+                      <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-3 md:p-4 rounded-xl">
+                        <div className="text-xs md:text-sm text-orange-600 mb-0.5 md:mb-1 font-medium">Ngày ứng tuyển</div>
+                        <div className="text-sm md:text-base text-gray-900 font-semibold">
                           {new Date(applicant.appliedAt).toLocaleDateString("vi-VN")}
                         </div>
                       </div>

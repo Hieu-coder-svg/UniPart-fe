@@ -39,6 +39,7 @@ type Message = {
 export default function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [hasDragged, setHasDragged] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { text: "Xin chào! Tôi là trợ lý AI của UniPart. Tôi có thể giúp bạn tìm công việc phù hợp với lịch học và sở thích của bạn! 🎯", isBot: true },
   ]);
@@ -63,9 +64,11 @@ export default function ChatBot() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('.drag-handle')) {
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (!isOpen || (e.target as HTMLElement).closest('.drag-handle')) {
+      e.preventDefault();
       setIsDragging(true);
+      setHasDragged(false);
       setDragStart({
         x: e.clientX - position.x,
         y: e.clientY - position.y,
@@ -73,39 +76,78 @@ export default function ChatBot() {
     }
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handlePointerMove = (e: PointerEvent) => {
     if (isDragging) {
+      setHasDragged(true);
       const newX = e.clientX - dragStart.x;
       const newY = e.clientY - dragStart.y;
 
-      // Get bounds
-      const chatElement = chatRef.current;
-      if (chatElement) {
-        const maxX = window.innerWidth - chatElement.offsetWidth - 8;
-        const maxY = window.innerHeight - chatElement.offsetHeight - 8;
+      const el = chatRef.current;
+      const width = (isOpen && el) ? el.offsetWidth : 112;
+      const height = (isOpen && el) ? el.offsetHeight : 112;
 
-        setPosition({
-          x: Math.max(-window.innerWidth + chatElement.offsetWidth + 8, Math.min(newX, maxX)),
-          y: Math.max(-window.innerHeight + chatElement.offsetHeight + 8, Math.min(newY, maxY)),
-        });
-      }
+      const maxPosX = 12;
+      const minPosX = 24 - (window.innerWidth - width - 12);
+
+      const maxPosY = 12;
+      const minPosY = 24 - (window.innerHeight - height - 12);
+
+      setPosition({
+        x: Math.max(minPosX, Math.min(newX, maxPosX)),
+        y: Math.max(minPosY, Math.min(newY, maxPosY)),
+      });
     }
   };
 
-  const handleMouseUp = () => {
+  const handlePointerUp = () => {
     setIsDragging(false);
   };
 
   useEffect(() => {
     if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('pointermove', handlePointerMove);
+      window.addEventListener('pointerup', handlePointerUp);
+      window.addEventListener('pointercancel', handlePointerUp);
       return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerUp);
       };
     }
   }, [isDragging, dragStart, position]);
+
+  useEffect(() => {
+    if (isOpen && chatRef.current) {
+      const timeoutId = setTimeout(() => {
+        if (!chatRef.current) return;
+        const el = chatRef.current;
+        const rect = el.getBoundingClientRect();
+
+        let deltaX = 0;
+        let deltaY = 0;
+
+        if (rect.top < 12) {
+          deltaY = 12 - rect.top;
+        } else if (rect.bottom > window.innerHeight - 12) {
+          deltaY = window.innerHeight - 12 - rect.bottom;
+        }
+
+        if (rect.left < 12) {
+          deltaX = 12 - rect.left;
+        } else if (rect.right > window.innerWidth - 12) {
+          deltaX = window.innerWidth - 12 - rect.right;
+        }
+
+        if (deltaX !== 0 || deltaY !== 0) {
+          setPosition(prev => ({
+            x: prev.x + deltaX,
+            y: prev.y + deltaY
+          }));
+        }
+      }, 50);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isOpen, messages]);
 
   const [isSending, setIsSending] = useState(false);
 
@@ -219,11 +261,22 @@ export default function ChatBot() {
   if (!isOpen) {
     return (
       <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 w-28 h-28 transition-transform duration-300 flex items-center justify-center z-50 hover:scale-110 group drop-shadow-2xl hover:drop-shadow-[0_20px_20px_rgba(0,0,0,0.25)]"
+        onPointerDown={handlePointerDown}
+        onClick={() => {
+          if (!hasDragged) setIsOpen(true);
+        }}
+        className="fixed z-50 transition-transform duration-300 flex items-center justify-center group drop-shadow-2xl hover:drop-shadow-[0_20px_20px_rgba(0,0,0,0.25)]"
+        style={{
+          width: "7rem",
+          height: "7rem",
+          bottom: `${(window.innerWidth < 768 ? 80 : 60) - position.y}px`,
+          right: `${24 - position.x}px`,
+          cursor: isDragging ? 'grabbing' : 'grab',
+          touchAction: 'none'
+        }}
         title="Trò chuyện với AI"
       >
-        <img src={unibotAvatar} alt="ChatBot Mascot" className="w-full h-full object-contain" />
+        <img src={unibotAvatar} alt="ChatBot Mascot" className="w-full h-full object-contain pointer-events-none" />
         <div className="absolute top-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center z-10 shadow-md">
           <Sparkles className="w-3 h-3 text-white" />
         </div>
@@ -239,11 +292,12 @@ export default function ChatBot() {
         width: "420px",
         maxWidth: "calc(100vw - 32px)",
         maxHeight: "calc(100vh - 48px)",
-        bottom: `${24 - position.y}px`,
+        bottom: `${(window.innerWidth < 768 ? 80 : 24) - position.y}px`,
         right: `${24 - position.x}px`,
         cursor: isDragging ? 'grabbing' : 'default',
+        touchAction: 'none'
       }}
-      onMouseDown={handleMouseDown}
+      onPointerDown={handlePointerDown}
     >
       <div className="bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col overflow-hidden h-full max-h-[520px]">
         {/* Header */}
@@ -275,7 +329,7 @@ export default function ChatBot() {
         {/* Chat Content */}
         {!isMinimized && (
           <>
-            <div 
+            <div
               className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0 relative"
               style={{
                 backgroundColor: '#f9fafb',
@@ -299,8 +353,8 @@ export default function ChatBot() {
                       )}
                       <div
                         className={`px-4 py-3 rounded-lg shadow-sm ${msg.isBot
-                            ? "bg-white text-gray-800 border border-gray-100"
-                            : "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                          ? "bg-white text-gray-800 border border-gray-100"
+                          : "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
                           }`}
                       >
                         {msg.isBot ? (

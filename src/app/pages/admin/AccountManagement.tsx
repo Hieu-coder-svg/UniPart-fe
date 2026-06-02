@@ -91,12 +91,12 @@ export default function AccountManagement() {
           createdAt: user.createdAt ? new Date(user.createdAt).toLocaleDateString("vi-VN") : "—",
           lastLogin: user.lastLogin
             ? new Date(user.lastLogin).toLocaleString("vi-VN", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
             : "Chưa đăng nhập",
           avatar: user.avatar || undefined,
           phoneNumber: user.phoneNumber || undefined,
@@ -307,11 +307,10 @@ export default function AccountManagement() {
       {/* Toast Notification */}
       {toast && (
         <div
-          className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl text-sm font-medium transition-all animate-fade-in ${
-            toast.type === "success"
+          className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl text-sm font-medium transition-all animate-fade-in ${toast.type === "success"
               ? "bg-green-600 text-white"
               : "bg-red-600 text-white"
-          }`}
+            }`}
         >
           {toast.type === "success" ? (
             <CheckCircle className="w-5 h-5 shrink-0" />
@@ -374,9 +373,8 @@ export default function AccountManagement() {
       <div className="mb-6 flex flex-wrap gap-3">
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors text-sm ${
-            showFilters ? "bg-red-50 border-red-300 text-red-700" : "border-gray-300 hover:bg-gray-50"
-          }`}
+          className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors text-sm ${showFilters ? "bg-red-50 border-red-300 text-red-700" : "border-gray-300 hover:bg-gray-50"
+            }`}
         >
           <Filter className="w-4 h-4" />
           Bộ lọc
@@ -459,94 +457,92 @@ export default function AccountManagement() {
                 paginatedAccounts.map((account) => {
                   const score = account.reputationScore ?? 100;
                   const scoreLow = score < 80;
-                  
+
                   return (
-                  <tr key={account.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        {account.avatar ? (
-                          <img
-                            src={account.avatar}
-                            alt={account.username}
-                            className="w-9 h-9 rounded-full object-cover shrink-0 border-2 border-gray-200"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
-                          />
-                        ) : null}
-                        <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-white text-sm font-bold shrink-0 ${account.avatar ? 'hidden' : ''}`}>
-                          {(account.username || "U").charAt(0).toUpperCase()}
+                    <tr key={account.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          {account.avatar ? (
+                            <img
+                              src={account.avatar}
+                              alt={account.username}
+                              className="w-9 h-9 rounded-full object-cover shrink-0 border-2 border-gray-200"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
+                            />
+                          ) : null}
+                          <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-white text-sm font-bold shrink-0 ${account.avatar ? 'hidden' : ''}`}>
+                            {(account.username || "U").charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900 text-sm">{account.fullName || account.username || "Không có tên"}</div>
+                            <div className="text-xs text-gray-500">{account.email || "Không có email"}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-medium text-gray-900 text-sm">{account.fullName || account.username || "Không có tên"}</div>
-                          <div className="text-xs text-gray-500">{account.email || "Không có email"}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap tracking-wide ${roleColors[account.role] || "bg-gray-100 text-gray-600"}`}>
-                        {roleLabels[account.role] || account.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
-                        account.status === "active"
-                          ? "bg-green-50 text-green-700 border border-green-200"
-                          : "bg-red-50 text-red-700 border border-red-200"
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${account.status === "active" ? "bg-green-500" : "bg-red-500"}`} />
-                        {account.status === "active" ? "Hoạt động" : "Bị khóa"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {account.role !== "admin" ? (
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border ${
-                          scoreLow 
-                            ? "bg-red-50 text-red-700 border-red-200" 
-                            : "bg-green-50 text-green-700 border-green-200"
-                        }`}>
-                          {score}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap tracking-wide ${roleColors[account.role] || "bg-gray-100 text-gray-600"}`}>
+                          {roleLabels[account.role] || account.role}
                         </span>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{account.createdAt}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          id={`btn-detail-${account.id}`}
-                          onClick={() => { setSelectedAccount(account); setShowDetailModal(true); }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200"
-                          title="Xem chi tiết"
-                        >
-                          <Info className="w-3.5 h-3.5" />
-                          Chi tiết
-                        </button>
-                        {account.role !== "admin" && (
-                          <button
-                            id={`btn-block-${account.id}`}
-                            onClick={() => handleToggleBlock(account)}
-                            disabled={blockingId === account.id}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-60 ${
-                              account.status === "active"
-                                ? "bg-red-50 hover:bg-red-100 text-red-600 border border-red-200"
-                                : "bg-green-50 hover:bg-green-100 text-green-600 border border-green-200"
-                            }`}
-                            title={account.status === "active" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
-                          >
-                            {blockingId === account.id ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : account.status === "active" ? (
-                              <Ban className="w-3.5 h-3.5" />
-                            ) : (
-                              <CheckCircle className="w-3.5 h-3.5" />
-                            )}
-                            {account.status === "active" ? "Khóa" : "Mở khóa"}
-                          </button>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${account.status === "active"
+                            ? "bg-green-50 text-green-700 border border-green-200"
+                            : "bg-red-50 text-red-700 border border-red-200"
+                          }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${account.status === "active" ? "bg-green-500" : "bg-red-500"}`} />
+                          {account.status === "active" ? "Hoạt động" : "Bị khóa"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {account.role !== "admin" ? (
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border ${scoreLow
+                              ? "bg-red-50 text-red-700 border-red-200"
+                              : "bg-green-50 text-green-700 border-green-200"
+                            }`}>
+                            {score}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                );})
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{account.createdAt}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            id={`btn-detail-${account.id}`}
+                            onClick={() => { setSelectedAccount(account); setShowDetailModal(true); }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200"
+                            title="Xem chi tiết"
+                          >
+                            <Info className="w-3.5 h-3.5" />
+                            Chi tiết
+                          </button>
+                          {account.role !== "admin" && (
+                            <button
+                              id={`btn-block-${account.id}`}
+                              onClick={() => handleToggleBlock(account)}
+                              disabled={blockingId === account.id}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-60 ${account.status === "active"
+                                  ? "bg-red-50 hover:bg-red-100 text-red-600 border border-red-200"
+                                  : "bg-green-50 hover:bg-green-100 text-green-600 border border-green-200"
+                                }`}
+                              title={account.status === "active" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
+                            >
+                              {blockingId === account.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : account.status === "active" ? (
+                                <Ban className="w-3.5 h-3.5" />
+                              ) : (
+                                <CheckCircle className="w-3.5 h-3.5" />
+                              )}
+                              {account.status === "active" ? "Khóa" : "Mở khóa"}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -557,7 +553,7 @@ export default function AccountManagement() {
             <div className="text-sm text-gray-500">
               Hiển thị <span className="font-semibold text-gray-900">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> đến <span className="font-semibold text-gray-900">{Math.min(currentPage * ITEMS_PER_PAGE, filteredAccounts.length)}</span> trong tổng số <span className="font-semibold text-gray-900">{filteredAccounts.length}</span> tài khoản
             </div>
-            
+
             {totalPages > 1 && (
               <div className="flex items-center gap-2">
                 <button
@@ -567,7 +563,7 @@ export default function AccountManagement() {
                 >
                   Trước
                 </button>
-                
+
                 <span className="text-sm text-gray-600 px-2 font-medium">
                   Trang <span className="text-gray-900">{currentPage}</span> / {totalPages}
                 </span>
@@ -637,11 +633,10 @@ export default function AccountManagement() {
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-500 mb-1">Trạng thái</p>
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
-                    selectedAccount.status === "active"
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${selectedAccount.status === "active"
                       ? "bg-green-50 text-green-700 border border-green-200"
                       : "bg-red-50 text-red-700 border border-red-200"
-                  }`}>
+                    }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${selectedAccount.status === "active" ? "bg-green-500" : "bg-red-500"}`} />
                     {selectedAccount.status === "active" ? "Hoạt động" : "Bị khóa"}
                   </span>
@@ -649,11 +644,10 @@ export default function AccountManagement() {
                 {selectedAccount.role !== "admin" && (
                   <div className="bg-gray-50 rounded-xl p-4">
                     <p className="text-xs text-gray-500 mb-1">Điểm uy tín</p>
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-sm font-bold border ${
-                      (selectedAccount.reputationScore ?? 100) < 80 
-                        ? "bg-red-50 text-red-700 border-red-200" 
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-sm font-bold border ${(selectedAccount.reputationScore ?? 100) < 80
+                        ? "bg-red-50 text-red-700 border-red-200"
                         : "bg-green-50 text-green-700 border-green-200"
-                    }`}>
+                      }`}>
                       {selectedAccount.reputationScore ?? 100}
                     </span>
                   </div>
