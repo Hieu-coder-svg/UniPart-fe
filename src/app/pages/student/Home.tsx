@@ -192,11 +192,10 @@ export default function Home() {
 
           {/* ── Glassmorphism Search Bar ── */}
           <div
-            className={`relative max-w-3xl mx-auto rounded-2xl transition-all duration-300 ${
-              isFocused
+            className={`relative max-w-3xl mx-auto rounded-2xl transition-all duration-300 ${isFocused
                 ? "shadow-[0_0_0_2px_rgba(34,211,238,0.5),0_20px_60px_rgba(34,211,238,0.15)]"
                 : "shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
-            }`}
+              }`}
           >
             <div className="flex flex-col sm:flex-row gap-0 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl overflow-hidden">
               {/* Job keyword input */}
@@ -308,10 +307,10 @@ export default function Home() {
             ].map(({ icon: Icon, title, desc, from, to }) => (
               <div
                 key={title}
-                className="group text-center p-8 rounded-2xl hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-gray-50 to-white border border-gray-100 hover:border-transparent hover:-translate-y-1"
+                className="group text-center p-5 md:p-8 rounded-2xl hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-gray-50 to-white border border-gray-100 hover:border-transparent hover:-translate-y-1"
               >
-                <div className={`w-16 h-16 bg-gradient-to-br ${from} ${to} rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                  <Icon className="w-8 h-8 text-white" />
+                <div className={`w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br ${from} ${to} rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-5 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                  <Icon className="w-6 h-6 md:w-8 md:h-8 text-white" />
                 </div>
                 <h3 className="mb-2 font-bold text-lg text-gray-900">{title}</h3>
                 <p className="text-gray-500 text-sm leading-relaxed">{desc}</p>

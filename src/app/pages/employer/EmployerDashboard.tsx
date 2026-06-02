@@ -155,46 +155,46 @@ export default function EmployerDashboard() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
       {/* Welcome Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-orange-600 via-red-600 to-pink-600 rounded-2xl p-5 md:p-8 text-white shadow-2xl">
+      <div className="relative overflow-hidden bg-gradient-to-br from-orange-600 via-red-600 to-pink-600 rounded-2xl p-4 md:p-8 text-white shadow-2xl">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
         <div className="relative z-10">
-          <h1 className="text-2xl md:text-3xl mb-2 font-bold">
+          <h1 className="text-xl md:text-3xl mb-1 md:mb-2 font-bold">
             Chào mừng trở lại, {user?.fullName || user?.username || "Nhà tuyển dụng"}! 👋
           </h1>
-          <p className="text-orange-100 text-lg mb-6">
+          <p className="text-orange-100 text-sm md:text-lg mb-3 md:mb-6">
             Hôm nay bạn có {activeJobsCount} tin đang hoạt động và {new Set(applications.filter(a => a.status === 'PENDING').map(a => a.studentId)).size} ứng viên chờ duyệt
           </p>
 
           {employerInfo && (
-            <div className="flex flex-wrap gap-4 mt-4">
-              <div className="bg-white/20 rounded-xl px-5 py-3 backdrop-blur-sm border border-white/10 shadow-sm flex flex-col">
-                <span className="text-orange-100 text-xs font-medium uppercase tracking-wider mb-1">Gói hiện tại</span>
-                <span className="font-bold text-2xl text-white">{employerInfo.currentPackage || "Cơ bản"}</span>
+            <div className="flex flex-wrap gap-2 md:gap-4 mt-3 md:mt-4">
+              <div className="bg-white/20 rounded-xl px-3 md:px-5 py-2 md:py-3 backdrop-blur-sm border border-white/10 shadow-sm flex flex-col">
+                <span className="text-orange-100 text-[10px] md:text-xs font-medium uppercase tracking-wider mb-0.5 md:mb-1">Gói hiện tại</span>
+                <span className="font-bold text-base md:text-2xl text-white">{employerInfo.currentPackage || "Cơ bản"}</span>
               </div>
-              <div className="bg-white/20 rounded-xl px-5 py-3 backdrop-blur-sm border border-white/10 shadow-sm flex flex-col">
-                <span className="text-orange-100 text-xs font-medium uppercase tracking-wider mb-1">Tin thường</span>
-                <span className="font-bold text-2xl text-white">{employerInfo.remainingPosts || 0}</span>
+              <div className="bg-white/20 rounded-xl px-3 md:px-5 py-2 md:py-3 backdrop-blur-sm border border-white/10 shadow-sm flex flex-col">
+                <span className="text-orange-100 text-[10px] md:text-xs font-medium uppercase tracking-wider mb-0.5 md:mb-1">Tin thường</span>
+                <span className="font-bold text-base md:text-2xl text-white">{employerInfo.remainingPosts || 0}</span>
               </div>
-              <div className="bg-white/20 rounded-xl px-5 py-3 backdrop-blur-sm border border-white/10 shadow-sm flex flex-col">
-                <span className="text-orange-100 text-xs font-medium uppercase tracking-wider mb-1">Tin gấp</span>
-                <span className="font-bold text-2xl text-white">{employerInfo.remainingUrgentPosts || 0}</span>
+              <div className="bg-white/20 rounded-xl px-3 md:px-5 py-2 md:py-3 backdrop-blur-sm border border-white/10 shadow-sm flex flex-col">
+                <span className="text-orange-100 text-[10px] md:text-xs font-medium uppercase tracking-wider mb-0.5 md:mb-1">Tin gấp</span>
+                <span className="font-bold text-base md:text-2xl text-white">{employerInfo.remainingUrgentPosts || 0}</span>
               </div>
               {employerInfo.remainingMonthlyPosts !== undefined && employerInfo.remainingMonthlyPosts > 0 && (
-                <div className="bg-white/20 rounded-xl px-5 py-3 backdrop-blur-sm border border-white/10 shadow-sm flex flex-col">
-                  <span className="text-orange-100 text-xs font-medium uppercase tracking-wider mb-1">Tin tháng</span>
+                <div className="bg-white/20 rounded-xl px-3 md:px-5 py-2 md:py-3 backdrop-blur-sm border border-white/10 shadow-sm flex flex-col">
+                  <span className="text-orange-100 text-[10px] md:text-xs font-medium uppercase tracking-wider mb-0.5 md:mb-1">Tin tháng</span>
                   <div className="flex items-baseline gap-1">
-                    <span className="font-bold text-2xl text-white">{employerInfo.remainingMonthlyPosts}</span>
-                    <span className="text-sm font-medium text-white/80">tin / ngày</span>
+                    <span className="font-bold text-base md:text-2xl text-white">{employerInfo.remainingMonthlyPosts}</span>
+                    <span className="text-xs font-medium text-white/80">tin / ngày</span>
                   </div>
                 </div>
               )}
               {employerInfo.remainingMonthlyUrgentPosts !== undefined && employerInfo.remainingMonthlyUrgentPosts > 0 && (
-                <div className="bg-white/20 rounded-xl px-5 py-3 backdrop-blur-sm border border-white/10 shadow-sm flex flex-col">
-                  <span className="text-orange-100 text-xs font-medium uppercase tracking-wider mb-1">Tin tháng gấp</span>
+                <div className="bg-white/20 rounded-xl px-3 md:px-5 py-2 md:py-3 backdrop-blur-sm border border-white/10 shadow-sm flex flex-col">
+                  <span className="text-orange-100 text-[10px] md:text-xs font-medium uppercase tracking-wider mb-0.5 md:mb-1">Tin tháng gấp</span>
                   <div className="flex items-baseline gap-1">
-                    <span className="font-bold text-2xl text-white">{employerInfo.remainingMonthlyUrgentPosts}</span>
-                    <span className="text-sm font-medium text-white/80">tin / ngày</span>
+                    <span className="font-bold text-base md:text-2xl text-white">{employerInfo.remainingMonthlyUrgentPosts}</span>
+                    <span className="text-xs font-medium text-white/80">tin / ngày</span>
                   </div>
                 </div>
               )}
@@ -204,52 +204,52 @@ export default function EmployerDashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         {stats.map((stat, idx) => (
           <div
             key={idx}
-            className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 group cursor-pointer"
+            className="bg-white rounded-2xl p-3 md:p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 group cursor-pointer"
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className={`w-14 h-14 bg-gradient-to-br ${stat.bgGradient} rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                <stat.icon className="w-7 h-7 text-white" />
+            <div className="flex items-start justify-between mb-2 md:mb-4">
+              <div className={`w-10 h-10 md:w-14 md:h-14 bg-gradient-to-br ${stat.bgGradient} rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                <stat.icon className="w-5 h-5 md:w-7 md:h-7 text-white" />
               </div>
               <div
-                className={`flex items-center gap-1 text-sm font-medium ${
+                className={`flex items-center gap-1 text-xs font-medium ${
                   stat.trend === "up" ? "text-green-600" : "text-red-600"
                 }`}
               >
                 {stat.trend === "up" ? (
-                  <ArrowUpRight className="w-4 h-4" />
+                  <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4" />
                 ) : (
-                  <ArrowDownRight className="w-4 h-4" />
+                  <ArrowDownRight className="w-3 h-3 md:w-4 md:h-4" />
                 )}
-                <span>{stat.change}</span>
+                <span className="hidden sm:inline">{stat.change}</span>
               </div>
             </div>
-            <div className="text-3xl font-bold mb-2 text-gray-900">{stat.value}</div>
-            <div className="text-sm text-gray-600">{stat.label}</div>
+            <div className="text-2xl md:text-3xl font-bold mb-1 text-gray-900">{stat.value}</div>
+            <div className="text-xs md:text-sm text-gray-600 leading-tight">{stat.label}</div>
           </div>
         ))}
       </div>
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-2xl mb-6 text-gray-900">Thao tác nhanh</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <h2 className="text-lg md:text-2xl mb-3 md:mb-6 text-gray-900">Thao tác nhanh</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {quickActions.map((action, idx) => (
             <Link
               key={idx}
               to={action.link}
-              className="group relative overflow-hidden bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100"
+              className="group relative overflow-hidden bg-white rounded-2xl p-3 md:p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100"
             >
               <div className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
               <div className="relative z-10">
-                <div className={`w-12 h-12 bg-gradient-to-br ${action.gradient} rounded-xl flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                  <action.icon className="w-6 h-6 text-white" />
+                <div className={`w-9 h-9 md:w-12 md:h-12 bg-gradient-to-br ${action.gradient} rounded-xl flex items-center justify-center mb-2 md:mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                  <action.icon className="w-4 h-4 md:w-6 md:h-6 text-white" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2 text-gray-900">{action.title}</h3>
-                <p className="text-sm text-gray-600">{action.description}</p>
+                <h3 className="text-sm md:text-lg font-semibold mb-0.5 md:mb-2 text-gray-900 leading-tight">{action.title}</h3>
+                <p className="hidden md:block text-sm text-gray-600">{action.description}</p>
               </div>
             </Link>
           ))}

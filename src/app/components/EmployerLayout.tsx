@@ -231,13 +231,13 @@ export default function EmployerLayout() {
           {/* Sidebar */}
           <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white shadow-xl flex flex-col">
             {/* Logo */}
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
               <Link
                 to="/"
                 className="block"
                 onClick={() => setSidebarOpen(false)}
               >
-                <img src={logoImage} alt="UniPart Employer" className="h-14 w-auto object-contain" />
+                <img src={logoImage} alt="UniPart Employer" className="h-20 w-auto object-contain" />
               </Link>
               <button
                 onClick={() => setSidebarOpen(false)}
@@ -287,7 +287,7 @@ export default function EmployerLayout() {
       )}
 
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${
+      <div className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-300 ${
         sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
       }`}>
         {/* Top Bar */}
@@ -303,7 +303,9 @@ export default function EmployerLayout() {
               </button>
 
               {/* Page title - shown on mobile */}
-              <div className="lg:hidden text-lg">Dashboard</div>
+              <Link to="/employer/dashboard" className="lg:hidden block">
+                <img src={logoImage} alt="UniPart" className="h-12 w-auto object-contain" />
+              </Link>
 
               {/* Desktop: Search or breadcrumbs could go here */}
               <div className="hidden lg:block">
@@ -369,7 +371,7 @@ export default function EmployerLayout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1">
+        <main className="flex-1 w-full max-w-full overflow-x-hidden">
           <Outlet />
         </main>
 

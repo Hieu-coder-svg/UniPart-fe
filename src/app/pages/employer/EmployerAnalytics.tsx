@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -9,6 +9,7 @@ import {
   Loader2,
   Clock,
   Search,
+  ChevronDown,
 } from "lucide-react";
 import { jobService, JobResponse } from "../../../services/jobService";
 import { applicationService, ApplicationResponse } from "../../../services/applicationService";
@@ -18,6 +19,25 @@ export default function EmployerAnalytics() {
   const [jobs, setJobs] = useState<JobResponse[]>([]);
   const [applications, setApplications] = useState<ApplicationResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const timeOptions = [
+    { value: "7days", label: "7 ngày qua" },
+    { value: "30days", label: "30 ngày qua" },
+    { value: "90days", label: "90 ngày qua" },
+  ];
+  const selectedOption = timeOptions.find(opt => opt.value === timeRange) || timeOptions[1];
 
   // --- Fetch Database Data ---
   const fetchAnalyticsData = async () => {
@@ -319,30 +339,53 @@ export default function EmployerAnalytics() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-8">
+    <div className="w-full max-w-full overflow-x-hidden p-4 sm:p-6 lg:p-8 space-y-8 box-border">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
             Thống kê & Phân tích
           </h1>
-          <p className="text-gray-600 text-lg">Theo dõi hiệu quả tuyển dụng thực tế của bạn</p>
+          <p className="text-gray-600 text-sm sm:text-lg">Theo dõi hiệu quả tuyển dụng thực tế của bạn</p>
         </div>
-        <div className="flex gap-3">
-          <select
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value as any)}
-            className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all font-medium bg-white cursor-pointer hover:border-gray-300"
+        <div className="flex gap-3 relative z-30" ref={dropdownRef}>
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-gray-200 rounded-xl hover:border-orange-500 transition-all font-medium text-gray-700 shadow-sm"
           >
-            <option value="7days">7 ngày qua</option>
-            <option value="30days">30 ngày qua</option>
-            <option value="90days">90 ngày qua</option>
-          </select>
+            <Calendar className="w-4 h-4 text-orange-600" />
+            <span>{selectedOption.label}</span>
+            <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`} />
+          </button>
+          
+          {isDropdownOpen && (
+            <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 animate-fadeIn overflow-hidden">
+              {timeOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    setTimeRange(opt.value as any);
+                    setIsDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors flex items-center justify-between ${
+                    timeRange === opt.value
+                      ? "bg-orange-50 text-orange-700"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  {opt.label}
+                  {timeRange === opt.value && (
+                    <div className="w-2 h-2 rounded-full bg-orange-600"></div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         {stats.map((stat, idx) => {
           const isUp = stat.trend === "up";
           const TrendIcon = isUp ? TrendingUp : TrendingDown;
@@ -351,11 +394,11 @@ export default function EmployerAnalytics() {
           return (
             <div
               key={idx}
-              className="bg-white rounded-2xl p-6 border border-gray-100 shadow-md hover:shadow-xl hover:border-orange-200 transition-all duration-300 group"
+              className="bg-white rounded-2xl p-3 md:p-6 border border-gray-100 shadow-md hover:shadow-xl hover:border-orange-200 transition-all duration-300 group"
             >
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-2 md:mb-4">
                 <div
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-md transition-transform duration-300 group-hover:scale-110 ${
+                  className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shadow-md transition-transform duration-300 group-hover:scale-110 ${
                     stat.color === "blue"
                       ? "bg-blue-50 text-blue-600"
                       : stat.color === "green"
@@ -365,19 +408,19 @@ export default function EmployerAnalytics() {
                       : "bg-orange-50 text-orange-600"
                   }`}
                 >
-                  <StatIcon className="w-6 h-6" />
+                  <StatIcon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                 </div>
                 <div
-                  className={`flex items-center gap-1 text-sm font-semibold px-2 py-0.5 rounded-full ${
+                  className={`flex items-center gap-0.5 md:gap-1 text-[10px] sm:text-xs font-semibold px-1.5 md:px-2 py-0.5 rounded-full ${
                     isUp ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
                   }`}
                 >
-                  <TrendIcon className="w-4 h-4" />
-                  <span>{stat.change}</span>
+                  <TrendIcon className="w-3 h-3" />
+                  <span className="hidden sm:inline">{stat.change}</span>
                 </div>
               </div>
-              <div className="text-3xl font-bold mb-1 text-gray-900">{stat.value}</div>
-              <div className="text-sm font-medium text-gray-500">{stat.label}</div>
+              <div className="text-lg sm:text-2xl md:text-3xl font-bold mb-1 text-gray-900">{stat.value}</div>
+              <div className="text-[10px] sm:text-xs md:text-sm font-medium text-gray-500 leading-tight">{stat.label}</div>
             </div>
           );
         })}
