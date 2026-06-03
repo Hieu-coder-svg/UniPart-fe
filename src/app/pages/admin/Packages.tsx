@@ -128,15 +128,15 @@ export default function AdminPackages() {
   const oneTimePackages = packages.filter((p) => p.packageType === "PAY_PER_TIN" || p.packageType === "ONE_TIME");
 
   return (
-    <div className="p-6 md:p-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-4 md:p-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl mb-2">Quản lý Gói dịch vụ</h1>
-          <p className="text-gray-600">Quản lý giá và gói dịch vụ cho nhà tuyển dụng</p>
+          <p className="text-gray-600 text-sm sm:text-base">Quản lý giá và gói dịch vụ cho nhà tuyển dụng</p>
         </div>
         <button
           onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-pink-600 text-white px-5 py-2.5 rounded-lg hover:shadow-lg transition-all"
+          className="flex items-center justify-center w-full sm:w-auto gap-2 bg-gradient-to-r from-red-600 to-pink-600 text-white px-5 py-2.5 rounded-lg hover:shadow-lg transition-all"
         >
           <Plus className="w-4 h-4" />
           Thêm gói mới
@@ -240,60 +240,63 @@ export default function AdminPackages() {
               GÓI MUA LẺ (ONE-TIME)
             </h2>
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gradient-to-r from-green-50 to-emerald-50 border-b-2 border-green-200">
-                  <tr>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-900">Tên gói</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-900">Loại tin</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-900">Số lượng</th>
-                    <th className="px-6 py-4 text-right font-semibold text-gray-900">Giá</th>
-                    <th className="px-6 py-4 text-right font-semibold text-gray-900">Hành động</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {oneTimePackages.length === 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[700px]">
+                  <thead className="bg-gradient-to-r from-green-50 to-emerald-50 border-b-2 border-green-200">
                     <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                        Chưa có gói mua lẻ nào
-                      </td>
+                      <th className="px-6 py-4 text-left font-semibold text-gray-900 whitespace-nowrap">Tên gói</th>
+                      <th className="px-6 py-4 text-left font-semibold text-gray-900 whitespace-nowrap">Loại tin</th>
+                      <th className="px-6 py-4 text-left font-semibold text-gray-900 whitespace-nowrap">Số lượng</th>
+                      <th className="px-6 py-4 text-right font-semibold text-gray-900 whitespace-nowrap">Giá</th>
+                      <th className="px-6 py-4 text-right font-semibold text-gray-900 whitespace-nowrap">Hành động</th>
                     </tr>
-                  ) : (
-                    oneTimePackages.map((pkg) => (
-                      <tr key={pkg.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 font-medium text-gray-900">{pkg.name}</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${pkg.tinType === "URGENT"
-                              ? "bg-orange-100 text-orange-700"
-                              : "bg-blue-100 text-blue-700"
-                            }`}>
-                            {pkg.tinType === "URGENT" ? "Tin gấp" : "Tin thường"}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-gray-600">{pkg.tinQuantity} tin</td>
-                        <td className="px-6 py-4 text-right font-semibold text-red-600">
-                          {formatPrice(pkg.price)}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => handleOpenModal(pkg)}
-                              className="p-2 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors"
-                            >
-                              <Edit className="w-4 h-4 text-blue-600" />
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirm(pkg.id)}
-                              className="p-2 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4 text-red-600" />
-                            </button>
-                          </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {oneTimePackages.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                          Chưa có gói mua lẻ nào
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      oneTimePackages.map((pkg) => (
+                        <tr key={pkg.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-4 font-medium text-gray-900">{pkg.name}</td>
+                          <td className="px-4 py-4">
+                            <span className={`px-2 py-1 rounded-full text-[10px] md:text-xs font-medium ${
+                              pkg.tinType === "URGENT"
+                                ? "bg-orange-100 text-orange-700"
+                                : "bg-blue-100 text-blue-700"
+                            }`}>
+                              {pkg.tinType === "URGENT" ? "Tin gấp" : "Tin thường"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 text-gray-600">{pkg.tinQuantity} tin</td>
+                          <td className="px-4 py-4 text-right font-semibold text-red-600 whitespace-nowrap">
+                            {formatPrice(pkg.price)}
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleOpenModal(pkg)}
+                                className="p-1.5 md:p-2 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors"
+                              >
+                                <Edit className="w-4 h-4 text-blue-600" />
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm(pkg.id)}
+                                className="p-1.5 md:p-2 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
