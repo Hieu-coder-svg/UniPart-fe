@@ -11,10 +11,13 @@ import type { EmployerRegistrationRequest } from '../../../types/auth';
 
 const employerRegisterSchema = z
   .object({
-    username: z.string().nonempty('Tên đăng nhập không được bỏ trống').min(3, 'Tên đăng nhập phải có ít nhất 3 ký tự'),
+    username: z.string()
+      .nonempty('Tên đăng nhập không được bỏ trống')
+      .min(3, 'Tên đăng nhập phải có ít nhất 3 ký tự')
+      .regex(/^[a-z0-9]+$/, 'Tên đăng nhập chỉ được chứa chữ cái thường không dấu và số'),
     email: z.string().nonempty('Email không được bỏ trống').email('Email không hợp lệ'),
-    password: z.string().nonempty('Mật khẩu không được bỏ trống').min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
-    confirmPassword: z.string().nonempty('Xác nhận mật khẩu không được bỏ trống').min(6, 'Xác nhận mật khẩu phải có ít nhất 6 ký tự'),
+    password: z.string().nonempty('Mật khẩu không được bỏ trống').min(6, 'Mật khẩu phải có ít nhất 6 ký tự').refine(val => !val.includes(' '), 'Mật khẩu không được chứa khoảng trắng'),
+    confirmPassword: z.string().nonempty('Xác nhận mật khẩu không được bỏ trống').min(6, 'Xác nhận mật khẩu phải có ít nhất 6 ký tự').refine(val => !val.includes(' '), 'Mật khẩu không được chứa khoảng trắng'),
     fullName: z.string().nonempty('Họ tên không được bỏ trống').min(3, 'Họ tên phải có ít nhất 3 ký tự'),
     companyName: z.string().nonempty('Tên công ty không được bỏ trống').min(2, 'Tên công ty phải có ít nhất 2 ký tự'),
     companyAddress: z.string().nonempty('Địa chỉ công ty không được bỏ trống').min(3, 'Địa chỉ công ty phải có ít nhất 3 ký tự'),

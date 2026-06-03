@@ -9,11 +9,11 @@ export default function AdminCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryName, setCategoryName] = useState("");
@@ -56,7 +56,7 @@ export default function AdminCategories() {
       toast.error("Vui lòng nhập tên danh mục");
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       if (editingCategory) {
@@ -77,7 +77,7 @@ export default function AdminCategories() {
 
   const handleDelete = async (id: number) => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa danh mục này? Các bài viết thuộc danh mục này có thể bị ảnh hưởng.")) return;
-    
+
     try {
       await categoryService.deleteCategory(id);
       toast.success("Đã xóa danh mục");
@@ -89,8 +89,8 @@ export default function AdminCategories() {
 
   // Filter & Pagination Logic
   const filteredCategories = useMemo(() => {
-    return categories.filter(c => 
-      c.categoryName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    return categories.filter(c =>
+      c.categoryName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [categories, searchTerm]);
@@ -256,9 +256,9 @@ export default function AdminCategories() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity duration-300" 
-            onClick={() => !isSubmitting && setIsModalOpen(false)} 
+          <div
+            className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity duration-300"
+            onClick={() => !isSubmitting && setIsModalOpen(false)}
           />
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
             <div className="px-6 py-5 border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-gray-50 to-white">
@@ -269,7 +269,7 @@ export default function AdminCategories() {
                 {editingCategory ? "Cập nhật chuyên mục" : "Thêm chuyên mục mới"}
               </h2>
             </div>
-            
+
             <div className="p-6 space-y-5 bg-white">
               <div className="space-y-1.5">
                 <label className="block text-sm font-bold text-gray-700">
@@ -283,7 +283,7 @@ export default function AdminCategories() {
                   className="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all outline-none"
                 />
               </div>
-              
+
               <div className="space-y-1.5">
                 <label className="block text-sm font-bold text-gray-700">Mô tả chi tiết</label>
                 <textarea

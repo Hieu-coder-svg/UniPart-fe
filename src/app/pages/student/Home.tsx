@@ -172,7 +172,7 @@ export default function Home() {
           </div>
 
           {/* Headline */}
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-white leading-tight tracking-tight mb-6">
+          <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold text-white leading-tight tracking-tight mb-6">
             Tìm việc{" "}
             <span className="relative inline-block">
               <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-400 bg-clip-text text-transparent">
@@ -192,15 +192,14 @@ export default function Home() {
 
           {/* ── Glassmorphism Search Bar ── */}
           <div
-            className={`relative max-w-3xl mx-auto rounded-2xl transition-all duration-300 ${
-              isFocused
+            className={`relative max-w-3xl mx-auto rounded-2xl transition-all duration-300 ${isFocused
                 ? "shadow-[0_0_0_2px_rgba(34,211,238,0.5),0_20px_60px_rgba(34,211,238,0.15)]"
                 : "shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
-            }`}
+              }`}
           >
             <div className="flex flex-col sm:flex-row gap-0 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl overflow-hidden">
               {/* Job keyword input */}
-              <div className="flex items-center gap-3 flex-1 px-5 py-4 border-b sm:border-b-0 sm:border-r border-white/15">
+              <div className="flex items-center gap-3 flex-1 px-4 py-3 sm:px-5 sm:py-4 border-b sm:border-b-0 sm:border-r border-white/15">
                 <Search className="w-5 h-5 text-cyan-400 flex-shrink-0" />
                 <input
                   type="text"
@@ -215,7 +214,7 @@ export default function Home() {
               </div>
 
               {/* Location input */}
-              <div className="flex items-center gap-3 px-5 py-4 sm:w-52 border-b sm:border-b-0 sm:border-r border-white/15">
+              <div className="flex items-center gap-3 px-4 py-3 sm:px-5 sm:py-4 sm:w-52 border-b sm:border-b-0 sm:border-r border-white/15">
                 <MapPin className="w-5 h-5 text-violet-400 flex-shrink-0" />
                 <input
                   type="text"
@@ -232,10 +231,10 @@ export default function Home() {
               {/* Search button */}
               <button
                 onClick={() => handleSearch()}
-                className="flex items-center justify-center gap-2 px-7 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-base transition-all duration-200 hover:shadow-[0_0_24px_rgba(34,211,238,0.4)] active:scale-95"
+                className="flex items-center justify-center gap-2 px-5 py-3 sm:px-7 sm:py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-base transition-all duration-200 hover:shadow-[0_0_24px_rgba(34,211,238,0.4)] active:scale-95"
               >
                 <Search className="w-5 h-5" />
-                <span className="hidden sm:inline">Tìm kiếm</span>
+                <span>Tìm kiếm</span>
               </button>
             </div>
           </div>
@@ -308,10 +307,10 @@ export default function Home() {
             ].map(({ icon: Icon, title, desc, from, to }) => (
               <div
                 key={title}
-                className="group text-center p-8 rounded-2xl hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-gray-50 to-white border border-gray-100 hover:border-transparent hover:-translate-y-1"
+                className="group text-center p-5 md:p-8 rounded-2xl hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-gray-50 to-white border border-gray-100 hover:border-transparent hover:-translate-y-1"
               >
-                <div className={`w-16 h-16 bg-gradient-to-br ${from} ${to} rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                  <Icon className="w-8 h-8 text-white" />
+                <div className={`w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br ${from} ${to} rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-5 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                  <Icon className="w-6 h-6 md:w-8 md:h-8 text-white" />
                 </div>
                 <h3 className="mb-2 font-bold text-lg text-gray-900">{title}</h3>
                 <p className="text-gray-500 text-sm leading-relaxed">{desc}</p>
@@ -370,7 +369,7 @@ export default function Home() {
       ═══════════════════════════════════════════════════ */}
       <section className="py-16 bg-gray-50 border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 text-center">
             {[
               { val: "10,000+", label: "Sinh viên" },
               { val: "5,000+", label: "Việc làm" },

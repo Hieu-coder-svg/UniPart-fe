@@ -37,6 +37,7 @@ export default function JobDetail() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
   const [applicationId, setApplicationId] = useState<number | null>(null);
+  const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
   const [studentInfo, setStudentInfo] = useState<StudentResponse | null>(null);
 
@@ -100,9 +101,11 @@ export default function JobDetail() {
         if (applicationJob && applicationJob.applicationId) {
           setHasApplied(true);
           setApplicationId(applicationJob.applicationId);
+          setApplicationStatus(applicationJob.status || "PENDING");
         } else {
           setHasApplied(false);
           setApplicationId(null);
+          setApplicationStatus(null);
         }
       }
     } catch (e) {
@@ -371,10 +374,10 @@ export default function JobDetail() {
             />
           </div>
 
-          <div className="p-6">
+          <div className="p-4 md:p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
                   <h1 className="text-2xl font-bold">{job.title}</h1>
                   {job.urgent && (
                     <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap">
@@ -500,19 +503,26 @@ export default function JobDetail() {
                 Đã đủ người — không thể ứng tuyển
               </div>
             ) : hasApplied ? (
-              <button
-                onClick={handleCancelApplication}
-                disabled={isCancelling}
-                className="w-full flex items-center justify-center bg-white border border-red-400 text-red-600 py-3 rounded-lg font-semibold hover:bg-red-50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isCancelling ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Đang hủy...
-                  </>
-                ) : (
-                  "Hủy ứng tuyển"
-                )}
-              </button>
+              applicationStatus === "ACCEPTED" || applicationStatus === "APPROVED" || applicationStatus === "COMPLETED" ? (
+                <div className="w-full flex items-center justify-center gap-2 bg-gray-100 border border-gray-200 text-gray-700 py-3 rounded-lg font-semibold cursor-not-allowed">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  {applicationStatus === "COMPLETED" ? "Đã hoàn thành" : "Đã được nhận"}
+                </div>
+              ) : (
+                <button
+                  onClick={handleCancelApplication}
+                  disabled={isCancelling}
+                  className="w-full flex items-center justify-center bg-white border border-red-400 text-red-600 py-3 rounded-lg font-semibold hover:bg-red-50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isCancelling ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Đang hủy...
+                    </>
+                  ) : (
+                    "Hủy ứng tuyển"
+                  )}
+                </button>
+              )
             ) : cooldownRemaining > 0 ? (
               <button
                 disabled
@@ -540,7 +550,7 @@ export default function JobDetail() {
         </div>
 
         {/* Job Description */}
-        <div className="bg-white rounded-xl p-6 mb-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-xl p-4 md:p-6 mb-6 shadow-sm border border-gray-100">
           <h2 className="mb-4 text-lg font-bold flex items-center gap-2">
             <Info className="w-5 h-5 text-blue-600" />
             Mô tả công việc
@@ -552,7 +562,7 @@ export default function JobDetail() {
 
         {/* Time Slots */}
         {job.timeSlots && job.timeSlots.length > 0 && (
-          <div className="bg-white rounded-xl p-6 mb-6 shadow-sm border border-gray-100">
+          <div className="bg-white rounded-xl p-4 md:p-6 mb-6 shadow-sm border border-gray-100">
             <h2 className="mb-4 text-lg font-bold flex items-center gap-2">
               <Clock className="w-5 h-5 text-emerald-600" />
               Lịch làm việc chi tiết
@@ -577,7 +587,7 @@ export default function JobDetail() {
 
         {/* Location Map */}
         {job.locationLatitude && job.locationLongitude && (
-          <div className="bg-white rounded-xl p-6 mb-6 shadow-sm border border-gray-100">
+          <div className="bg-white rounded-xl p-4 md:p-6 mb-6 shadow-sm border border-gray-100">
             <h2 className="mb-4 text-lg font-bold flex items-center gap-2">
               <MapIcon className="w-5 h-5 text-rose-600" />
               Vị trí trên bản đồ
@@ -590,7 +600,9 @@ export default function JobDetail() {
                 style={{ height: "100%", width: "100%" }}
               >
                 <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; Google Maps'
+                  url="https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                  subdomains={['mt0','mt1','mt2','mt3']}
                 />
                 <Marker position={[job.locationLatitude, job.locationLongitude]}>
                   <Popup>{job.title}</Popup>
@@ -607,7 +619,7 @@ export default function JobDetail() {
       {reportTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="p-6">
+            <div className="p-4 md:p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold">{reportTarget.title}</h3>
                 <button onClick={() => {
@@ -727,14 +739,14 @@ export default function JobDetail() {
       {isEmployerModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+            <div className="p-4 md:p-6 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
               <h3 className="text-xl font-bold">Thông tin nhà tuyển dụng</h3>
               <button onClick={() => setIsEmployerModalOpen(false)} className="text-white/80 hover:bg-white/20 p-2 rounded-full transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto flex-1">
+            <div className="p-4 md:p-6 overflow-y-auto flex-1">
               {isLoadingEmployer ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />

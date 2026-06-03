@@ -56,25 +56,35 @@ export default function Layout() {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-  const navItems = [
-    { path: "/", icon: Home, label: "Trang chủ" },
-    { path: "/jobs", icon: Briefcase, label: "Việc làm" },
-  ];
+  let navItems: { path: string; icon: any; label: string }[] = [];
 
-  if (!isAdmin) {
-    navItems.push({ path: "/saved", icon: Bookmark, label: "Đã lưu" });
-  }
-
-  navItems.push({ path: "/community", icon: Users, label: "Cộng đồng" });
-
-  // Add My Reports for non-admin users
-  if (!isAdmin && isAuthenticated) {
-    navItems.push({ path: "/my-reports", icon: Flag, label: "Báo cáo của tôi" });
-  }
-
-
-  if (user?.role === "STUDENT") {
-    navItems.splice(navItems.length - 1, 0, { path: "/student/applications", icon: FileText, label: "Ứng tuyển" });
+  if (isEmployer) {
+    navItems = [
+      { path: "/jobs", icon: Briefcase, label: "Việc làm" },
+      { path: "/employer/dashboard/jobs", icon: LayoutDashboard, label: "Quản lý tin" },
+      { path: "/employer/dashboard/applicants", icon: Users, label: "Ứng viên" },
+      { path: "/community", icon: Users, label: "Cộng đồng" },
+    ];
+  } else if (isAdmin) {
+    navItems = [
+      { path: "/", icon: Home, label: "Trang chủ" },
+      { path: "/jobs", icon: Briefcase, label: "Việc làm" },
+      { path: "/community", icon: Users, label: "Cộng đồng" },
+    ];
+  } else {
+    // Student or Guest
+    navItems = [
+      { path: "/", icon: Home, label: "Trang chủ" },
+      { path: "/jobs", icon: Briefcase, label: "Việc làm" },
+      { path: "/saved", icon: Bookmark, label: "Đã lưu" },
+      { path: "/community", icon: Users, label: "Cộng đồng" },
+    ];
+    if (user?.role === "STUDENT") {
+      navItems.push({ path: "/student/applications", icon: FileText, label: "Ứng tuyển" });
+    }
+    if (isAuthenticated) {
+      navItems.push({ path: "/my-reports", icon: Flag, label: "Báo cáo" });
+    }
   }
 
   const isActive = (path: string) => {
@@ -98,7 +108,7 @@ export default function Layout() {
 
             {/* Logo */}
             <Link to="/" className="flex items-center flex-shrink-0">
-              <img src={logoImage} alt="UniPart" className="h-24" />
+              <img src={logoImage} alt="UniPart" className="h-14 md:h-24 w-auto object-contain" />
             </Link>
 
             {/* ── Desktop Nav ── */}
@@ -110,8 +120,8 @@ export default function Layout() {
                   <Link
                     to="/jobs"
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${location.pathname.startsWith("/jobs")
-                        ? "bg-gradient-to-r from-orange-100 to-red-100 text-orange-700"
-                        : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
+                      ? "bg-gradient-to-r from-orange-100 to-red-100 text-orange-700"
+                      : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
                       }`}
                   >
                     <Briefcase className="w-4 h-4 flex-shrink-0" />
@@ -134,8 +144,8 @@ export default function Layout() {
                   <Link
                     to="/community"
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${location.pathname.startsWith("/community")
-                        ? "bg-gradient-to-r from-orange-100 to-red-100 text-orange-700"
-                        : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
+                      ? "bg-gradient-to-r from-orange-100 to-red-100 text-orange-700"
+                      : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
                       }`}
                   >
                     <Users className="w-4 h-4 flex-shrink-0" />
@@ -157,8 +167,8 @@ export default function Layout() {
                       key={item.path}
                       to={item.path}
                       className={`relative flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${isActive(item.path)
-                          ? "text-blue-600 bg-blue-50"
-                          : "text-gray-600 hover:text-blue-600 hover:bg-blue-50/60"
+                        ? "text-blue-600 bg-blue-50"
+                        : "text-gray-600 hover:text-blue-600 hover:bg-blue-50/60"
                         }`}
                     >
                       <item.icon className="w-4 h-4 flex-shrink-0" />
@@ -174,7 +184,7 @@ export default function Layout() {
             </nav>
 
             {/* ── Right Actions ── */}
-            <div className="hidden md:flex items-center gap-2">
+            <div className="flex items-center gap-1 md:gap-2">
 
               {isAuthenticated ? (
                 <>
@@ -200,8 +210,8 @@ export default function Layout() {
                     <button
                       onClick={() => setDropdownOpen(!dropdownOpen)}
                       className={`flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl border transition-all hover:shadow-md ${isEmployer
-                          ? "bg-gradient-to-r from-orange-50 to-red-50 border-orange-200 hover:border-orange-300"
-                          : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100 hover:border-blue-300"
+                        ? "bg-gradient-to-r from-orange-50 to-red-50 border-orange-200 hover:border-orange-300"
+                        : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100 hover:border-blue-300"
                         }`}
                     >
                       {/* Avatar */}
@@ -214,8 +224,8 @@ export default function Layout() {
                       ) : (
                         <div
                           className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm ${isEmployer
-                              ? "bg-gradient-to-br from-orange-500 to-red-600"
-                              : "bg-gradient-to-br from-blue-500 to-indigo-600"
+                            ? "bg-gradient-to-br from-orange-500 to-red-600"
+                            : "bg-gradient-to-br from-blue-500 to-indigo-600"
                             }`}
                         >
                           {(user?.fullName || user?.username || "U").charAt(0).toUpperCase()}
@@ -249,8 +259,8 @@ export default function Layout() {
                               />
                             ) : (
                               <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shadow ${isEmployer
-                                  ? "bg-gradient-to-br from-orange-500 to-red-600"
-                                  : "bg-gradient-to-br from-blue-500 to-indigo-600"
+                                ? "bg-gradient-to-br from-orange-500 to-red-600"
+                                : "bg-gradient-to-br from-blue-500 to-indigo-600"
                                 }`}>
                                 {(user?.fullName || user?.username || "U").charAt(0).toUpperCase()}
                               </div>
@@ -280,7 +290,7 @@ export default function Layout() {
                             className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                           >
                             <User className="w-4 h-4 text-gray-400" />
-                            {isAdmin ? "Dashboard" : "Hồ sơ của tôi"}
+                            {isAdmin ? "Dashboard" : isEmployer ? "Truy cập Dashboard" : "Hồ sơ của tôi"}
                           </Link>
                         </div>
 
@@ -299,7 +309,7 @@ export default function Layout() {
                 </>
               ) : (
                 /* Not logged in */
-                <div className="flex items-center gap-2">
+                <div className="hidden md:flex items-center gap-2">
                   <Link
                     to="/employer"
                     className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-orange-600 border border-orange-300 rounded-xl hover:bg-orange-50 hover:border-orange-400 transition-all"
@@ -327,7 +337,7 @@ export default function Layout() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1">
+      <main className="flex-1 pb-16 md:pb-0">
         <Outlet />
       </main>
 
@@ -336,35 +346,35 @@ export default function Layout() {
 
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-gray-100 z-50 shadow-lg">
-        <div className="grid grid-cols-6 items-center h-16 px-1">
+        <div className="flex justify-around items-center h-16 px-1 w-full">
           {navItems.slice(0, 5).map((item) => (
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center gap-0.5 px-1 py-2 rounded-xl mx-0.5 transition-all ${isActive(item.path)
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-500 hover:text-blue-500"
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 px-1 py-2 rounded-xl mx-0.5 transition-all ${isActive(item.path)
+                ? "text-blue-600 bg-blue-50"
+                : "text-gray-500 hover:text-blue-500"
                 }`}
             >
               <item.icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <span className="text-[10px] font-medium text-center leading-tight">{item.label}</span>
             </Link>
           ))}
           {isAuthenticated ? (
             <button
               onClick={handleLogout}
-              className="flex flex-col items-center gap-0.5 px-1 py-2 text-red-500 rounded-xl mx-0.5"
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 px-1 py-2 text-red-500 rounded-xl mx-0.5"
             >
               <LogOut className="w-5 h-5" />
-              <span className="text-[10px] font-medium">Thoát</span>
+              <span className="text-[10px] font-medium text-center leading-tight">Thoát</span>
             </button>
           ) : (
             <Link
               to="/login"
-              className="flex flex-col items-center gap-0.5 px-1 py-2 text-gray-500 rounded-xl mx-0.5"
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 px-1 py-2 text-gray-500 rounded-xl mx-0.5"
             >
               <LogIn className="w-5 h-5" />
-              <span className="text-[10px] font-medium">Đăng nhập</span>
+              <span className="text-[10px] font-medium text-center leading-tight">Đăng nhập</span>
             </Link>
           )}
         </div>
@@ -374,7 +384,7 @@ export default function Layout() {
       {isEmployer && (
         <Link
           to="/employer/dashboard/jobs"
-          className="md:hidden fixed bottom-20 right-4 z-40 flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all"
+          className="md:hidden fixed bottom-20 left-4 z-40 flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all"
         >
           <PlusCircle className="w-5 h-5" />
           <span className="text-sm whitespace-nowrap font-medium">Đăng tin</span>

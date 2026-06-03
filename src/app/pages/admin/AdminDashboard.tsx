@@ -99,9 +99,8 @@ function StatCard({ title, value, icon: Icon, trend, sub, color, bgColor, linkTo
           <Icon className="w-6 h-6 text-white" />
         </div>
         {trend !== undefined && (
-          <div className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
-            trend >= 0 ? "bg-white/20 text-white" : "bg-white/10 text-red-200"
-          }`}>
+          <div className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${trend >= 0 ? "bg-white/20 text-white" : "bg-white/10 text-red-200"
+            }`}>
             {trend >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
             {Math.abs(trend)}%
           </div>

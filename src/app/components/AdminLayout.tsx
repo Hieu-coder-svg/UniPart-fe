@@ -136,7 +136,7 @@ export default function AdminLayout() {
             <img
               src={logoImage}
               alt="UniPart Admin"
-              className={sidebarCollapsed ? "h-14" : "h-18"}
+              className={sidebarCollapsed ? "h-10 w-auto object-contain" : "h-14 w-auto object-contain"}
             />
           </Link>
           <button
@@ -250,7 +250,7 @@ export default function AdminLayout() {
                 className="block"
                 onClick={() => setSidebarOpen(false)}
               >
-                <img src={logoImage} alt="UniPart Admin" className="h-22" />
+                <img src={logoImage} alt="UniPart Admin" className="h-14 w-auto object-contain" />
               </Link>
               <button
                 onClick={() => setSidebarOpen(false)}

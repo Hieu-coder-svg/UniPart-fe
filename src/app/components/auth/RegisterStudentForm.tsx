@@ -14,10 +14,10 @@ const studentRegisterSchema = z
     username: z.string()
       .nonempty('Tên đăng nhập không được bỏ trống')
       .min(3, 'Tên đăng nhập phải có ít nhất 3 ký tự')
-      .regex(/^[a-zA-Z0-9_]+$/, 'Tên đăng nhập chỉ được chứa chữ cái không dấu, số và dấu gạch dưới'),
+      .regex(/^[a-z0-9]+$/, 'Tên đăng nhập chỉ được chứa chữ cái thường không dấu và số'),
     email: z.string().nonempty('Email không được bỏ trống').email('Email không hợp lệ'),
-    password: z.string().nonempty('Mật khẩu là bắt buộc').min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
-    confirmPassword: z.string().nonempty('Xác nhận mật khẩu là bắt buộc').min(6, 'Xác nhận mật khẩu phải có ít nhất 6 ký tự'),
+    password: z.string().nonempty('Mật khẩu là bắt buộc').min(6, 'Mật khẩu phải có ít nhất 6 ký tự').refine(val => !val.includes(' '), 'Mật khẩu không được chứa khoảng trắng'),
+    confirmPassword: z.string().nonempty('Xác nhận mật khẩu là bắt buộc').min(6, 'Xác nhận mật khẩu phải có ít nhất 6 ký tự').refine(val => !val.includes(' '), 'Mật khẩu không được chứa khoảng trắng'),
     fullName: z.string().nonempty('Họ tên không được bỏ trống').min(3, 'Họ tên phải có ít nhất 3 ký tự'),
     dateOfBirth: z.string().nonempty('Ngày sinh là bắt buộc').refine((date) => {
       const birthDate = new Date(date);

@@ -101,6 +101,7 @@ const getQuickSuggestions = (messages: Message[]): string[] => {
 export function EmployerChatBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [hasDragged, setHasDragged] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -121,41 +122,85 @@ export function EmployerChatBot() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest(".drag-handle")) {
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (!isOpen || (e.target as HTMLElement).closest(".drag-handle")) {
+      e.preventDefault();
       setIsDragging(true);
+      setHasDragged(false);
       setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
     }
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handlePointerMove = (e: PointerEvent) => {
     if (isDragging) {
+      setHasDragged(true);
       const newX = e.clientX - dragStart.x;
       const newY = e.clientY - dragStart.y;
+      
       const el = chatRef.current;
-      if (el) {
-        const maxX = window.innerWidth - el.offsetWidth - 8;
-        const maxY = window.innerHeight - el.offsetHeight - 8;
-        setPosition({
-          x: Math.max(-window.innerWidth + el.offsetWidth + 8, Math.min(newX, maxX)),
-          y: Math.max(-window.innerHeight + el.offsetHeight + 8, Math.min(newY, maxY)),
-        });
-      }
+      const width = (isOpen && el) ? el.offsetWidth : 112;
+      const height = (isOpen && el) ? el.offsetHeight : 112;
+
+      const maxPosX = 12; 
+      const minPosX = 24 - (window.innerWidth - width - 12);
+      
+      const maxPosY = 12; 
+      const minPosY = 24 - (window.innerHeight - height - 12);
+
+      setPosition({
+        x: Math.max(minPosX, Math.min(newX, maxPosX)),
+        y: Math.max(minPosY, Math.min(newY, maxPosY)),
+      });
     }
   };
 
-  const handleMouseUp = () => setIsDragging(false);
+  const handlePointerUp = () => setIsDragging(false);
 
   useEffect(() => {
     if (isDragging) {
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", handlePointerUp);
+      window.addEventListener("pointercancel", handlePointerUp);
       return () => {
-        window.removeEventListener("mousemove", handleMouseMove);
-        window.removeEventListener("mouseup", handleMouseUp);
+        window.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("pointerup", handlePointerUp);
+        window.removeEventListener("pointercancel", handlePointerUp);
       };
     }
   }, [isDragging, dragStart, position]);
+
+  useEffect(() => {
+    if (isOpen && chatRef.current) {
+      const timeoutId = setTimeout(() => {
+        if (!chatRef.current) return;
+        const el = chatRef.current;
+        const rect = el.getBoundingClientRect();
+        
+        let deltaX = 0;
+        let deltaY = 0;
+
+        if (rect.top < 12) {
+          deltaY = 12 - rect.top; 
+        } else if (rect.bottom > window.innerHeight - 12) {
+          deltaY = window.innerHeight - 12 - rect.bottom; 
+        }
+
+        if (rect.left < 12) {
+          deltaX = 12 - rect.left; 
+        } else if (rect.right > window.innerWidth - 12) {
+          deltaX = window.innerWidth - 12 - rect.right; 
+        }
+
+        if (deltaX !== 0 || deltaY !== 0) {
+          setPosition(prev => ({
+            x: prev.x + deltaX,
+            y: prev.y + deltaY
+          }));
+        }
+      }, 50);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isOpen, messages]);
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isTyping) return;
@@ -200,12 +245,23 @@ export function EmployerChatBot() {
   if (!isOpen) {
     return (
       <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 w-28 h-28 transition-transform duration-300 flex items-center justify-center group drop-shadow-2xl hover:drop-shadow-[0_20px_20px_rgba(0,0,0,0.25)] hover:scale-110"
+        onPointerDown={handlePointerDown}
+        onClick={() => {
+          if (!hasDragged) setIsOpen(true);
+        }}
+        className="fixed z-50 transition-transform duration-300 flex items-center justify-center group drop-shadow-2xl hover:drop-shadow-[0_20px_20px_rgba(0,0,0,0.25)]"
+        style={{
+          width: "7rem",
+          height: "7rem",
+          bottom: `${24 - position.y}px`,
+          right: `${24 - position.x}px`,
+          cursor: isDragging ? "grabbing" : "grab",
+          touchAction: 'none'
+        }}
         title="Tư vấn với AI"
       >
-        <img src={unibotAvatar} alt="Tư vấn với AI" className="w-full h-full object-contain" />
-        <span className="absolute top-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center z-10 shadow-md">
+        <img src={unibotAvatar} alt="Tư vấn với AI" className="w-full h-full object-contain pointer-events-none" />
+        <span className="absolute top-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center z-10 shadow-md pointer-events-none">
           <Sparkles className="w-3 h-3 text-white" />
         </span>
         <div className="absolute bottom-full right-0 mb-3 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
@@ -227,8 +283,9 @@ export function EmployerChatBot() {
         bottom: `${24 - position.y}px`,
         right: `${24 - position.x}px`,
         cursor: isDragging ? "grabbing" : "default",
+        touchAction: 'none'
       }}
-      onMouseDown={handleMouseDown}
+      onPointerDown={handlePointerDown}
     >
       <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden h-full max-h-[580px]">
         {/* Header */}

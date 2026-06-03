@@ -102,7 +102,7 @@ export default function AdminReport() {
     try {
       const usersRes = await userService.getAllUsers();
       const basicUser = usersRes.result?.find((u: any) => u.id === userId);
-      
+
       if (!basicUser) {
         Swal.fire('Lỗi', "Không tìm thấy thông tin cơ bản của người dùng này.", 'error');
         setLoadingUser(false);
@@ -121,7 +121,7 @@ export default function AdminReport() {
       } catch (err) {
         console.warn("Could not fetch detailed profile", err);
       }
-      
+
       setViewingUser(detailedUser);
     } catch (error) {
       console.error(error);
@@ -143,7 +143,7 @@ export default function AdminReport() {
         reportService.getAllReports(),
         userService.getAllUsers().catch(() => ({ result: [] }))
       ]);
-      
+
       if (reportsRes.result) {
         const users = usersRes.result || [];
         const enrichedReports = reportsRes.result.map((report: any) => {
@@ -165,8 +165,8 @@ export default function AdminReport() {
   };
 
   const filteredReports = reports.filter(report => {
-    const matchesSearch = 
-      (report.targetName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) || 
+    const matchesSearch =
+      (report.targetName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
       (report.reporterName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
       (report.reason?.toLowerCase() || "").includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === "all" || report.status === filterStatus.toUpperCase();
@@ -211,9 +211,9 @@ export default function AdminReport() {
 
   const handleUpdateStatus = async (newStatus: "PENDING" | "REVIEWING" | "RESOLVED" | "REJECTED") => {
     if (!selectedReport) return;
-    
+
     let statusText = "";
-    switch(newStatus) {
+    switch (newStatus) {
       case "REVIEWING": statusText = "Đang xem xét"; break;
       case "RESOLVED": statusText = "Đã giải quyết"; break;
       case "REJECTED": statusText = "Từ chối (Bỏ qua)"; break;
@@ -333,7 +333,7 @@ export default function AdminReport() {
         </div>
         <div className="flex items-center gap-2">
           <Filter className="w-5 h-5 text-gray-500" />
-          <select 
+          <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-white min-w-[180px]"
@@ -391,7 +391,7 @@ export default function AdminReport() {
                     <td className="py-4 px-6 text-sm text-gray-500 whitespace-nowrap">{new Date(report.createdAt).toLocaleString("vi-VN")}</td>
                     <td className="py-4 px-6 whitespace-nowrap">{getStatusBadge(report.status)}</td>
                     <td className="py-4 px-6 text-right whitespace-nowrap">
-                      <button 
+                      <button
                         onClick={() => {
                           setSelectedReport(report);
                           setAdminNote((report as any).adminNote || report.resolution || "");
@@ -414,7 +414,7 @@ export default function AdminReport() {
             <div className="text-sm text-gray-500">
               Hiển thị <span className="font-semibold text-gray-900">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> đến <span className="font-semibold text-gray-900">{Math.min(currentPage * ITEMS_PER_PAGE, filteredReports.length)}</span> trong tổng số <span className="font-semibold text-gray-900">{filteredReports.length}</span> báo cáo
             </div>
-            
+
             {totalPages > 1 && (
               <div className="flex items-center gap-2">
                 <button
@@ -424,7 +424,7 @@ export default function AdminReport() {
                 >
                   Trước
                 </button>
-                
+
                 <span className="text-sm text-gray-600 px-2 font-medium">
                   Trang <span className="text-gray-900">{currentPage}</span> / {totalPages}
                 </span>
@@ -451,19 +451,19 @@ export default function AdminReport() {
                 <Flag className="w-5 h-5 text-red-500" />
                 Xử lý Báo cáo {selectedReport.id}
               </h2>
-              <button 
+              <button
                 onClick={() => setSelectedReport(null)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto flex-1">
               <div className="grid grid-cols-2 gap-6 mb-6">
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                   <div className="text-xs text-gray-500 font-medium mb-1 uppercase tracking-wider">Người tố cáo</div>
-                  <button 
+                  <button
                     onClick={() => handleViewUser(selectedReport.reporterId)}
                     className="text-sm text-gray-800 bg-white hover:bg-gray-100 p-3 rounded-lg mt-2 border border-gray-200 w-full text-left flex justify-between items-center transition-colors shadow-sm group"
                   >
@@ -490,7 +490,7 @@ export default function AdminReport() {
                       <div className="text-sm text-red-700 capitalize mb-2">Loại: {selectedReport.targetType}</div>
                     </>
                   )}
-                  
+
                   {selectedReport.targetType === "JOB" && (
                     <div className="flex flex-wrap gap-2 mt-2">
                       <a href={`/jobs/${selectedReport.targetId}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 hover:underline bg-white/60 px-3 py-1.5 rounded-md border border-blue-100">
@@ -501,14 +501,13 @@ export default function AdminReport() {
                           <Loader2 className="w-3 h-3 animate-spin" /> Đang tải...
                         </span>
                       ) : (
-                        <button 
+                        <button
                           onClick={() => handleToggleJob(selectedReport.targetId)}
                           disabled={isProcessingTarget}
-                          className={`inline-flex items-center gap-1 text-sm ${
-                            targetIsHidden 
-                              ? "text-green-600 hover:text-green-800 hover:underline border-green-100" 
+                          className={`inline-flex items-center gap-1 text-sm ${targetIsHidden
+                              ? "text-green-600 hover:text-green-800 hover:underline border-green-100"
                               : "text-orange-600 hover:text-orange-800 hover:underline border-orange-100"
-                          } bg-white/60 px-3 py-1.5 rounded-md border disabled:opacity-50`}
+                            } bg-white/60 px-3 py-1.5 rounded-md border disabled:opacity-50`}
                         >
                           {isProcessingTarget ? (
                             <Loader2 className="w-3 h-3 animate-spin" />
@@ -532,14 +531,13 @@ export default function AdminReport() {
                           <Loader2 className="w-3 h-3 animate-spin" /> Đang tải...
                         </span>
                       ) : (
-                        <button 
+                        <button
                           onClick={() => handleTogglePost(selectedReport.targetId)}
                           disabled={isProcessingTarget}
-                          className={`inline-flex items-center gap-1 text-sm ${
-                            targetIsHidden 
-                              ? "text-green-600 hover:text-green-800 hover:underline border-green-100" 
+                          className={`inline-flex items-center gap-1 text-sm ${targetIsHidden
+                              ? "text-green-600 hover:text-green-800 hover:underline border-green-100"
                               : "text-orange-600 hover:text-orange-800 hover:underline border-orange-100"
-                          } bg-white/60 px-3 py-1.5 rounded-md border disabled:opacity-50`}
+                            } bg-white/60 px-3 py-1.5 rounded-md border disabled:opacity-50`}
                         >
                           {isProcessingTarget ? (
                             <Loader2 className="w-3 h-3 animate-spin" />
@@ -555,7 +553,7 @@ export default function AdminReport() {
                   )}
                   {selectedReport.targetType === "USER" && (
                     <div className="flex flex-col gap-2 mt-2">
-                      <button 
+                      <button
                         onClick={() => handleViewUser(selectedReport.targetId)}
                         className="text-sm text-red-800 bg-red-100/60 hover:bg-red-100 p-3 rounded-lg border border-red-200 w-full text-left flex justify-between items-center transition-colors shadow-sm group"
                       >
@@ -599,7 +597,7 @@ export default function AdminReport() {
                               }
                             }
                           });
-                          
+
                           if (reason) {
                             const confirmResult = await Swal.fire({
                               title: 'Xác nhận khóa?',
@@ -654,9 +652,9 @@ export default function AdminReport() {
                 <div className="mb-6">
                   <h3 className="font-medium text-gray-900 mb-2">Hình ảnh đính kèm:</h3>
                   <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex justify-center">
-                    <img 
-                      src={selectedReport.evidenceUrl} 
-                      alt="Bằng chứng báo cáo" 
+                    <img
+                      src={selectedReport.evidenceUrl}
+                      alt="Bằng chứng báo cáo"
                       className="max-h-64 object-contain rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                       onClick={() => window.open(selectedReport.evidenceUrl, '_blank')}
                     />
@@ -675,36 +673,36 @@ export default function AdminReport() {
                 />
               </div>
             </div>
-            
+
             <div className="p-4 bg-gray-50 border-t border-gray-100 flex flex-wrap gap-3 justify-end shrink-0">
-                <button 
-                  onClick={() => setSelectedReport(null)}
-                  className="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-xl font-medium transition-colors shadow-sm"
-                >
-                  { (selectedReport.status === "RESOLVED" || selectedReport.status === "REJECTED") ? "Đóng" : "Hủy bỏ" }
-                </button>
-                {!(selectedReport.status === "RESOLVED" || selectedReport.status === "REJECTED") && (
-                  <>
-                    <button 
-                      onClick={() => handleUpdateStatus("REJECTED")}
-                      className="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-xl font-medium transition-colors shadow-sm"
-                    >
-                      Từ chối (Bỏ qua)
-                    </button>
-                    <button 
-                      onClick={() => handleUpdateStatus("REVIEWING")}
-                      className="px-5 py-2.5 text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-xl font-medium transition-colors"
-                    >
-                      Chuyển sang Đang xem xét
-                    </button>
-                    <button 
-                      onClick={() => handleUpdateStatus("RESOLVED")}
-                      className="px-5 py-2.5 text-white bg-red-600 hover:bg-red-700 rounded-xl font-medium shadow-sm transition-colors"
-                    >
-                      Đánh dấu Đã giải quyết
-                    </button>
-                  </>
-                )}
+              <button
+                onClick={() => setSelectedReport(null)}
+                className="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-xl font-medium transition-colors shadow-sm"
+              >
+                {(selectedReport.status === "RESOLVED" || selectedReport.status === "REJECTED") ? "Đóng" : "Hủy bỏ"}
+              </button>
+              {!(selectedReport.status === "RESOLVED" || selectedReport.status === "REJECTED") && (
+                <>
+                  <button
+                    onClick={() => handleUpdateStatus("REJECTED")}
+                    className="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-xl font-medium transition-colors shadow-sm"
+                  >
+                    Từ chối (Bỏ qua)
+                  </button>
+                  <button
+                    onClick={() => handleUpdateStatus("REVIEWING")}
+                    className="px-5 py-2.5 text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-xl font-medium transition-colors"
+                  >
+                    Chuyển sang Đang xem xét
+                  </button>
+                  <button
+                    onClick={() => handleUpdateStatus("RESOLVED")}
+                    className="px-5 py-2.5 text-white bg-red-600 hover:bg-red-700 rounded-xl font-medium shadow-sm transition-colors"
+                  >
+                    Đánh dấu Đã giải quyết
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -721,18 +719,18 @@ export default function AdminReport() {
                 ) : (
                   <UserX className="w-5 h-5 text-gray-500" />
                 )}
-                {selectedReport && viewingUserId === selectedReport.reporterId 
-                  ? "Thông tin người tố cáo" 
+                {selectedReport && viewingUserId === selectedReport.reporterId
+                  ? "Thông tin người tố cáo"
                   : "Thông tin người bị báo cáo"}
               </h3>
-              <button 
+              <button
                 onClick={() => { setViewingUserId(null); setViewingUser(null); }}
                 className="p-1 hover:bg-gray-200 rounded-lg transition-colors"
               >
                 <XCircle className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto flex-1">
               {loadingUser ? (
                 <div className="flex flex-col items-center justify-center py-10">
@@ -743,9 +741,9 @@ export default function AdminReport() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
                     {viewingUser.avatar ? (
-                      <img 
-                        src={viewingUser.avatar} 
-                        alt={viewingUser.username} 
+                      <img
+                        src={viewingUser.avatar}
+                        alt={viewingUser.username}
                         className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 shadow-sm"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
                       />
@@ -758,7 +756,7 @@ export default function AdminReport() {
                       <div className="text-gray-500 text-sm">{viewingUser.email}</div>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-y-5 gap-x-4 text-sm">
                     <div>
                       <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Vai trò</div>
@@ -774,21 +772,21 @@ export default function AdminReport() {
                         )}
                       </div>
                     </div>
-                    
+
                     <div>
                       <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Số điện thoại</div>
                       <div className="font-semibold text-gray-900">
                         {viewingUser.phoneNumber || <span className="text-gray-400 italic font-normal">Chưa cập nhật</span>}
                       </div>
                     </div>
-                    
+
                     <div>
                       <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Ngày sinh</div>
                       <div className="font-semibold text-gray-900">
                         {viewingUser.dateOfBirth ? new Date(viewingUser.dateOfBirth).toLocaleDateString('vi-VN') : <span className="text-gray-400 italic font-normal">Chưa cập nhật</span>}
                       </div>
                     </div>
-                    
+
                     <div>
                       <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Giới tính</div>
                       <div className="font-semibold text-gray-900">
@@ -802,7 +800,7 @@ export default function AdminReport() {
                         {viewingUser.createdAt ? new Date(viewingUser.createdAt).toLocaleDateString('vi-VN') : <span className="text-gray-400 italic font-normal">Chưa cập nhật</span>}
                       </div>
                     </div>
-                    
+
                     {viewingUser.university && (
                       <div className="col-span-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
                         <div className="text-xs text-blue-500 uppercase tracking-wider mb-1 font-medium">Trường học</div>
@@ -812,7 +810,7 @@ export default function AdminReport() {
                         )}
                       </div>
                     )}
-                    
+
                     {viewingUser.companyName && (
                       <div className="col-span-2 bg-purple-50/50 p-3 rounded-lg border border-purple-100">
                         <div className="text-xs text-purple-500 uppercase tracking-wider mb-1 font-medium">Công ty</div>
@@ -843,9 +841,9 @@ export default function AdminReport() {
                 </div>
               )}
             </div>
-            
+
             <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end shrink-0">
-              <button 
+              <button
                 onClick={() => { setViewingUserId(null); setViewingUser(null); }}
                 className="px-5 py-2 bg-white border border-gray-300 rounded-xl hover:bg-gray-100 transition-colors text-sm font-medium shadow-sm"
               >

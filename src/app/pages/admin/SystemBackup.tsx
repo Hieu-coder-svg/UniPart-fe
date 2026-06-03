@@ -35,7 +35,7 @@ export default function SystemBackup() {
   const handleBackupNow = async () => {
     setIsBackingUp(true);
     setBackupProgress(0);
-    
+
     // Simulate progress bar moving up to 90% while waiting for service
     const interval = setInterval(() => {
       setBackupProgress((prev) => {
@@ -48,7 +48,7 @@ export default function SystemBackup() {
       const newRecord = await backupService.createBackup("full");
       clearInterval(interval);
       setBackupProgress(100);
-      
+
       setTimeout(() => {
         setBackupHistory((prev) => [newRecord, ...prev]);
         setIsBackingUp(false);
@@ -89,7 +89,7 @@ export default function SystemBackup() {
       const fileName = backup.fileName || `backup_${typePart}_${datePart}.zip`;
 
       await backupService.downloadBackup(backup.id, fileName);
-      
+
       toast.success(`Đã tải xuống: ${fileName}`, { id: toastId });
     } catch (error: any) {
       console.error(error);
@@ -356,7 +356,7 @@ export default function SystemBackup() {
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">Chạy mỗi (giờ)</label>
                   <select value={schedule.incrementalEvery} onChange={(e) => setSchedule(s => ({ ...s, incrementalEvery: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
-                    {["1","2","3","6","12","24"].map(v => <option key={v} value={v}>{v} giờ</option>)}
+                    {["1", "2", "3", "6", "12", "24"].map(v => <option key={v} value={v}>{v} giờ</option>)}
                   </select>
                 </div>
               </div>
@@ -381,7 +381,7 @@ export default function SystemBackup() {
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-            
+
             <div className="space-y-6 text-gray-700 text-sm">
               <p>
                 Dựa trên giao diện quản trị UniPart, việc sao lưu dữ liệu được thực hiện một cách trực quan và dễ dàng. Hệ thống này hỗ trợ cả sao lưu tức thì và sao lưu tự động theo lịch trình, giúp bạn bảo vệ dữ liệu website một cách hiệu quả.
@@ -440,9 +440,9 @@ export default function SystemBackup() {
                 <p className="mt-3 font-medium text-blue-800 text-center">Với các tính năng sao lưu và khôi phục được tích hợp sẵn trong UniPart, bạn có thể yên tâm hơn về sự an toàn của dữ liệu website.</p>
               </div>
             </div>
-            
+
             <div className="mt-6 text-right">
-              <button 
+              <button
                 onClick={() => setShowHelpModal(false)}
                 className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors"
               >

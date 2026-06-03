@@ -623,23 +623,23 @@ export default function Community() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2 w-52 focus-within:ring-2 focus-within:ring-blue-300 transition-all">
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto mt-4 sm:mt-0">
+              <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2 w-full sm:w-52 focus-within:ring-2 focus-within:ring-blue-300 transition-all">
                 <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
                 <input
                   type="text"
                   placeholder="Tìm bài viết..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none"
+                  className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full"
                 />
               </div>
 
-              <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
+              <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2 flex-1 sm:flex-none">
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as "newest" | "trending")}
-                  className="bg-transparent text-sm text-gray-700 font-medium outline-none cursor-pointer"
+                  className="bg-transparent text-sm text-gray-700 font-medium outline-none cursor-pointer w-full"
                 >
                   <option value="newest">Mới nhất</option>
                   <option value="trending">Thịnh hành</option>
@@ -655,10 +655,10 @@ export default function Community() {
                     }
                     setIsCreateModalOpen(true);
                   }}
-                  className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-violet-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:opacity-90 transition-all shadow-lg shadow-blue-200 hover:shadow-xl hover:-translate-y-0.5"
+                  className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-violet-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:opacity-90 transition-all shadow-lg shadow-blue-200 hover:shadow-xl hover:-translate-y-0.5 flex-1 sm:flex-none"
                 >
                   <Plus className="w-4 h-4" />
-                  Đăng bài mới
+                  <span className="whitespace-nowrap">Đăng bài</span>
                 </button>
               )}
             </div>

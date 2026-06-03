@@ -423,6 +423,10 @@ export default function Profile() {
       setMessage({ type: "error", text: "Mật khẩu mới phải khác mật khẩu hiện tại!" });
       return;
     }
+    if (passwordForm.newPassword.includes(' ')) {
+      setMessage({ type: "error", text: "Mật khẩu không được chứa khoảng trắng!" });
+      return;
+    }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       setMessage({ type: "error", text: "Mật khẩu xác nhận không khớp!" });
       return;
@@ -479,7 +483,7 @@ export default function Profile() {
           PROFILE CARD
       ══════════════════════════════════════════ */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 relative z-10">
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xl">
 
           {/* ── Identity Section ── */}
           <div className="px-7 pb-0 pt-0">
@@ -493,7 +497,7 @@ export default function Profile() {
                     className="w-full h-full object-cover"
                   />
                   {/* Upload overlay */}
-                  <label className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                  <label className={`absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity ${isUploadingAvatar ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                     {isUploadingAvatar ? <Loader2 className="w-6 h-6 animate-spin" /> : <Edit className="w-6 h-6 mb-1" />}
                     <span className="text-xs font-medium">{isUploadingAvatar ? 'Đang tải...' : 'Đổi ảnh'}</span>
                     <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} disabled={isUploadingAvatar} />

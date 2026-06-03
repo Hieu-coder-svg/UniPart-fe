@@ -323,7 +323,7 @@ export default function JobBrowse() {
       <div className="bg-white border-b border-gray-100 shadow-sm sticky top-16 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
           {/* Search block */}
-          <div className="flex items-center bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all shadow-sm">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all shadow-sm">
             {/* Keyword */}
             <div className="flex items-center gap-2 flex-1 px-4 py-3">
               <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -342,10 +342,10 @@ export default function JobBrowse() {
             </div>
 
             {/* Divider */}
-            <div className="w-px h-6 bg-gray-200" />
+            <div className="h-px w-full md:w-px md:h-6 bg-gray-200" />
 
             {/* Location */}
-            <div className="flex items-center gap-2 px-4 py-2 w-48">
+            <div className="flex items-center gap-2 px-4 py-3 md:py-2 md:w-56">
               <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
               <input
                 type="text"
@@ -363,7 +363,7 @@ export default function JobBrowse() {
             </div>
 
             {/* Search CTA */}
-            <button onClick={fetchJobs} className="m-1.5 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity flex items-center gap-1.5">
+            <button onClick={fetchJobs} className="m-2 md:m-1.5 px-5 py-3 md:py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity flex justify-center items-center gap-1.5">
               <Search className="w-4 h-4" />
               Tìm
             </button>
@@ -628,19 +628,24 @@ export default function JobBrowse() {
                       <h3 className="font-bold text-gray-800 text-base">Gợi ý cho bạn</h3>
                     </div>
                     <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-                      {recommendedJobs.map((rec) => (
-                        <div key={`rec-${rec.job.id}`} className="relative group">
-                          <JobCard
-                            job={rec.job}
-                            isSaved={savedJobIds.has(rec.job.id)}
-                            onToggleSave={toggleSaveJob}
-                            distance={null}
-                          />
-                          <div className="absolute top-3 right-3 bg-blue-50 text-blue-600 text-[11px] font-bold px-2 py-1 rounded-full border border-blue-200 shadow-sm z-10 flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
-                            <Star className="w-3 h-3 fill-blue-500 text-blue-500" /> Phù hợp {Math.round(rec.matchScore)}%
+                      {recommendedJobs.map((rec) => {
+                        const distance = studentInfo?.latitude != null && studentInfo?.longitude != null && rec.job.locationLatitude != null && rec.job.locationLongitude != null
+                          ? calculateDistance(studentInfo.latitude, studentInfo.longitude, rec.job.locationLatitude, rec.job.locationLongitude)
+                          : null;
+                        return (
+                          <div key={`rec-${rec.job.id}`} className="relative group">
+                            <JobCard
+                              job={rec.job}
+                              isSaved={savedJobIds.has(rec.job.id)}
+                              onToggleSave={toggleSaveJob}
+                              distance={distance}
+                            />
+                            <div className="absolute top-3 right-3 bg-blue-50 text-blue-600 text-[11px] font-bold px-2 py-1 rounded-full border border-blue-200 shadow-sm z-10 flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
+                              <Star className="w-3 h-3 fill-blue-500 text-blue-500" /> Phù hợp {Math.round(rec.matchScore)}%
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </section>
                 )}
@@ -748,12 +753,12 @@ function JobCard({ job, featured = false, isSaved, onToggleSave, distance }: { j
         <div className="h-1 w-full bg-gradient-to-r from-orange-400 via-rose-400 to-pink-400" />
       )}
 
-      <div className="flex flex-col flex-1 p-5 gap-4">
+      <div className="flex flex-col flex-1 p-3 md:p-5 gap-3 md:gap-4">
 
         {/* ── Row 1: Image + Title + Employer + Bookmark ── */}
-        <div className="flex gap-4 items-start">
+        <div className="flex gap-3 md:gap-4 items-start">
           {/* Logo */}
-          <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-100 shadow-sm flex-shrink-0 bg-gray-50 group-hover:scale-105 transition-transform duration-300">
+          <div className="w-12 h-12 md:w-16 md:h-16 rounded-lg overflow-hidden border border-gray-100 shadow-sm flex-shrink-0 bg-gray-50 group-hover:scale-105 transition-transform duration-300">
             <ImageWithFallback
               src={job.image || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=150&q=80"}
               alt={job.title}

@@ -142,19 +142,19 @@ export default function EmployerBuyPosts() {
       </div>
 
       {/* Stats Banner */}
-      <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl p-8 text-white shadow-2xl">
-        <div className="grid md:grid-cols-3 gap-6 text-center">
+      <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl p-4 md:p-8 text-white shadow-2xl">
+        <div className="grid grid-cols-3 gap-3 md:gap-6 text-center">
           <div>
-            <div className="text-4xl font-bold mb-2">{purchases.filter(p => p.paymentStatus === "SUCCESS").length || 0}</div>
-            <div className="text-blue-100">Gói đã mua</div>
+            <div className="text-2xl md:text-4xl font-bold mb-1 md:mb-2">{purchases.filter(p => p.paymentStatus === "SUCCESS").length || 0}</div>
+            <div className="text-blue-100 text-xs md:text-base">Gói đã mua</div>
           </div>
           <div>
-            <div className="text-4xl font-bold mb-2">{purchases.filter(p => p.paymentStatus === "SUCCESS" && p.packageType === "MONTHLY").length || 0}</div>
-            <div className="text-blue-100">Gói tháng</div>
+            <div className="text-2xl md:text-4xl font-bold mb-1 md:mb-2">{purchases.filter(p => p.paymentStatus === "SUCCESS" && p.packageType === "MONTHLY").length || 0}</div>
+            <div className="text-blue-100 text-xs md:text-base">Gói tháng</div>
           </div>
           <div>
-            <div className="text-4xl font-bold mb-2">{purchases.reduce((sum, p) => sum + (p.tinsPurchased || 0), 0)}</div>
-            <div className="text-blue-100">Tin đã mua</div>
+            <div className="text-2xl md:text-4xl font-bold mb-1 md:mb-2">{purchases.reduce((sum, p) => sum + (p.tinsPurchased || 0), 0)}</div>
+            <div className="text-blue-100 text-xs md:text-base">Tin đã mua</div>
           </div>
         </div>
       </div>
@@ -446,7 +446,7 @@ export default function EmployerBuyPosts() {
                 <h2 className="text-3xl font-semibold text-gray-900 mb-2">Gói đăng ký theo tháng</h2>
                 <p className="text-gray-600">Phù hợp cho doanh nghiệp có nhu cầu tuyển dụng thường xuyên</p>
               </div>
-              <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto pt-8">
                 {monthlyPackages.map((pkg, index) => (
                   <div
                     key={pkg.id}
@@ -457,8 +457,8 @@ export default function EmployerBuyPosts() {
                     }`}
                   >
                     {index === 1 && (
-                      <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                        <span className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white font-medium rounded-full shadow-lg">
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                        <span className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white font-medium rounded-full shadow-lg whitespace-nowrap">
                           Được yêu thích nhất
                         </span>
                       </div>
