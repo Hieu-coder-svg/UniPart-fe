@@ -192,7 +192,7 @@ export default function SystemBackup() {
           <h2 className="text-lg font-semibold mb-4">Lịch sao lưu tự động</h2>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="p-4 border border-gray-100 rounded-xl bg-gray-50">
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
                 <h3 className="font-semibold text-gray-800">Sao lưu Dữ liệu</h3>
                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${schedule.fullEnabled ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-500"}`}>
                   {schedule.fullEnabled ? "Đang hoạt động" : "Đã tắt"}
@@ -203,7 +203,7 @@ export default function SystemBackup() {
               </div>
             </div>
             <div className="p-4 border border-gray-100 rounded-xl bg-gray-50">
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
                 <h3 className="font-semibold text-gray-800">Sao lưu gia tăng</h3>
                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${schedule.incrementalEnabled ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-500"}`}>
                   {schedule.incrementalEnabled ? "Đang hoạt động" : "Đã tắt"}
@@ -223,7 +223,7 @@ export default function SystemBackup() {
             <span className="text-sm text-gray-500">{totalBackups} bản sao lưu</span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[800px]">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
                   {["Loại", "Trạng thái", "Thời gian", "Hành động"].map((h, i) => (
@@ -283,7 +283,7 @@ export default function SystemBackup() {
       {showRestoreModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
               <h3 className="text-lg font-bold flex items-center gap-2"><FileArchive className="w-5 h-5 text-purple-600" /> Khôi phục dữ liệu</h3>
               <button onClick={() => { setShowRestoreModal(false); setRestoreFile(null); }} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-4 h-4" /></button>
             </div>
@@ -317,7 +317,7 @@ export default function SystemBackup() {
       {showScheduleModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
               <h3 className="text-lg font-bold flex items-center gap-2"><Settings className="w-5 h-5 text-orange-600" /> Cài đặt lịch sao lưu</h3>
               <button onClick={() => setShowScheduleModal(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-4 h-4" /></button>
             </div>

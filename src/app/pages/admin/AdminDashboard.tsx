@@ -94,7 +94,7 @@ interface StatCardProps {
 function StatCard({ title, value, icon: Icon, trend, sub, color, bgColor, linkTo }: StatCardProps) {
   const content = (
     <div className={`rounded-2xl p-5 text-white shadow-lg ${bgColor} hover:shadow-xl transition-shadow`}>
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
         <div className={`p-3 rounded-xl ${color}`}>
           <Icon className="w-6 h-6 text-white" />
         </div>
@@ -229,7 +229,7 @@ export default function AdminDashboard() {
   return (
     <div className="p-6 md:p-8 min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-1">Dashboard Quản trị</h1>
           <p className="text-gray-500">Chào mừng bạn quay trở lại, Quản trị viên</p>
@@ -253,7 +253,7 @@ export default function AdminDashboard() {
           sub={`${stats.activeUsers.toLocaleString()} đang hoạt động`}
           color="bg-blue-500"
           bgColor="bg-gradient-to-br from-blue-500 to-blue-700"
-          linkTo="/admin/users"
+          linkTo="/admin/accounts"
         />
         <StatCard
           title="Tin tuyển dụng"
@@ -290,8 +290,8 @@ export default function AdminDashboard() {
 
       {/* Mini Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-        <MiniCard label="Sinh viên" value={stats.totalStudents.toLocaleString()} icon={Users} color="bg-blue-500" linkTo="/admin/users" />
-        <MiniCard label="Nhà tuyển dụng" value={stats.totalEmployers.toLocaleString()} icon={ShieldCheck} color="bg-purple-500" linkTo="/admin/users" />
+        <MiniCard label="Sinh viên" value={stats.totalStudents.toLocaleString()} icon={Users} color="bg-blue-500" linkTo="/admin/accounts" />
+        <MiniCard label="Nhà tuyển dụng" value={stats.totalEmployers.toLocaleString()} icon={ShieldCheck} color="bg-purple-500" linkTo="/admin/accounts" />
         <MiniCard label="Đơn ứng tuyển" value={stats.totalRequests.toLocaleString()} icon={FileText} color="bg-indigo-500" />
         <MiniCard label="Bài viết" value={stats.totalPosts.toLocaleString()} icon={Activity} color="bg-teal-500" />
         <MiniCard label="Chờ xử lý" value={stats.pendingReports} icon={Clock} color="bg-amber-500" linkTo="/admin/report" />
@@ -317,7 +317,7 @@ export default function AdminDashboard() {
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
         {/* Revenue Trend */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
             <div>
               <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-purple-600" />
@@ -359,7 +359,7 @@ export default function AdminDashboard() {
 
         {/* User Growth */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
             <div>
               <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-blue-600" />
@@ -475,82 +475,66 @@ export default function AdminDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col h-full">
           <h3 className="text-base font-bold text-gray-900 flex items-center gap-2 mb-1">
-            <Package className="w-5 h-5 text-purple-600" />
+            <Package className="w-5 h-5 text-indigo-600" />
             Thao tác nhanh
           </h3>
-          <p className="text-xs text-gray-400 mb-4">Truy cập nhanh các chức năng quản lý</p>
-          <div className="space-y-3">
-            <Link
-              to="/admin/users"
-              className="flex items-center justify-between p-3 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-500 rounded-lg">
-                  <Users className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-gray-900">Quản lý người dùng</div>
-                  <div className="text-xs text-gray-500">{stats.totalUsers.toLocaleString()} tài khoản</div>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-blue-500 group-hover:translate-x-1 transition-transform" />
-            </Link>
-
+          <p className="text-xs text-gray-400 mb-6">Truy cập nhanh các chức năng quản lý</p>
+          <div className="space-y-4 flex-1">
             <Link
               to="/admin/accounts"
-              className="flex items-center justify-between p-3 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors group"
+              className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-purple-50 to-white border border-purple-100 hover:shadow-md hover:border-purple-300 hover:scale-[1.02] transition-all duration-300 group"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-500 rounded-lg">
-                  <ShieldCheck className="w-4 h-4 text-white" />
+              <div className="flex items-center gap-3.5">
+                <div className="p-2.5 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-sm shadow-purple-200 group-hover:scale-110 transition-transform duration-300">
+                  <ShieldCheck className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-900">Quản lý tài khoản</div>
-                  <div className="text-xs text-gray-500">Tạo, chỉnh sửa, khóa/mở</div>
+                  <div className="text-sm font-bold text-gray-900 mb-0.5">Quản lý tài khoản</div>
+                  <div className="text-xs text-gray-500 font-medium">Tạo, chỉnh sửa, khóa/mở</div>
                 </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-purple-500 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4 text-purple-600 group-hover:translate-x-1.5 transition-transform duration-300" />
             </Link>
 
             <Link
               to="/admin/report"
-              className="flex items-center justify-between p-3 rounded-xl bg-orange-50 hover:bg-orange-100 transition-colors group"
+              className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-orange-50 to-white border border-orange-100 hover:shadow-md hover:border-orange-300 hover:scale-[1.02] transition-all duration-300 group"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-500 rounded-lg">
-                  <AlertTriangle className="w-4 h-4 text-white" />
+              <div className="flex items-center gap-3.5">
+                <div className="p-2.5 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-sm shadow-orange-200 group-hover:scale-110 transition-transform duration-300">
+                  <AlertTriangle className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-900">Báo cáo vi phạm</div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-sm font-bold text-gray-900 mb-0.5">Báo cáo vi phạm</div>
+                  <div className="text-xs text-gray-500 font-medium">
                     {stats.pendingReports > 0 ? `${stats.pendingReports} cần xử lý` : "Không có báo cáo mới"}
                   </div>
                 </div>
               </div>
               {stats.pendingReports > 0 && (
-                <span className="px-2 py-0.5 bg-orange-500 text-white text-xs font-bold rounded-full">
+                <span className="px-2.5 py-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[10px] font-bold rounded-lg shadow-sm">
                   {stats.pendingReports}
                 </span>
               )}
-              <ArrowRight className="w-4 h-4 text-orange-500 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4 text-orange-600 group-hover:translate-x-1.5 transition-transform duration-300 ml-2" />
             </Link>
 
             <Link
               to="/admin/packages"
-              className="flex items-center justify-between p-3 rounded-xl bg-green-50 hover:bg-green-100 transition-colors group"
+              className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-green-50 to-white border border-green-100 hover:shadow-md hover:border-green-300 hover:scale-[1.02] transition-all duration-300 group"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-500 rounded-lg">
-                  <Package className="w-4 h-4 text-white" />
+              <div className="flex items-center gap-3.5">
+                <div className="p-2.5 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-sm shadow-green-200 group-hover:scale-110 transition-transform duration-300">
+                  <Package className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-900">Gói dịch vụ</div>
-                  <div className="text-xs text-gray-500">Quản lý gói VIP cho NTD</div>
+                  <div className="text-sm font-bold text-gray-900 mb-0.5">Gói dịch vụ</div>
+                  <div className="text-xs text-gray-500 font-medium">Quản lý gói VIP cho NTD</div>
                 </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-green-500 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4 text-green-600 group-hover:translate-x-1.5 transition-transform duration-300" />
             </Link>
           </div>
         </div>

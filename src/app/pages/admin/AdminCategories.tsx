@@ -104,119 +104,110 @@ export default function AdminCategories() {
   }, [searchTerm]);
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="p-6 md:p-8 relative">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
-            <FolderOpen className="w-7 h-7 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Quản lý Chuyên mục</h1>
-            <p className="text-gray-500 mt-1 text-sm">Thêm, sửa, xóa và quản lý các danh mục bài viết trên diễn đàn</p>
-          </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-1">Quản lý Chuyên mục</h1>
+          <p className="text-gray-500">Thêm, sửa, xóa và quản lý các danh mục bài viết trên diễn đàn</p>
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-xl font-semibold hover:bg-gray-800 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
-        >
-          <Plus className="w-5 h-5" />
-          Thêm chuyên mục
-        </button>
-      </div>
-
-      <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/40 border border-gray-100 overflow-hidden flex flex-col">
-        {/* Toolbar */}
-        <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="relative w-full sm:w-80 group">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-              <Search className="w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
-            </div>
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <div className="relative w-full sm:w-auto">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Tìm kiếm chuyên mục hoặc mô tả..."
+              placeholder="Tìm kiếm chuyên mục..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm sm:min-w-[220px]"
             />
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-xl text-sm font-semibold border border-blue-100">
-            <Tag className="w-4 h-4" />
-            Tổng cộng: {filteredCategories.length} chuyên mục
-          </div>
+          <button
+            onClick={() => handleOpenModal()}
+            className="flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-pink-600 text-white px-5 py-2.5 rounded-lg hover:shadow-lg hover:scale-105 transition-all text-sm font-medium w-full sm:w-auto"
+          >
+            <Plus className="w-4 h-4" />
+            Thêm chuyên mục
+          </button>
         </div>
+      </div>
 
+      {/* Stats bar */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 shadow-sm">
+          <p className="text-xs text-gray-500 mb-1">Tổng chuyên mục</p>
+          <p className="text-2xl font-bold text-red-600">{categories.length}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 shadow-sm">
+          <p className="text-xs text-gray-500 mb-1">Kết quả tìm kiếm</p>
+          <p className="text-2xl font-bold text-gray-900">{filteredCategories.length}</p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {/* Table */}
         <div className="overflow-x-auto min-h-[400px]">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-white border-b border-gray-100">
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider w-24">
-                  <div className="flex items-center gap-1"><Hash className="w-3.5 h-3.5" /> ID</div>
-                </th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Chuyên mục</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  <div className="flex items-center gap-1"><AlignLeft className="w-3.5 h-3.5" /> Mô tả</div>
-                </th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Thao tác</th>
+          <table className="w-full min-w-[800px]">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">ID</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Chuyên mục</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Mô tả</th>
+                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-20 text-center">
-                    <Loader2 className="w-10 h-10 animate-spin mx-auto text-blue-600 mb-4" />
-                    <p className="text-gray-500 font-medium text-sm">Đang đồng bộ dữ liệu chuyên mục...</p>
+                  <td colSpan={4} className="text-center py-16">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-red-600 mb-4" />
+                    <p className="text-gray-500 text-sm">Đang đồng bộ dữ liệu chuyên mục...</p>
                   </td>
                 </tr>
               ) : filteredCategories.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-20 text-center">
-                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
-                      <FolderOpen className="w-10 h-10 text-gray-300" />
-                    </div>
-                    <h3 className="text-gray-900 font-semibold mb-1">Không tìm thấy chuyên mục nào</h3>
-                    <p className="text-gray-500 text-sm">Hãy thử tìm kiếm với từ khóa khác hoặc tạo mới chuyên mục.</p>
+                  <td colSpan={4} className="text-center py-16 text-gray-500 text-sm">
+                    Không tìm thấy chuyên mục nào phù hợp.
                   </td>
                 </tr>
               ) : (
                 paginatedCategories.map((category) => {
                   const config = getCategoryColorConfig(category.id);
                   return (
-                    <tr key={category.id} className="hover:bg-blue-50/30 transition-colors group">
-                      <td className="px-6 py-5 text-sm font-bold text-gray-300 group-hover:text-blue-400 transition-colors">
+                    <tr key={category.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-500">
                         #{category.id}
                       </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-sm border ${config.bg} ${config.text} ${config.border}`}>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-sm border ${config.bg} ${config.text} ${config.border}`}>
                             {config.icon}
                           </div>
-                          <span className={`font-bold px-4 py-1.5 rounded-full text-sm shadow-sm border ${config.bg} ${config.text} ${config.border}`}>
+                          <span className="font-medium text-gray-900 text-sm">
                             {category.categoryName}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-5">
-                        <p className="text-sm text-gray-600 max-w-md line-clamp-2 leading-relaxed">
-                          {category.description || <span className="text-gray-400 italic">Chưa cập nhật mô tả</span>}
+                      <td className="px-6 py-4">
+                        <p className="text-sm text-gray-500 max-w-md line-clamp-2">
+                          {category.description || <span className="italic">Chưa cập nhật mô tả</span>}
                         </p>
                       </td>
-                      <td className="px-6 py-5 text-right">
+                      <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleOpenModal(category)}
-                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200"
                             title="Chỉnh sửa"
                           >
-                            <Edit2 className="w-4 h-4" />
+                            <Edit2 className="w-3.5 h-3.5" /> Sửa
                           </button>
                           <button
                             onClick={() => handleDelete(category.id)}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-red-50 hover:bg-red-100 text-red-600 border border-red-200"
                             title="Xóa"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" /> Xóa
                           </button>
                         </div>
                       </td>
@@ -230,47 +221,31 @@ export default function AdminCategories() {
 
         {/* Pagination */}
         {!isLoading && filteredCategories.length > 0 && (
-          <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/30">
-            <span className="text-sm text-gray-500 font-medium">
-              Hiển thị <span className="text-gray-900">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="text-gray-900">{Math.min(currentPage * itemsPerPage, filteredCategories.length)}</span> trong số <span className="text-gray-900">{filteredCategories.length}</span> chuyên mục
-            </span>
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-sm text-gray-500">
+              Hiển thị <span className="font-semibold text-gray-900">{(currentPage - 1) * itemsPerPage + 1}</span> đến <span className="font-semibold text-gray-900">{Math.min(currentPage * itemsPerPage, filteredCategories.length)}</span> trong tổng số <span className="font-semibold text-gray-900">{filteredCategories.length}</span> chuyên mục
+            </div>
             
             {totalPages > 1 && (
-              <div className="flex items-center gap-1.5 p-1 bg-white border border-gray-200 rounded-xl shadow-sm">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
                 >
-                  <ChevronLeft className="w-5 h-5" />
+                  Trước
                 </button>
                 
-                <div className="flex items-center px-1">
-                  {Array.from({ length: totalPages }).map((_, idx) => {
-                    const page = idx + 1;
-                    const isActive = page === currentPage;
-                    return (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`min-w-[32px] h-8 px-2 rounded-lg text-sm font-bold transition-all ${
-                          isActive 
-                            ? "bg-blue-600 text-white shadow-md shadow-blue-200" 
-                            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    );
-                  })}
-                </div>
+                <span className="text-sm text-gray-600 px-2 font-medium">
+                  Trang <span className="text-gray-900">{currentPage}</span> / {totalPages}
+                </span>
 
                 <button
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
                 >
-                  <ChevronRight className="w-5 h-5" />
+                  Sau
                 </button>
               </div>
             )}

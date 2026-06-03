@@ -24,7 +24,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotifications } from "../contexts/NotificationContext";
 import { EmployerChatBot } from "./EmployerChatBot";
-import logoImage from "../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
+import logoImage from "../../assets/logo_new1.png";
 
 export default function EmployerLayout() {
   const location = useLocation();
@@ -355,7 +355,7 @@ export default function EmployerLayout() {
       )}
 
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${
+      <div className={`flex-1 flex flex-col min-h-screen min-w-0 overflow-x-hidden transition-all duration-300 ${
         sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
       }`}>
         {/* Top Bar */}

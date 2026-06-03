@@ -9,7 +9,7 @@ import { EmployerChatBot } from "./EmployerChatBot";
 import Footer from "./Footer";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotifications } from "../contexts/NotificationContext";
-import logoImage from "../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
+import logoImage from "../../assets/logo_new1.png";
 import { useState, useRef, useEffect } from "react";
 
 export default function Layout() {

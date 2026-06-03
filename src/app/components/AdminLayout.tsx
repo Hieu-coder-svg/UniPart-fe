@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { adminService } from "../services/adminService";
-import logoImage from "../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
+import logoImage from "../../assets/logo_new1.png";
 
 export default function AdminLayout() {
   const location = useLocation();
@@ -323,7 +323,7 @@ export default function AdminLayout() {
       )}
 
       {/* Main Content */}
-      <div className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"}`}>
+      <div className={`flex-1 min-w-0 flex flex-col overflow-x-hidden transition-all duration-300 ${sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"}`}>
         {/* Mobile Header */}
         <header className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-20">
           <div className="flex items-center justify-between px-4 py-3">
