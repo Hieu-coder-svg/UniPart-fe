@@ -77,10 +77,12 @@ class AuthService {
           }
           
           if (errorMessage) {
-            if (errorMessage === 'Uncategorized exception') {
-                errorMessage = 'Dữ liệu không hợp lệ hoặc đã tồn tại. Vui lòng kiểm tra lại thông tin đã nhập.';
-            }
-            return Promise.reject(new Error(errorMessage));
+            // Attach backend metadata to the error so individual pages can inspect raw data
+            const enhancedError: any = new Error(errorMessage);
+            enhancedError.backendMessage = data.message; // raw backend message (e.g. "Uncategorized exception", "Email không hợp lệ")
+            enhancedError.backendCode = data.code;       // backend error code (e.g. 1003)
+            enhancedError.response = error.response;
+            return Promise.reject(enhancedError);
           }
         }
         return Promise.reject(error);

@@ -36,7 +36,26 @@ export default function ForgotPassword() {
       setIsSuccess(true);
       toast.success("Đã gửi yêu cầu khôi phục mật khẩu. Vui lòng kiểm tra email.");
     } catch (error: any) {
-      toast.error(error.message || "Gửi yêu cầu thất bại. Vui lòng kiểm tra lại email.");
+      console.error("[ForgotPassword] Error:", error);
+      // backendMessage: raw message from backend before any interceptor transformation
+      // backendCode: numeric error code from backend (e.g. 1003 = EMAIL_INVALID)
+      const backendMsg: string = error?.backendMessage || error?.response?.data?.message || "";
+      const backendCode: number = error?.backendCode || error?.response?.data?.code || 0;
+
+      if (backendCode === 1003 || backendMsg.includes("Email không hợp lệ") || backendMsg.includes("not found")) {
+        toast.error("Email này chưa được đăng ký trong hệ thống. Vui lòng kiểm tra lại.");
+      } else if (
+        backendMsg.toLowerCase().includes("mail") ||
+        backendMsg.toLowerCase().includes("smtp") ||
+        backendMsg.toLowerCase().includes("messaging") ||
+        error?.message?.toLowerCase().includes("mail")
+      ) {
+        toast.error("Không thể gửi email. Có thể hệ thống email đang gặp sự cố, vui lòng thử lại sau.");
+      } else if (backendMsg === "Uncategorized exception" || error?.message === "Uncategorized exception") {
+        toast.error("Hệ thống gặp lỗi khi gửi email. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.");
+      } else {
+        toast.error(error?.message || "Gửi yêu cầu thất bại. Vui lòng thử lại sau.");
+      }
     }
   };
 
