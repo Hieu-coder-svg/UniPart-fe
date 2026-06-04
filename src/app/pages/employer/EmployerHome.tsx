@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import { EmployerChatBot } from "../../components/EmployerChatBot";
-import logoImage from "../../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
+import logoImage from "../../../assets/logo_new1.png";
 import { useAuth } from "../../contexts/AuthContext";
 import { packageService, PackageResponse } from "../../../services/packageService";
 

@@ -350,7 +350,7 @@ export default function AdminReport() {
       {/* Data Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-gray-600">
                 <th className="py-4 px-6 font-medium whitespace-nowrap text-sm">Mã BC</th>

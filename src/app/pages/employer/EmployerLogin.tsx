@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router";
 import { Mail, Lock, Eye, EyeOff, LogIn, UserPlus, AlertCircle, CheckCircle, Sparkles } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
-import logoImage from "../../../assets/0a7c93682f2192d9ef554feedaa9950d9d4f744f.png";
+import logoImage from "../../../assets/logo_new1.png";
 import { RegisterEmployerForm } from "../../components/auth/RegisterEmployerForm";
 import type { EmployerRegistrationRequest } from "../../../types/auth";
 import { toast } from "sonner";
