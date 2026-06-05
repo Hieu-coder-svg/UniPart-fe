@@ -108,7 +108,7 @@ export default function Layout() {
 
             {/* Logo */}
             <Link to="/" className="flex items-center flex-shrink-0">
-              <img src={logoImage} alt="UniPart" className="h-14 md:h-24 w-auto object-contain" />
+              <img src={logoImage} alt="UniHire" className="h-14 md:h-24 w-auto object-contain" />
             </Link>
 
             {/* ── Desktop Nav ── */}

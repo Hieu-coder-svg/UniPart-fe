@@ -173,7 +173,7 @@ export default function AdminOverview() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-1">Tổng quan hệ thống</h1>
-          <p className="text-gray-500">Dashboard quản trị UniPart</p>
+          <p className="text-gray-500">Dashboard quản trị UniHire</p>
         </div>
         <button
           onClick={fetchData}

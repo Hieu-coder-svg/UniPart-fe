@@ -384,7 +384,7 @@ export default function SystemBackup() {
 
             <div className="space-y-6 text-gray-700 text-sm">
               <p>
-                Dựa trên giao diện quản trị UniPart, việc sao lưu dữ liệu được thực hiện một cách trực quan và dễ dàng. Hệ thống này hỗ trợ cả sao lưu tức thì và sao lưu tự động theo lịch trình, giúp bạn bảo vệ dữ liệu website một cách hiệu quả.
+                Dựa trên giao diện quản trị UniHire, việc sao lưu dữ liệu được thực hiện một cách trực quan và dễ dàng. Hệ thống này hỗ trợ cả sao lưu tức thì và sao lưu tự động theo lịch trình, giúp bạn bảo vệ dữ liệu website một cách hiệu quả.
               </p>
 
               <div>
@@ -402,7 +402,7 @@ export default function SystemBackup() {
 
               <div>
                 <h4 className="font-bold text-lg text-gray-900 mb-2">2. Cấu hình lịch sao lưu tự động (Lịch tự động)</h4>
-                <p className="mb-2">Để đảm bảo dữ liệu luôn được bảo vệ mà không cần can thiệp thủ công, bạn nên thiết lập lịch sao lưu tự động. Giao diện UniPart cho phép bạn cấu hình các loại sao lưu khác nhau.</p>
+                <p className="mb-2">Để đảm bảo dữ liệu luôn được bảo vệ mà không cần can thiệp thủ công, bạn nên thiết lập lịch sao lưu tự động. Giao diện UniHire cho phép bạn cấu hình các loại sao lưu khác nhau.</p>
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 mb-3">
                   <p className="font-semibold mb-1">Các bước thực hiện:</p>
                   <ol className="list-decimal list-inside space-y-1 ml-1 text-gray-600">
@@ -437,7 +437,7 @@ export default function SystemBackup() {
                   <li><strong>Kiểm tra định kỳ:</strong> Thường xuyên kiểm tra các bản sao lưu để đảm bảo chúng hoạt động tốt và có thể khôi phục được. Đừng đợi đến khi sự cố xảy ra mới phát hiện bản sao lưu bị lỗi.</li>
                   <li><strong>Lưu trữ an toàn:</strong> Ngoài việc sao lưu trên hệ thống, hãy cân nhắc tải các bản sao lưu quan trọng về máy tính cá nhân hoặc lưu trữ trên các dịch vụ đám mây khác để có thêm một lớp bảo vệ.</li>
                 </ul>
-                <p className="mt-3 font-medium text-blue-800 text-center">Với các tính năng sao lưu và khôi phục được tích hợp sẵn trong UniPart, bạn có thể yên tâm hơn về sự an toàn của dữ liệu website.</p>
+                <p className="mt-3 font-medium text-blue-800 text-center">Với các tính năng sao lưu và khôi phục được tích hợp sẵn trong UniHire, bạn có thể yên tâm hơn về sự an toàn của dữ liệu website.</p>
               </div>
             </div>
 

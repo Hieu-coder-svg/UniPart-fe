@@ -79,7 +79,7 @@ export default function EmployerLogin() {
           <div className="hidden md:block space-y-6">
             <div>
               <Link to="/employer">
-                <img src={logoImage} alt="UniPart Employer" className="h-24 mb-4 cursor-pointer hover:opacity-80 transition-opacity" />
+                <img src={logoImage} alt="UniHire Employer" className="h-24 mb-4 cursor-pointer hover:opacity-80 transition-opacity" />
               </Link>
               <h1 className="text-3xl mb-2">
                 Nền tảng tuyển dụng <br />
@@ -282,7 +282,7 @@ export default function EmployerLogin() {
             {/* Mobile branding */}
             <div className="md:hidden mt-8 text-center">
               <Link to="/employer">
-                <img src={logoImage} alt="UniPart Employer" className="h-20 mx-auto cursor-pointer hover:opacity-80 transition-opacity" />
+                <img src={logoImage} alt="UniHire Employer" className="h-20 mx-auto cursor-pointer hover:opacity-80 transition-opacity" />
               </Link>
             </div>
           </div>

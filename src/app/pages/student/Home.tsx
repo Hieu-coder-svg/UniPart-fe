@@ -281,7 +281,7 @@ export default function Home() {
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Tại sao chọn UniPart?</h2>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Tại sao chọn UniHire?</h2>
             <p className="text-gray-500 text-lg max-w-2xl mx-auto">
               Nền tảng tìm việc bán thời gian hàng đầu dành riêng cho sinh viên với hàng ngàn công việc chất lượng
             </p>

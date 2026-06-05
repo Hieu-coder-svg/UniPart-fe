@@ -249,14 +249,14 @@ export default function EmployerHome() {
       name: "Nguyễn Minh Tuấn",
       company: "Highlands Coffee",
       role: "HR Manager",
-      content: "UniPart giúp chúng tôi tìm được nhân viên part-time chất lượng chỉ trong vài ngày. Hệ thống rất dễ sử dụng!",
+      content: "UniHire giúp chúng tôi tìm được nhân viên part-time chất lượng chỉ trong vài ngày. Hệ thống rất dễ sử dụng!",
       rating: 5,
     },
     {
       name: "Trần Thị Hương",
       company: "The Coffee House",
       role: "Store Manager",
-      content: "Các bạn sinh viên trên UniPart rất nhiệt tình và có trách nhi��m. Ti rất hài lòng với dịch vụ này.",
+      content: "Các bạn sinh viên trên UniHire rất nhiệt tình và có trách nhiệm. Ti rất hài lòng với dịch vụ này.",
       rating: 5,
     },
     {
@@ -286,7 +286,7 @@ export default function EmployerHome() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center">
-              <img src={logoImage} alt="UniPart Employer" className="h-24 cursor-pointer hover:opacity-80 transition-opacity" />
+              <img src={logoImage} alt="UniHire Employer" className="h-24 cursor-pointer hover:opacity-80 transition-opacity" />
             </Link>
 
             <nav className="hidden md:flex items-center gap-6">
@@ -436,7 +436,7 @@ export default function EmployerHome() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl mb-4">
-              Tại sao chọn <span className="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">UniPart?</span>
+              Tại sao chọn <span className="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">UniHire?</span>
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Giải pháp tuyển dụng toàn diện với công nghệ hiện đại
@@ -689,7 +689,7 @@ export default function EmployerHome() {
                   </div>
                   <div>
                     <h3 className="mb-1">Hotline</h3>
-                    <p className="text-gray-600">1900-xxxx (8:00 - 22:00)</p>
+                    <p className="text-gray-600">0973401516</p>
                   </div>
                 </div>
 
@@ -699,7 +699,7 @@ export default function EmployerHome() {
                   </div>
                   <div>
                     <h3 className="mb-1">Email</h3>
-                    <p className="text-gray-600">support@unipart.vn</p>
+                    <p className="text-gray-600">unipartrecruitment@gmail.com</p>
                   </div>
                 </div>
 
@@ -770,7 +770,7 @@ export default function EmployerHome() {
             <div>
               <div className="mb-4">
                 <Link to="/">
-                  <img src={logoImage} alt="UniPart Employer" className="h-22 cursor-pointer hover:opacity-80 transition-opacity" />
+                  <img src={logoImage} alt="UniHire Employer" className="h-22 cursor-pointer hover:opacity-80 transition-opacity" />
                 </Link>
               </div>
               <p className="text-sm text-gray-400 mb-4">
@@ -849,18 +849,18 @@ export default function EmployerHome() {
               <ul className="space-y-3">
                 <li className="flex items-start gap-2 text-sm">
                   <MapPin className="w-4 h-4 mt-1 flex-shrink-0 text-orange-400" />
-                  <span>268 Lý Thường Kiệt, Quận 10, TP. HCM</span>
+                  <span>Trường đại học FPT, Thạch Thất, Hà Nội</span>
                 </li>
                 <li className="flex items-center gap-2 text-sm">
                   <Phone className="w-4 h-4 flex-shrink-0 text-orange-400" />
-                  <a href="tel:+84123456789" className="hover:text-orange-400 transition-colors">
-                    +84 123 456 789
+                  <a href="tel:0973401516" className="hover:text-orange-400 transition-colors">
+                    0973 401 516
                   </a>
                 </li>
                 <li className="flex items-center gap-2 text-sm">
                   <Mail className="w-4 h-4 flex-shrink-0 text-orange-400" />
-                  <a href="mailto:employer@unipart.vn" className="hover:text-orange-400 transition-colors">
-                    employer@unipart.vn
+                  <a href="mailto:unipartrecruitment@gmail.com" className="hover:text-orange-400 transition-colors">
+                    unipartrecruitment@gmail.com
                   </a>
                 </li>
               </ul>
@@ -871,7 +871,7 @@ export default function EmployerHome() {
           <div className="pt-6 border-t border-gray-800">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <p className="text-sm text-gray-400">
-                © {new Date().getFullYear()} UniPart Employer. All rights reserved.
+                © {new Date().getFullYear()} UniHire Employer. All rights reserved.
               </p>
               <div className="flex gap-6 text-sm">
                 <a href="#" className="hover:text-orange-400 transition-colors">

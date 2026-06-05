@@ -615,7 +615,7 @@ export default function Community() {
               </div>
               <div>
                 <h1 className="text-xl font-extrabold text-gray-900 leading-tight">
-                  Cộng đồng UniPart
+                  Cộng đồng UniHire
                 </h1>
                 <p className="text-sm text-gray-400">
                   Nơi sinh viên chia sẻ kinh nghiệm & cảnh báo thật
@@ -1228,7 +1228,7 @@ export function PostCard({ post, onLike, onShare, formatDate, getCategoryName, g
                   <Users className="w-5 h-5 text-white" />
                 </div>
                 <div className="text-left">
-                  <p className="font-semibold text-gray-900">Chia sẻ lên UniPart</p>
+                  <p className="font-semibold text-gray-900">Chia sẻ lên UniHire</p>
                   <p className="text-xs text-gray-500">Đăng lên cộng đồng</p>
                 </div>
               </button>

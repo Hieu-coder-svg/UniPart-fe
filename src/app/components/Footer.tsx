@@ -13,7 +13,7 @@ export default function Footer() {
           {/* About Section */}
           <div>
             <div className="mb-4">
-              <img src={logoImage} alt="UniPart" className="h-22" />
+              <img src={logoImage} alt="UniHire" className="h-22" />
             </div>
             <p className="text-sm text-gray-400 mb-4">
               Nền tảng tìm việc làm bán thời gian hàng đầu dành cho sinh viên đại học. 
@@ -91,18 +91,18 @@ export default function Footer() {
             <ul className="space-y-3">
               <li className="flex items-start gap-2 text-sm">
                 <MapPin className="w-4 h-4 mt-1 flex-shrink-0 text-blue-400" />
-                <span>268 Lý Thường Kiệt, Quận 10, TP. HCM</span>
+                <span>Trường đại học FPT, Thạch Thất, Hà Nội</span>
               </li>
               <li className="flex items-center gap-2 text-sm">
                 <Phone className="w-4 h-4 flex-shrink-0 text-blue-400" />
-                <a href="tel:+84123456789" className="hover:text-blue-400 transition-colors">
-                  +84 123 456 789
+                <a href="tel:0973401516" className="hover:text-blue-400 transition-colors">
+                  0973 401 516
                 </a>
               </li>
               <li className="flex items-center gap-2 text-sm">
                 <Mail className="w-4 h-4 flex-shrink-0 text-blue-400" />
-                <a href="mailto:support@unipart.vn" className="hover:text-blue-400 transition-colors">
-                  support@unipart.vn
+                <a href="mailto:unipartrecruitment@gmail.com" className="hover:text-blue-400 transition-colors">
+                  unipartrecruitment@gmail.com
                 </a>
               </li>
             </ul>
@@ -113,7 +113,7 @@ export default function Footer() {
         <div className="pt-6 border-t border-gray-800">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-gray-400">
-              © {currentYear} UniPart. All rights reserved.
+              © {currentYear} UniHire. All rights reserved.
             </p>
             <div className="flex gap-6 text-sm">
               <a href="#" className="hover:text-blue-400 transition-colors">

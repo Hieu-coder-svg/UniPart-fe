@@ -135,7 +135,7 @@ export default function AdminLayout() {
           <Link to="/" className="block">
             <img
               src={logoImage}
-              alt="UniPart Admin"
+              alt="UniHire Admin"
               className={sidebarCollapsed ? "h-10 w-auto object-contain" : "h-14 w-auto object-contain"}
             />
           </Link>
@@ -250,7 +250,7 @@ export default function AdminLayout() {
                 className="block"
                 onClick={() => setSidebarOpen(false)}
               >
-                <img src={logoImage} alt="UniPart Admin" className="h-14 w-auto object-contain" />
+                <img src={logoImage} alt="UniHire Admin" className="h-14 w-auto object-contain" />
               </Link>
               <button
                 onClick={() => setSidebarOpen(false)}
@@ -338,7 +338,7 @@ export default function AdminLayout() {
                 <ShieldCheck className="w-5 h-5 text-white" />
               </div>
               <span className="text-lg bg-gradient-to-r from-red-600 via-pink-600 to-rose-600 bg-clip-text text-transparent">
-                UniPart Admin
+                UniHire Admin
               </span>
             </div>
             <div className="w-10"></div>

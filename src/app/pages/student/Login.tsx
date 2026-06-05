@@ -101,7 +101,7 @@ export default function Login() {
           />
         </div>
         <div className="relative z-10 flex flex-col justify-center items-center text-white p-12">
-          <h1 className="text-5xl font-bold mb-6">Chào mừng đến với UniPart</h1>
+          <h1 className="text-5xl font-bold mb-6">Chào mừng đến với UniHire</h1>
           <p className="text-2xl text-cyan-100 text-center max-w-lg">
             Nền tảng tìm việc bán thời gian hàng đầu dành cho sinh viên
           </p>
@@ -124,7 +124,7 @@ export default function Login() {
           {/* Logo on desktop */}
           <div className="hidden md:block mb-8">
             <Link to="/">
-              <img src={logoImage} alt="UniPart" className="h-24 w-auto mx-auto object-contain" />
+              <img src={logoImage} alt="UniHire" className="h-24 w-auto mx-auto object-contain" />
             </Link>
           </div>
 
@@ -266,7 +266,7 @@ export default function Login() {
           {/* Mobile branding */}
           <div className="md:hidden mt-8 text-center">
             <Link to="/">
-              <img src={logoImage} alt="UniPart" className="h-16 w-auto mx-auto object-contain" />
+              <img src={logoImage} alt="UniHire" className="h-16 w-auto mx-auto object-contain" />
             </Link>
           </div>
         </div>

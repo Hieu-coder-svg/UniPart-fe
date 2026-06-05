@@ -58,7 +58,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="bg-background rounded-lg shadow-md p-8">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-primary mb-2">UniPart</h1>
+            <h1 className="text-3xl font-bold text-primary mb-2">UniHire</h1>
             <p className="text-text-secondary">Đăng nhập vào tài khoản của bạn</p>
           </div>
 
