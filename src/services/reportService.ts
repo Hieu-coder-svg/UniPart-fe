@@ -34,7 +34,7 @@ export interface ReportResponse {
   evidenceUrl?: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL as string;
+const API_BASE_URL = (import.meta.env.VITE_API_URL as string || '/api');
 const TOKEN_KEY = "access_token";
 
 class ReportService {
