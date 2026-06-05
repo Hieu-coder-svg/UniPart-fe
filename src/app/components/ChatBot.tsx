@@ -41,7 +41,7 @@ export default function ChatBot() {
   const [isMinimized, setIsMinimized] = useState(false);
   const [hasDragged, setHasDragged] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { text: "Xin chào! Tôi là trợ lý AI của UniPart. Tôi có thể giúp bạn tìm công việc phù hợp với lịch học và sở thích của bạn! 🎯", isBot: true },
+    { text: "Xin chào! Tôi là trợ lý AI của UniHire. Tôi có thể giúp bạn tìm công việc phù hợp với lịch học và sở thích của bạn! 🎯", isBot: true },
   ]);
   const [input, setInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(true);

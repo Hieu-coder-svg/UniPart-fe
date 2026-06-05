@@ -76,7 +76,7 @@ export default function Settings() {
                     </label>
                     <input
                       type="text"
-                      defaultValue="UniPart"
+                      defaultValue="UniHire"
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
                   </div>
@@ -98,7 +98,7 @@ export default function Settings() {
                     </label>
                     <input
                       type="url"
-                      defaultValue="https://unipart.vn"
+                      defaultValue="https://unihire.vn"
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
                   </div>
@@ -435,7 +435,7 @@ export default function Settings() {
                     </label>
                     <input
                       type="email"
-                      defaultValue="noreply@unipart.vn"
+                      defaultValue="unipartrecruitment@gmail.com"
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
                   </div>
@@ -446,7 +446,7 @@ export default function Settings() {
                     </label>
                     <input
                       type="text"
-                      defaultValue="UniPart Support"
+                      defaultValue="UniHire Support"
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
                   </div>
@@ -457,7 +457,7 @@ export default function Settings() {
                     </label>
                     <input
                       type="text"
-                      defaultValue="admin@unipart.vn"
+                      defaultValue="unipartrecruitment@gmail.com"
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
                   </div>

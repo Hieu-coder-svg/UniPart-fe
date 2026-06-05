@@ -122,7 +122,7 @@ export default function EmployerLayout() {
           <Link to="/" className="block">
             <img 
               src={logoImage} 
-              alt="UniPart Employer" 
+              alt="UniHire Employer" 
               className={sidebarCollapsed ? "h-10 w-auto object-contain" : "h-16 w-auto object-contain"} 
             />
           </Link>
@@ -237,7 +237,7 @@ export default function EmployerLayout() {
                 className="block"
                 onClick={() => setSidebarOpen(false)}
               >
-                <img src={logoImage} alt="UniPart Employer" className="h-20 w-auto object-contain" />
+                <img src={logoImage} alt="UniHire Employer" className="h-20 w-auto object-contain" />
               </Link>
               <button
                 onClick={() => setSidebarOpen(false)}
@@ -304,7 +304,7 @@ export default function EmployerLayout() {
 
               {/* Page title - shown on mobile */}
               <Link to="/employer/dashboard" className="lg:hidden block">
-                <img src={logoImage} alt="UniPart" className="h-12 w-auto object-contain" />
+                <img src={logoImage} alt="UniHire" className="h-12 w-auto object-contain" />
               </Link>
 
               {/* Desktop: Search or breadcrumbs could go here */}
@@ -383,7 +383,7 @@ export default function EmployerLayout() {
               {/* About Section */}
               <div>
                 <div className="mb-4">
-                  <img src={logoImage} alt="UniPart Employer" className="h-16 w-auto object-contain" />
+                  <img src={logoImage} alt="UniHire Employer" className="h-16 w-auto object-contain" />
                 </div>
                 <p className="text-sm text-gray-400 mb-4">
                   Nền tảng tuyển dụng sinh viên hàng đầu Việt Nam. 
@@ -461,18 +461,18 @@ export default function EmployerLayout() {
                 <ul className="space-y-3">
                   <li className="flex items-start gap-2 text-sm">
                     <MapPin className="w-4 h-4 mt-1 flex-shrink-0 text-orange-400" />
-                    <span>268 Lý Thường Kiệt, Quận 10, TP. HCM</span>
+                    <span>Trường đại học FPT, Thạch Thất, Hà Nội</span>
                   </li>
                   <li className="flex items-center gap-2 text-sm">
                     <Phone className="w-4 h-4 flex-shrink-0 text-orange-400" />
-                    <a href="tel:+84123456789" className="hover:text-orange-400 transition-colors">
-                      +84 123 456 789
+                    <a href="tel:0973401516" className="hover:text-orange-400 transition-colors">
+                      0973 401 516
                     </a>
                   </li>
                   <li className="flex items-center gap-2 text-sm">
                     <Mail className="w-4 h-4 flex-shrink-0 text-orange-400" />
-                    <a href="mailto:employer@unipart.vn" className="hover:text-orange-400 transition-colors">
-                      employer@unipart.vn
+                    <a href="mailto:unipartrecruitment@gmail.com" className="hover:text-orange-400 transition-colors">
+                      unipartrecruitment@gmail.com
                     </a>
                   </li>
                 </ul>
@@ -483,7 +483,7 @@ export default function EmployerLayout() {
             <div className="pt-6 border-t border-gray-800">
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <p className="text-sm text-gray-400">
-                  © {new Date().getFullYear()} UniPart Employer. All rights reserved.
+                  © {new Date().getFullYear()} UniHire Employer. All rights reserved.
                 </p>
                 <div className="flex gap-6 text-sm">
                   <a href="#" className="hover:text-orange-400 transition-colors">

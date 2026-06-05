@@ -2,7 +2,6 @@ import React from "react";
 import {
   Search,
   Filter,
-  Download,
   Star,
   Mail,
   Phone,
@@ -604,10 +603,7 @@ export default function EmployerApplicants() {
               <Filter className="w-5 h-5" />
               <span>Lọc</span>
             </button>
-            <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 font-medium">
-              <Download className="w-5 h-5" />
-              <span>Xuất Excel</span>
-            </button>
+
           </div>
 
           {/* Tabs */}

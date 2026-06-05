@@ -108,7 +108,7 @@ export default function AdBanner({ position = "middle" }: AdBannerProps) {
           <div className="flex-1 text-center sm:text-left">
             <div className={`text-gray-500 mb-1 ${isTopBanner ? 'text-sm' : 'text-xs'}`}>Tài trợ • {currentAd.company}</div>
             <h4 className={`mb-1 ${isTopBanner ? 'text-2xl sm:text-3xl font-bold' : ''}`}>{currentAd.title}</h4>
-            <p className={`text-gray-600 ${isTopBanner ? 'text-base sm:text-lg' : 'text-sm'}`}>Cơ hội đặc biệt dành cho sinh viên UniPart</p>
+            <p className={`text-gray-600 ${isTopBanner ? 'text-base sm:text-lg' : 'text-sm'}`}>Cơ hội đặc biệt dành cho sinh viên UniHire</p>
           </div>
 
           <div className="flex-shrink-0">

@@ -1,5 +1,5 @@
 /**
- * Global type definitions for UniPart Frontend
+ * Global type definitions for UniHire Frontend
  * Design: Modern Enterprise Minimalism
  */
 

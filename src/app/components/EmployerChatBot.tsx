@@ -46,7 +46,7 @@ const getLocalAIResponse = (userMessage: string): string => {
     } else if (message.includes("premium")) {
       return "Gói Premium có giá 10.500.000đ/tháng - Cho doanh nghiệp lớn:\n\n✅ 300 tin thường/tháng\n✅ Tối đa 10 tin/ngày\n✅ 20 tin tuyển gấp\n✅ Hỗ trợ 24/7\n✅ Hiển thị ưu tiên cao\n✅ Phân tích chi tiết\n✅ Account manager riêng\n\nLựa chọn tốt nhất cho doanh nghiệp tuyển dụng thường xuyên.";
     } else {
-      return "UniPart có 3 gói dịch vụ chính:\n\n📦 Basic: 2.700.000đ/tháng (60 tin)\n📦 Advance: 6.000.000đ/tháng (150 tin) - Phổ biến nhất\n📦 Premium: 10.500.000đ/tháng (300 tin)\n\nNgoài ra, bạn có thể mua lẻ:\n• 1 tin thường: 50.000đ\n• 1 tin tuyển gấp: 70.000đ\n\nBạn muốn tìm hiểu chi tiết gói nào?";
+      return "UniHire có 3 gói dịch vụ chính:\n\n📦 Basic: 2.700.000đ/tháng (60 tin)\n📦 Advance: 6.000.000đ/tháng (150 tin) - Phổ biến nhất\n📦 Premium: 10.500.000đ/tháng (300 tin)\n\nNgoài ra, bạn có thể mua lẻ:\n• 1 tin thường: 50.000đ\n• 1 tin tuyển gấp: 70.000đ\n\nBạn muốn tìm hiểu chi tiết gói nào?";
     }
   }
 
@@ -67,11 +67,11 @@ const getLocalAIResponse = (userMessage: string): string => {
   }
 
   if (message.includes("hỗ trợ") || message.includes("liên hệ") || message.includes("support")) {
-    return "Bạn có thể liên hệ hỗ trợ qua:\n\n📞 Hotline: 1900-xxxx (8:00 - 22:00)\n📧 Email: support@unipart.vn\n💬 Live Chat: Trên website\n\nĐội ngũ hỗ trợ phản hồi trong 15 phút!\n\nGói Premium có Account Manager riêng hỗ trợ 24/7.";
+    return "Bạn có thể liên hệ hỗ trợ qua:\n\n📞 Hotline: 0973401516\n📧 Email: unipartrecruitment@gmail.com\n💬 Live Chat: Trên website\n\nĐội ngũ hỗ trợ phản hồi trong 15 phút!\n\nGói Premium có Account Manager riêng hỗ trợ 24/7.";
   }
 
   if (message.includes("sinh viên") || message.includes("ứng viên") || message.includes("student")) {
-    return "Nguồn ứng viên của UniPart:\n\n👨‍🎓 Hơn 10,000 sinh viên hoạt động\n🎓 Từ các trường đại học uy tín\n✅ 100% xác thực qua email trường\n⭐ Đánh giá từ nhà tuyển dụng trước\n\nSinh viên UniPart:\n• Nhiệt tình, năng động\n• Sẵn sàng làm linh hoạt\n• Học hỏi nhanh chóng\n\nTỷ lệ hài lòng: 95%!";
+    return "Nguồn ứng viên của UniHire:\n\n👨‍🎓 Hơn 10,000 sinh viên hoạt động\n🎓 Từ các trường đại học uy tín\n✅ 100% xác thực qua email trường\n⭐ Đánh giá từ nhà tuyển dụng trước\n\nSinh viên UniHire:\n• Nhiệt tình, năng động\n• Sẵn sàng làm linh hoạt\n• Học hỏi nhanh chóng\n\nTỷ lệ hài lòng: 95%!";
   }
 
   if (message.includes("dùng thử") || message.includes("miễn phí") || message.includes("trial")) {
@@ -105,7 +105,7 @@ export function EmployerChatBot() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      text: "Xin chào! Tôi là trợ lý AI của UniPart. Tôi có thể giúp bạn tư vấn về các gói dịch vụ, bảng giá và hướng dẫn tuyển dụng. Bạn cần hỗ trợ gì? 🚀",
+      text: "Xin chào! Tôi là trợ lý AI của UniHire. Tôi có thể giúp bạn tư vấn về các gói dịch vụ, bảng giá và hướng dẫn tuyển dụng. Bạn cần hỗ trợ gì? 🚀",
       sender: "bot",
       timestamp: new Date(),
     },

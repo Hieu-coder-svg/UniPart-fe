@@ -23,7 +23,7 @@ export default function Home() {
       <nav className="border-b border-border bg-white sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/">
-            <h1 className="text-2xl font-bold text-primary cursor-pointer hover:opacity-80 transition-opacity">UniPart</h1>
+            <h1 className="text-2xl font-bold text-primary cursor-pointer hover:opacity-80 transition-opacity">UniHire</h1>
           </Link>
           <div className="flex items-center gap-4">
             {!isAuthenticated ? (
@@ -152,9 +152,9 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-border py-12 bg-white">
         <div className="container mx-auto px-4 text-center text-text-secondary">
-          <h2 className="text-2xl font-bold text-primary mb-4">UniPart</h2>
+          <h2 className="text-2xl font-bold text-primary mb-4">UniHire</h2>
           <p className="mb-6">Nền tảng kết nối sinh viên và doanh nghiệp hàng đầu.</p>
-          <p className="text-sm">&copy; 2024 UniPart. All rights reserved.</p>
+          <p className="text-sm">&copy; 2024 UniHire. All rights reserved.</p>
         </div>
       </footer>
     </div>
