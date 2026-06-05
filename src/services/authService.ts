@@ -22,6 +22,7 @@ import {
   UserResponse,
   VerifyOTPRequest,
   SendOTPRequest,
+  ResetPasswordRequest,
 } from "../types/auth";
 
 // Placeholder for constants, replace with your actual constants file
@@ -138,6 +139,14 @@ class AuthService {
   async forgotPassword(request: ForgotPasswordRequest): Promise<ApiResponse<string>> {
     const response = await this.api.post<ApiResponse<string>>(
       "/auth/forgotPassword",
+      request
+    );
+    return response.data;
+  }
+
+  async resetPassword(request: ResetPasswordRequest): Promise<ApiResponse<string>> {
+    const response = await this.api.post<ApiResponse<string>>(
+      "/auth/resetPassword",
       request
     );
     return response.data;

@@ -5,7 +5,7 @@
  */
 
 import React, { createContext, useCallback, useEffect, useState } from "react";
-import { AuthContextType, AuthenticationRequest, RegisterRequest, StudentRegistrationRequest, EmployerRegistrationRequest, UserResponse, VerifyOTPRequest, SendOTPRequest, ForgotPasswordRequest } from "@/types";
+import { AuthContextType, AuthenticationRequest, RegisterRequest, StudentRegistrationRequest, EmployerRegistrationRequest, UserResponse, VerifyOTPRequest, SendOTPRequest, ForgotPasswordRequest, ResetPasswordRequest } from "@/types";
 import { TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY } from "@/lib/constants";
 import { authService } from "@/services/authService";
 import { userService } from "@/services/userService";
@@ -337,6 +337,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
+  const resetPassword = useCallback(async (data: ResetPasswordRequest) => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await authService.resetPassword(data);
+      if (!isSuccessCode(response.code)) {
+        throw new Error(response.message || "Failed to reset password");
+      }
+      return response;
+    } catch (error: any) {
+      setError(error.message || "Failed to reset password");
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const changePassword = useCallback(async (oldPassword: string, newPassword: string) => {
     const response = await authService.changePassword({
       currentPassword: oldPassword,
@@ -377,6 +395,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     verifyOtp,
     resetOtp,
     forgotPassword,
+    resetPassword,
     changePassword,
     clearError,
     updateUser,

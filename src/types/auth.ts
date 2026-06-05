@@ -45,6 +45,12 @@ export interface VerifyOTPRequest {
   otp: string;
 }
 
+export interface ResetPasswordRequest {
+  email: string;
+  otp: string;
+  newPassword: string;
+}
+
 export interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;
@@ -161,6 +167,7 @@ export interface AuthContextType {
   verifyOtp: (data: VerifyOTPRequest) => Promise<any>;
   resetOtp: (data: SendOTPRequest) => Promise<any>;
   forgotPassword: (data: ForgotPasswordRequest) => Promise<any>;
+  resetPassword: (data: ResetPasswordRequest) => Promise<any>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<any>;
   clearError: () => void;
   updateUser: (partial: Partial<UserResponse>) => void;
