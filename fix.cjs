@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 
 const srcDir = path.join(__dirname, 'src');
-const pattern = /\s*\|\|\s*['"`]http:\/\/localhost:8080(?:\/api)?['"`]/g;
 
 let count = 0;
 
@@ -14,11 +13,21 @@ function walkDir(dir) {
         if (stat.isDirectory()) {
             walkDir(fullPath);
         } else if (fullPath.endsWith('.ts') || fullPath.endsWith('.tsx')) {
-            const content = fs.readFileSync(fullPath, 'utf8');
-            if (pattern.test(content)) {
-                // We add " as string" to maintain TypeScript types
-                const newContent = content.replace(pattern, ' as string');
-                fs.writeFileSync(fullPath, newContent, 'utf8');
+            let content = fs.readFileSync(fullPath, 'utf8');
+            let modified = false;
+            
+            if (content.includes('import.meta.env.VITE_API_URL as string')) {
+                content = content.replace(/import\.meta\.env\.VITE_API_URL as string/g, "(import.meta.env.VITE_API_URL as string || '/api')");
+                modified = true;
+            } else if (content.includes('import.meta.env.VITE_API_URL')) {
+                content = content.replace(/import\.meta\.env\.VITE_API_URL/g, "(import.meta.env.VITE_API_URL || '/api')");
+                modified = true;
+            }
+
+            // Cleanup redundant fallbacks if script runs multiple times
+            if (modified) {
+                content = content.replace(/\(\(import\.meta\.env\.VITE_API_URL(?: as string)? \|\| '\/api'\)(?: as string)? \|\| '\/api'\)/g, "(import.meta.env.VITE_API_URL as string || '/api')");
+                fs.writeFileSync(fullPath, content, 'utf8');
                 count++;
                 console.log(`Updated ${fullPath}`);
             }

@@ -1,6 +1,6 @@
 import { ApiResponse } from "./authService";
 
-const BASE_URL = `${import.meta.env.VITE_API_URL as string}/notification`;
+const BASE_URL = `${(import.meta.env.VITE_API_URL as string || '/api')}/notification`;
 
 export interface NotificationResponse {
   id: number;
