@@ -36,10 +36,10 @@ export default function EmployerLogin() {
       // Tất cả role đều về trang chủ sau khi đăng nhập
       navigate("/");
     } catch (err: any) {
-      let displayMessage = "Tên đăng nhập hoặc mật khẩu không đúng";
+      let displayMessage = "Tên đăng nhập, email hoặc mật khẩu không đúng";
       if (err?.message) {
         if (err.message.includes("Unauthenticated") || err.message.includes("không tồn tại") || err.message.includes("Login failed")) {
-          displayMessage = "Tên đăng nhập hoặc mật khẩu không đúng";
+          displayMessage = "Tên đăng nhập, email hoặc mật khẩu không đúng";
         } else {
           displayMessage = err.message;
         }
