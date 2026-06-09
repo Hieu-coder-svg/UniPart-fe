@@ -40,9 +40,21 @@ export default function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [hasDragged, setHasDragged] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { text: "Xin chào! Tôi là trợ lý AI của UniHire. Tôi có thể giúp bạn tìm công việc phù hợp với lịch học và sở thích của bạn! 🎯", isBot: true },
-  ]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const saved = sessionStorage.getItem("studentChatHistory");
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error("Error parsing student chat history:", e);
+    }
+    return [{ text: "Xin chào! Tôi là trợ lý AI của UniHire. Tôi có thể giúp bạn tìm công việc phù hợp với lịch học và sở thích của bạn! 🎯", isBot: true }];
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem("studentChatHistory", JSON.stringify(messages));
+  }, [messages]);
   const [input, setInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -258,29 +270,89 @@ export default function ChatBot() {
 
 
 
+  const [showGreeting, setShowGreeting] = useState(true);
+  const [tiltStyle, setTiltStyle] = useState({ transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)' });
+
+  useEffect(() => {
+    // Show greeting periodically or initially
+    const timer = setTimeout(() => {
+      setShowGreeting(false);
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleBotPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (isDragging) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    
+    const rotateX = ((y - centerY) / centerY) * -25;
+    const rotateY = ((x - centerX) / centerX) * 25;
+
+    setTiltStyle({
+      transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.15, 1.15, 1.15)`,
+      transition: 'transform 0.1s ease-out'
+    });
+  };
+
+  const handleBotPointerLeave = () => {
+    setTiltStyle({ 
+      transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+      transition: 'transform 0.5s ease-out'
+    });
+    setTimeout(() => setShowGreeting(false), 3000);
+  };
+
   if (!isOpen) {
     return (
-      <button
-        onPointerDown={handlePointerDown}
-        onClick={() => {
-          if (!hasDragged) setIsOpen(true);
-        }}
-        className="fixed z-50 transition-transform duration-300 flex items-center justify-center group drop-shadow-2xl hover:drop-shadow-[0_20px_20px_rgba(0,0,0,0.25)]"
+      <div
+        className="fixed z-50 pointer-events-none"
         style={{
           width: "7rem",
           height: "7rem",
           bottom: `${(window.innerWidth < 768 ? 80 : 60) - position.y}px`,
           right: `${24 - position.x}px`,
-          cursor: isDragging ? 'grabbing' : 'grab',
-          touchAction: 'none'
+          perspective: "1000px"
         }}
-        title="Trò chuyện với AI"
       >
-        <img src={unibotAvatar} alt="ChatBot Mascot" className="w-full h-full object-contain pointer-events-none" />
-        <div className="absolute top-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center z-10 shadow-md">
-          <Sparkles className="w-3 h-3 text-white" />
+        {/* Welcome message bubble */}
+        <div 
+          className={`absolute bottom-full right-0 mb-4 whitespace-nowrap px-4 py-2.5 bg-white rounded-2xl shadow-xl border border-blue-100 text-sm font-medium text-gray-700 transition-all duration-500 pointer-events-auto cursor-pointer flex items-center gap-2 ${showGreeting ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}
+          onClick={() => setIsOpen(true)}
+          onMouseEnter={() => setShowGreeting(true)}
+          style={{ animation: 'bounce 2s infinite' }}
+        >
+          <span className="animate-wave inline-block origin-bottom-right">👋</span> Xin chào! Cần tìm việc làm?
+          <div className="absolute -bottom-2 right-8 border-8 border-transparent border-t-white"></div>
         </div>
-      </button>
+        
+        <button
+          onPointerDown={handlePointerDown}
+          onPointerMove={handleBotPointerMove}
+          onPointerLeave={handleBotPointerLeave}
+          onClick={() => {
+            if (!hasDragged) setIsOpen(true);
+          }}
+          onMouseEnter={() => setShowGreeting(true)}
+          className="w-full h-full flex items-center justify-center group drop-shadow-2xl animate-bounce pointer-events-auto"
+          style={{
+            cursor: isDragging ? 'grabbing' : 'grab',
+            touchAction: 'none',
+            animationDuration: "3s",
+            ...tiltStyle
+          }}
+          title="Trò chuyện với AI"
+        >
+          <img src={unibotAvatar} alt="ChatBot Mascot" className="w-full h-full object-contain pointer-events-none drop-shadow-[0_10px_20px_rgba(0,0,0,0.3)] transition-all duration-300 origin-bottom" style={{ transformStyle: 'preserve-3d' }} />
+          <div className="absolute top-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center z-10 shadow-md" style={{ transform: 'translateZ(30px)' }}>
+            <Sparkles className="w-3 h-3 text-white animate-pulse" />
+          </div>
+        </button>
+      </div>
     );
   }
 

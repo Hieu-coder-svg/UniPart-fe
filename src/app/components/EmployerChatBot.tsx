@@ -102,14 +102,30 @@ export function EmployerChatBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [hasDragged, setHasDragged] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      text: "Xin chào! Tôi là trợ lý AI của UniHire. Tôi có thể giúp bạn tư vấn về các gói dịch vụ, bảng giá và hướng dẫn tuyển dụng. Bạn cần hỗ trợ gì? 🚀",
-      sender: "bot",
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const saved = sessionStorage.getItem("employerChatHistory");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
+      }
+    } catch (e) {
+      console.error("Error parsing chat history:", e);
+    }
+    return [
+      {
+        id: "1",
+        text: "Xin chào! Tôi là trợ lý AI của UniHire. Tôi có thể giúp bạn tư vấn về các gói dịch vụ, bảng giá và hướng dẫn tuyển dụng. Bạn cần hỗ trợ gì? 🚀",
+        sender: "bot",
+        timestamp: new Date(),
+      },
+    ];
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem("employerChatHistory", JSON.stringify(messages));
+  }, [messages]);
+
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -242,33 +258,89 @@ export function EmployerChatBot() {
 
   const quickSuggestions = getQuickSuggestions(messages);
 
+  const [showGreeting, setShowGreeting] = useState(true);
+  const [tiltStyle, setTiltStyle] = useState({ transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)' });
+
+  useEffect(() => {
+    // Show greeting periodically or initially
+    const timer = setTimeout(() => {
+      setShowGreeting(false);
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleBotPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (isDragging) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    const rotateX = ((y - centerY) / centerY) * -25;
+    const rotateY = ((x - centerX) / centerX) * 25;
+
+    setTiltStyle({
+      transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.15, 1.15, 1.15)`,
+      transition: 'transform 0.1s ease-out'
+    });
+  };
+
+  const handleBotPointerLeave = () => {
+    setTiltStyle({
+      transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+      transition: 'transform 0.5s ease-out'
+    });
+    setTimeout(() => setShowGreeting(false), 3000);
+  };
+
   if (!isOpen) {
     return (
-      <button
-        onPointerDown={handlePointerDown}
-        onClick={() => {
-          if (!hasDragged) setIsOpen(true);
-        }}
-        className="fixed z-50 transition-transform duration-300 flex items-center justify-center group drop-shadow-2xl hover:drop-shadow-[0_20px_20px_rgba(0,0,0,0.25)]"
+      <div
+        className="fixed z-50 pointer-events-none"
         style={{
           width: "7rem",
           height: "7rem",
           bottom: `${24 - position.y}px`,
           right: `${24 - position.x}px`,
-          cursor: isDragging ? "grabbing" : "grab",
-          touchAction: 'none'
+          perspective: "1000px"
         }}
-        title="Tư vấn với AI"
       >
-        <img src={unibotAvatar} alt="Tư vấn với AI" className="w-full h-full object-contain pointer-events-none" />
-        <span className="absolute top-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center z-10 shadow-md pointer-events-none">
-          <Sparkles className="w-3 h-3 text-white" />
-        </span>
-        <div className="absolute bottom-full right-0 mb-3 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-          Tư vấn miễn phí
-          <div className="absolute top-full right-4 -mt-1 border-4 border-transparent border-t-gray-900" />
+        {/* Welcome message bubble */}
+        <div 
+          className={`absolute bottom-full right-0 mb-4 whitespace-nowrap px-4 py-2.5 bg-white rounded-2xl shadow-xl border border-orange-100 text-sm font-medium text-gray-700 transition-all duration-500 pointer-events-auto cursor-pointer flex items-center gap-2 ${showGreeting ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}
+          onClick={() => setIsOpen(true)}
+          onMouseEnter={() => setShowGreeting(true)}
+          style={{ animation: 'bounce 2s infinite' }}
+        >
+          <span className="animate-wave inline-block origin-bottom-right">👋</span> Xin chào! Cần tư vấn tuyển dụng?
+          <div className="absolute -bottom-2 right-8 border-8 border-transparent border-t-white"></div>
         </div>
-      </button>
+        
+        <button
+          onPointerDown={handlePointerDown}
+          onPointerMove={handleBotPointerMove}
+          onPointerLeave={handleBotPointerLeave}
+          onClick={() => {
+            if (!hasDragged) setIsOpen(true);
+          }}
+          onMouseEnter={() => setShowGreeting(true)}
+          className="w-full h-full flex items-center justify-center group drop-shadow-2xl animate-bounce pointer-events-auto"
+          style={{
+            cursor: isDragging ? 'grabbing' : 'grab',
+            touchAction: 'none',
+            animationDuration: "3s",
+            ...tiltStyle
+          }}
+          title="Tư vấn với AI"
+        >
+          <img src={unibotAvatar} alt="Tư vấn với AI" className="w-full h-full object-contain pointer-events-none drop-shadow-[0_10px_20px_rgba(0,0,0,0.3)] transition-all duration-300 origin-bottom" style={{ transformStyle: 'preserve-3d' }} />
+          <span className="absolute top-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center z-10 shadow-md pointer-events-none" style={{ transform: 'translateZ(30px)' }}>
+            <Sparkles className="w-3 h-3 text-white animate-pulse" />
+          </span>
+        </button>
+      </div>
     );
   }
 
