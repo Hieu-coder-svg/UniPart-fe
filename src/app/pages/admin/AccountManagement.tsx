@@ -275,11 +275,26 @@ export default function AccountManagement() {
     student: "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-sm border-0",
   };
 
+  const removeAccents = (str: string) => {
+    if (!str) return "";
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D');
+  };
+
+  const normalizedSearchQuery = removeAccents(searchQuery.toLowerCase());
+
   const filteredAccounts = accounts
-    .filter((a) =>
-      (a.username || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (a.email || "").toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    .filter((a) => {
+      const uName = removeAccents((a.username || "").toLowerCase());
+      const uEmail = removeAccents((a.email || "").toLowerCase());
+      const fName = removeAccents((a.fullName || "").toLowerCase());
+      return uName.includes(normalizedSearchQuery) || 
+             uEmail.includes(normalizedSearchQuery) || 
+             fName.includes(normalizedSearchQuery);
+    })
     .filter((a) => filterRole === "all" || a.role === filterRole)
     .filter((a) => filterStatus === "all" || a.status === filterStatus)
     .filter((a) => {
