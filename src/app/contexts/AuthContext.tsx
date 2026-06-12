@@ -155,6 +155,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
           // The axios interceptor handles 401 errors and redirects to login,
           // but we also clear the auth context here just in case.
           clearAuthData();
+          if (user.role === "EMPLOYER") {
+            window.location.href = '/employer/login';
+          } else {
+            window.location.href = '/login';
+          }
         }
       }, 15000); // Check every 15 seconds
     }
