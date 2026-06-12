@@ -139,6 +139,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
     initializeAuth();
   }, []);
 
+  // Heartbeat check to log out users if their account is locked/blocked
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    if (user) {
+      intervalId = setInterval(async () => {
+        try {
+          if (user.role === "STUDENT") {
+            await userService.getStudentMyInfo();
+          } else if (user.role === "EMPLOYER") {
+            await userService.getEmployerMyInfo();
+          }
+        } catch (error) {
+          // The axios interceptor handles 401 errors and redirects to login,
+          // but we also clear the auth context here just in case.
+          clearAuthData();
+        }
+      }, 15000); // Check every 15 seconds
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [user]);
+
   const login = useCallback(async (username: string, password: string) => {
     setIsLoading(true);
     setError("");
