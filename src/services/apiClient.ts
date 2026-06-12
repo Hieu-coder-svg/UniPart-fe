@@ -26,6 +26,12 @@ class ApiClient {
     this.api.interceptors.response.use(
       (response) => response,
       (error) => {
+        if (error.response?.status === 401 || error.response?.data?.message === "Unauthenticated") {
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+          return Promise.reject(new Error("Phiên đăng nhập đã hết hạn hoặc tài khoản bị khóa"));
+        }
         if (error.response?.data?.message) {
           return Promise.reject(new Error(error.response.data.message));
         }
