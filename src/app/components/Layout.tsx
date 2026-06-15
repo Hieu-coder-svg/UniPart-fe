@@ -2,7 +2,7 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import {
   Briefcase, Users, User, Home, Bookmark, LogOut, LogIn,
   PlusCircle, Bell, FileText, LayoutDashboard, ChevronDown,
-  Settings, GraduationCap, Flag,
+  Settings, GraduationCap, Flag, HelpCircle
 } from "lucide-react";
 import ChatBot from "./ChatBot";
 import { EmployerChatBot } from "./EmployerChatBot";
@@ -20,6 +20,8 @@ export default function Layout() {
   const hasUnread = unreadCount > 0;
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [manualDropdownOpen, setManualDropdownOpen] = useState(false);
+  const manualDropdownRef = useRef<HTMLDivElement>(null);
 
   const isEmployer = user?.role === "EMPLOYER";
   const isAdmin = user?.role === "ADMIN";
@@ -45,6 +47,9 @@ export default function Layout() {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
+      }
+      if (manualDropdownRef.current && !manualDropdownRef.current.contains(e.target as Node)) {
+        setManualDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -152,6 +157,16 @@ export default function Layout() {
                     <span>Cộng đồng</span>
                   </Link>
                   <Link
+                    to="/manual/employer"
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${location.pathname.startsWith("/manual/employer")
+                      ? "bg-gradient-to-r from-orange-100 to-red-100 text-orange-700"
+                      : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
+                      }`}
+                  >
+                    <HelpCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>Hướng dẫn</span>
+                  </Link>
+                  <Link
                     to="/employer/dashboard/jobs"
                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:scale-105 transition-all ml-2"
                   >
@@ -179,6 +194,23 @@ export default function Layout() {
                       )}
                     </Link>
                   ))}
+
+                  {/* Hướng dẫn */}
+                  {isAuthenticated && user?.role === "STUDENT" && (
+                    <Link
+                      to="/manual/student"
+                      className={`relative flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${location.pathname.startsWith("/manual/student")
+                        ? "text-blue-600 bg-blue-50"
+                        : "text-gray-600 hover:text-blue-600 hover:bg-blue-50/60"
+                        }`}
+                    >
+                      <HelpCircle className="w-4 h-4 flex-shrink-0" />
+                      <span className="whitespace-nowrap">Hướng dẫn</span>
+                      {location.pathname.startsWith("/manual/student") && (
+                        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-blue-600 rounded-full" />
+                      )}
+                    </Link>
+                  )}
                 </>
               )}
             </nav>

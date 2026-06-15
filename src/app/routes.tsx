@@ -43,6 +43,8 @@ import AdminNotifications from "./pages/admin/AdminNotifications";
 import AdminCategories from "./pages/admin/AdminCategories";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
+import StudentManual from "./pages/manual/StudentManual";
+import EmployerManual from "./pages/manual/EmployerManual";
 
 export const router = createBrowserRouter([
   {
@@ -133,6 +135,8 @@ export const router = createBrowserRouter([
       { path: "student/information", Component: StudentInformation },
       { path: "notifications", Component: Notifications },
       { path: "my-reports", Component: MyReports },
+      { path: "manual/student", Component: StudentManual },
+      { path: "manual/employer", Component: EmployerManual },
       { path: "*", Component: NotFound },
     ],
   },
