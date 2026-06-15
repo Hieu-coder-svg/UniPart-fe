@@ -62,6 +62,7 @@ export interface UserResponse {
   username: string;
   email: string;
   fullName: string;
+  dateOfBirth?: string;
   role: UserRole;
   avatar?: string;
   createdAt: string;
