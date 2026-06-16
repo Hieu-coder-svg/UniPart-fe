@@ -1,6 +1,28 @@
 import axios, { AxiosInstance } from "axios";
 import { ApiResponse, PaginatedResponse } from "../types/auth";
 
+export enum JobType {
+    EDUCATION = "EDUCATION",
+    RESTAURANT = "RESTAURANT",
+    RETAIL = "RETAIL",
+    LOGISTICS = "LOGISTICS",
+    OFFICE = "OFFICE",
+    MARKETING = "MARKETING",
+    DELIVERY = "DELIVERY",
+    SUPERMARKET = "SUPERMARKET"
+}
+
+export const JobTypeLabels: Record<JobType, string> = {
+    [JobType.EDUCATION]: "Giáo dục",
+    [JobType.RESTAURANT]: "Nhà hàng",
+    [JobType.RETAIL]: "Bán lẻ",
+    [JobType.LOGISTICS]: "Kho vận",
+    [JobType.OFFICE]: "Văn phòng",
+    [JobType.MARKETING]: "Marketing",
+    [JobType.DELIVERY]: "Giao hàng",
+    [JobType.SUPERMARKET]: "Siêu thị"
+};
+
 export interface JobTimeSlotResponse {
     workDate: string; // LocalDate
     startTime: string; // LocalTime
@@ -15,6 +37,7 @@ export interface JobResponse {
     image: string;
     description: string;
     workingShift: string;
+    jobType?: JobType;
     vacancies: number;
     urgent: boolean;
     address: string;
@@ -35,6 +58,7 @@ export interface JobFilterRequest {
     employerId?: string;
     title?: string;
     workingShift?: string[];
+    jobType?: JobType[];
     urgent?: boolean;
     address?: string;
     minSalary?: number;
@@ -59,6 +83,7 @@ export interface JobCreationRequest {
     image?: string;
     description?: string;
     workingShift?: string;
+    jobType?: JobType;
     vacancies: number;
     urgent?: boolean;
     address?: string;

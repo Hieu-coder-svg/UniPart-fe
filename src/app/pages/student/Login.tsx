@@ -1,6 +1,6 @@
 import { useState, FormEvent } from "react";
 import { useNavigate, Link, useLocation } from "react-router";
-import { User, Lock, Eye, EyeOff, LogIn, UserPlus, AlertCircle } from "lucide-react";
+import { User, Lock, Eye, EyeOff, LogIn, UserPlus, AlertCircle, ArrowLeft } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { RegisterStudentForm } from "../../components/auth/RegisterStudentForm";
 import type { StudentRegistrationRequest } from "../../../types/auth";
@@ -121,6 +121,12 @@ export default function Login() {
       {/* Right Side - Login/Register Form */}
       <div className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-12 bg-white">
         <div className="w-full max-w-md mx-auto">
+          {/* Back to Home Button */}
+          <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-cyan-600 transition-colors font-medium mb-4">
+            <ArrowLeft className="w-4 h-4" />
+            <span>Quay về trang chủ</span>
+          </Link>
+
           {/* Logo on desktop */}
           <div className="hidden md:block mb-8">
             <Link to="/">

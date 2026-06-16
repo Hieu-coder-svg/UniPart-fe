@@ -33,8 +33,8 @@ const studentRegisterSchema = z
       .nonempty('Số điện thoại là bắt buộc')
       .regex(/^(0|\+84)(3|5|7|8|9)[0-9]{8}$/, 'Số điện thoại không hợp lệ (phải là số điện thoại Việt Nam hợp lệ)'),
     gender: z.string().nonempty('Giới tính là bắt buộc'),
-    university: z.string().nonempty('Tên trường không được bỏ trống').min(2, 'Tên trường phải có ít nhất 2 ký tự'),
-    major: z.string().nonempty('Ngành học không được bỏ trống').min(2, 'Ngành học phải có ít nhất 2 ký tự'),
+    university: z.string().optional(),
+    major: z.string().optional(),
     address: z.string().nonempty('Địa chỉ không được bỏ trống').min(3, 'Địa chỉ phải có ít nhất 3 ký tự'),
   })
   .refine((data) => data.password === data.confirmPassword, {

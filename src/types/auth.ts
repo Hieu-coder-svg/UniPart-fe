@@ -87,8 +87,8 @@ export interface StudentRegistrationRequest {
   dateOfBirth: string; // LocalDate in Java, use string for ISO date format
   phoneNumber: string;
   gender: string;
-  university: string;
-  major: string;
+  university?: string;
+  major?: string;
   address: string;
   latitude?: number;
   longitude?: number;
