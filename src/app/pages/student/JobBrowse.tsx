@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useSearchParams } from "react-router";
-import { jobService, JobResponse, JobFilterRequest, JobRecommendationResponse } from "../../../services/jobService";
+import { jobService, JobResponse, JobFilterRequest, JobRecommendationResponse, JobType, JobTypeLabels } from "../../../services/jobService";
 import { userService, StudentScheduleResponse, StudentResponse } from "../../../services/userService";
 import { useAuth } from "../../contexts/AuthContext";
 import { calculateDistance, formatDistance } from "../../../utils/location";
@@ -36,6 +36,18 @@ const categoryIcons: Record<string, string> = {
   "Marketing": "📣",
   "Giao hàng": "🛵",
   "Siêu thị": "🏪",
+};
+
+// Map Vietnamese label -> JobType enum key
+const categoryToJobType: Record<string, JobType> = {
+  "Giáo dục": JobType.EDUCATION,
+  "Nhà hàng": JobType.RESTAURANT,
+  "Bán lẻ": JobType.RETAIL,
+  "Kho vận": JobType.LOGISTICS,
+  "Văn phòng": JobType.OFFICE,
+  "Marketing": JobType.MARKETING,
+  "Giao hàng": JobType.DELIVERY,
+  "Siêu thị": JobType.SUPERMARKET,
 };
 
 const SHIFTS = [
@@ -213,9 +225,12 @@ export default function JobBrowse() {
         }
       }
 
-      // Nếu có selectedCategory, có thể append vào searchTerm để API tìm
+      // Gửi jobType filter đúng cách thay vì append vào title
       if (selectedCategory !== "all") {
-        filter.title = filter.title ? `${filter.title} ${selectedCategory}` : selectedCategory;
+        const jobTypeValue = categoryToJobType[selectedCategory];
+        if (jobTypeValue) {
+          filter.jobType = [jobTypeValue];
+        }
       }
 
       const res = await jobService.getAllJobs(filter);
