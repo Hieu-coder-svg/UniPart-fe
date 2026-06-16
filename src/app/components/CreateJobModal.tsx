@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { X, Briefcase, MapPin, DollarSign, Users, Clock, ImagePlus, Loader2, AlertTriangle, Package, Zap } from "lucide-react";
-import { jobService, JobCreationRequest } from "../../services/jobService";
+import { jobService, JobCreationRequest, JobType, JobTypeLabels } from "../../services/jobService";
 import { uploadImageToCloudinary } from "../../services/uploadService";
 import { userService } from "../../services/userService";
 import { Link } from "react-router";
@@ -37,6 +37,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
     title: "",
     description: "",
     workingShift: "Full-time",
+    jobType: undefined,
     vacancies: 1,
     urgent: false,
     address: "",
@@ -123,6 +124,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
         title: "",
         description: "",
         workingShift: "Full-time",
+        jobType: undefined,
         vacancies: 1,
         urgent: false,
         address: "",
@@ -149,6 +151,14 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!imageFile && !formData.image) {
+      setError("Vui lòng tải lên ảnh bìa công việc");
+      return;
+    }
+    if (!formData.jobType) {
+      setError("Vui lòng chọn ngành nghề");
+      return;
+    }
     if (formData.urgent) {
       if ((remainingUrgentPosts === null || remainingUrgentPosts <= 0) && (remainingMonthlyUrgentPosts === null || remainingMonthlyUrgentPosts <= 0)) {
         setError("Bạn đã hết lượt đăng tin tuyển gấp. Vui lòng mua thêm gói để tiếp tục.");
@@ -333,13 +343,29 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Loại công việc / Ca làm việc *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ngành nghề *</label>
+                <select
+                  value={formData.jobType || ""}
+                  onChange={(e) => setFormData({...formData, jobType: e.target.value as JobType})}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500"
+                  required
+                >
+                  <option value="" disabled>Chọn ngành nghề</option>
+                  {Object.entries(JobTypeLabels).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ca làm việc *</label>
                 <select
                   value={formData.workingShift}
                   onChange={(e) => setFormData({...formData, workingShift: e.target.value})}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500"
+                  required
                 >
                   <option value="Ca Sáng">Ca Sáng</option>
                   <option value="Ca Chiều">Ca Chiều</option>
@@ -406,6 +432,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
+                  required
                   value={formData.address}
                   onChange={handleAddressChange}
                   onFocus={() => { if (addressSuggestions.length > 0) setShowSuggestions(true); }}
@@ -538,6 +565,7 @@ export function CreateJobModal({ isOpen, onClose, onSuccess }: CreateJobModalPro
               <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả công việc</label>
               <textarea
                 rows={4}
+                required
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
                 className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500"

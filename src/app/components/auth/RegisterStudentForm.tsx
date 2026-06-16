@@ -33,8 +33,6 @@ const studentRegisterSchema = z
       .nonempty('Số điện thoại là bắt buộc')
       .regex(/^(0|\+84)(3|5|7|8|9)[0-9]{8}$/, 'Số điện thoại không hợp lệ (phải là số điện thoại Việt Nam hợp lệ)'),
     gender: z.string().nonempty('Giới tính là bắt buộc'),
-    university: z.string().optional(),
-    major: z.string().optional(),
     address: z.string().nonempty('Địa chỉ không được bỏ trống').min(3, 'Địa chỉ phải có ít nhất 3 ký tự'),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -158,34 +156,6 @@ export function RegisterStudentForm({ onSubmit, isLoading = false }: RegisterStu
             <option value="Other">Khác</option>
           </select>
           {errors.gender && <p className="text-sm text-destructive">{errors.gender.message}</p>}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="university">Trường</Label>
-          <Input
-            id="university"
-            type="text"
-            placeholder="Tên trường"
-            {...register('university')}
-            disabled={isLoading}
-            className="bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-          />
-          {errors.university && <p className="text-sm text-destructive">{errors.university.message}</p>}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="major">Ngành học</Label>
-          <Input
-            id="major"
-            type="text"
-            placeholder="Ngành học"
-            {...register('major')}
-            disabled={isLoading}
-            className="bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-          />
-          {errors.major && <p className="text-sm text-destructive">{errors.major.message}</p>}
         </div>
 
         <div className="space-y-2">
