@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router";
-import { Mail, Lock, Eye, EyeOff, LogIn, UserPlus, AlertCircle, CheckCircle, Sparkles } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, LogIn, UserPlus, AlertCircle, CheckCircle, Sparkles, ArrowLeft } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import logoImage from "../../../assets/logo_new1.png";
@@ -140,8 +140,13 @@ export default function EmployerLogin() {
           </div>
 
           {/* Right side - Form */}
-          <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-8 md:p-10 border border-white/50 w-full max-w-xl mx-auto">
-            {/* Header */}
+          <div className="w-full max-w-xl mx-auto flex flex-col">
+            <Link to="/" className="inline-flex items-center gap-2 text-gray-600 hover:text-orange-600 transition-colors font-medium mb-4 bg-white/50 px-4 py-2 rounded-xl backdrop-blur-sm shadow-sm border border-white/50 self-start">
+              <ArrowLeft className="w-4 h-4" />
+              <span>Quay về trang chủ</span>
+            </Link>
+            <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-8 md:p-10 border border-white/50 w-full">
+              {/* Header */}
             <div className="text-center mb-8">
               <h2 className="text-2xl mb-2 font-semibold">
                 {isLogin ? "Chào mừng trở lại" : "Tạo tài khoản mới"}
@@ -284,6 +289,7 @@ export default function EmployerLogin() {
               <Link to="/employer">
                 <img src={logoImage} alt="UniHire Employer" className="h-20 mx-auto cursor-pointer hover:opacity-80 transition-opacity" />
               </Link>
+            </div>
             </div>
           </div>
         </div>

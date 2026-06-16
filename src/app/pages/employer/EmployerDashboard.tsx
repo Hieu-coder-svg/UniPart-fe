@@ -19,6 +19,19 @@ import { Link } from "react-router";
 import { jobService, JobResponse } from "../../../services/jobService";
 import { applicationService, ApplicationResponse } from "../../../services/applicationService";
 import { userService, EmployerResponse } from "../../../services/userService";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
+} from 'recharts';
 
 export default function EmployerDashboard() {
   const { user } = useAuth();
@@ -152,6 +165,22 @@ export default function EmployerDashboard() {
     },
   ];
 
+  const jobStatsData = jobs.slice(0, 5).map(job => ({
+    name: job.title.length > 15 ? job.title.substring(0, 15) + "..." : job.title,
+    views: job.viewCount || 0,
+    applicants: applications.filter(a => a.jobId === job.id).length
+  }));
+
+  const applicationStatusData = [
+    { name: 'Chờ duyệt', value: applications.filter(a => a.status === 'PENDING').length, color: '#F59E0B' },
+    { name: 'Đã chấp nhận', value: applications.filter(a => a.status === 'ACCEPTED').length, color: '#10B981' },
+    { name: 'Đã từ chối', value: applications.filter(a => a.status === 'REJECTED').length, color: '#EF4444' }
+  ].filter(d => d.value > 0);
+  
+  if (applicationStatusData.length === 0) {
+    applicationStatusData.push({ name: 'Chưa có ứng viên', value: 1, color: '#E5E7EB' });
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
       {/* Welcome Banner */}
@@ -253,6 +282,54 @@ export default function EmployerDashboard() {
               </div>
             </Link>
           ))}
+        </div>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+          <h2 className="text-xl font-semibold mb-6 text-gray-900">Thống kê ứng viên theo trạng thái</h2>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={applicationStatusData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {applicationStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend verticalAlign="bottom" height={36} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+          <h2 className="text-xl font-semibold mb-6 text-gray-900">Hiệu quả tin tuyển dụng (Top 5)</h2>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={jobStatsData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" tick={{fontSize: 12}} />
+                <YAxis />
+                <Tooltip 
+                  cursor={{fill: 'rgba(0,0,0,0.05)'}}
+                  contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
+                />
+                <Legend verticalAlign="bottom" height={36} />
+                <Bar dataKey="views" name="Lượt xem" fill="#F97316" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="applicants" name="Ứng viên" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
